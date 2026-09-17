@@ -1,0 +1,68 @@
+project_id = "zeiterfassung"
+
+# Bewusst nicht auf den Supabase-Standardports 5432x: auf diesem Rechner läuft
+# bereits ein anderes lokales Supabase-Projekt. Zwei Projekte gleichzeitig
+# gehen nur mit getrennten Ports.
+[api]
+enabled = true
+port = 54421
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54422
+shadow_port = 54420
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[studio]
+enabled = true
+port = 54423
+api_url = "http://127.0.0.1:54421"
+
+# Fängt ausgehende Mails lokal ab, damit beim Entwickeln nichts nach außen geht.
+[local_smtp]
+enabled = true
+port = 54424
+
+[storage]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Das ist die Stellschraube für die Selbstregistrierung: sie setzt in GoTrue
+# DISABLE_SIGNUP. Mitarbeiter legt ausschließlich der Admin an.
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enabled = true
+# Achtung, irreführender Name: diese Zeile setzt EXTERNAL_EMAIL_ENABLED und
+# schaltet damit die Anmeldung per E-Mail insgesamt frei, nicht bloß die
+# Registrierung. Auf false steht hier niemand mehr an — auch bestehende
+# Benutzer nicht. Die Registrierung sperrt [auth] enable_signup oben.
+enable_signup = true
+double_confirm_changes = true
+# Lokal aus, damit die Testbenutzer sofort brauchbar sind. In der Produktion
+# gehört das auf true, zusammen mit einem echten SMTP-Zugang.
+enable_confirmations = false
+secure_password_change = true
+
+[auth.email.template.invite]
+subject = "Zugang zur Zeiterfassung"
+
+[analytics]
+enabled = false
+port = 54427
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"

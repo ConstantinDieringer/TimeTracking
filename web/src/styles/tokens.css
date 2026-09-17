@@ -1,0 +1,101 @@
+/*
+ * Gestaltungsgrundlage.
+ *
+ * Diese Datei ist die Antwort auf die Anforderung, dass die Anwendung nicht
+ * nach KI-Generat aussehen soll. Der Fingerabdruck, den generierte Oberflächen
+ * fast ausnahmslos tragen, ist erstaunlich einheitlich:
+ *
+ *   Inter · Indigo-zu-Violett-Verlauf · drei abgerundete Karten nebeneinander ·
+ *   Badge über der Überschrift · Glassmorphismus · 12-px-Radien überall ·
+ *   nummerierte 1-2-3-Schritte · zentrierte Hero-Sektion
+ *
+ * Jede der folgenden Festlegungen weicht bewusst davon ab. Sie sind Vorgaben,
+ * keine Vorschläge — wer hier etwas ergänzt, prüft es gegen diese Liste.
+ */
+
+:root {
+  /* --- Farbe -------------------------------------------------------------
+   * Kein Indigo, kein Violett, keine Verläufe. Der Hintergrund ist nicht
+   * reines Weiß, sondern ein warmes Papierweiß — das nimmt dem Bildschirm die
+   * Härte und wirkt wie ein gedrucktes Journal, was zur Sache passt.
+   */
+  --paper: #fbfaf7;
+  --surface: #ffffff;
+  --surface-sunken: #f4f2ed;
+
+  --ink: #1a1a18;
+  --ink-muted: #6e6b64;
+  --ink-faint: #97938a;
+
+  --hairline: #e3e0d8;
+  --hairline-strong: #cdc9be;
+
+  /* Ein einziger Akzent: gedecktes Tannengrün. Institutionell, ruhig,
+   * und vor allem nicht die statistische Mitte der Trainingsdaten. */
+  --accent: #2f5d50;
+  --accent-soft: #e8efeb;
+  --accent-hover: #24473d;
+
+  /* Ampelfarben entsättigt. Ein grelles Rot neben einer Stundenzahl liest
+   * sich wie ein Alarm; hier geht es meist um Hinweise. */
+  --warn: #a6741b;
+  --warn-soft: #f7f0e0;
+  --violation: #9b2c24;
+  --violation-soft: #f8eae8;
+  --positive: #2f5d50;
+
+  /* --- Typografie --------------------------------------------------------
+   * IBM Plex statt Inter. Plex hat einen technischen, leicht eigenwilligen
+   * Charakter und — entscheidend für eine Zeiterfassung — echte
+   * Tabellenziffern, damit Stundenspalten wirklich fluchten.
+   */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --text-xs: 0.6875rem;  /* 11px — Spaltenköpfe, Fundstellen */
+  --text-sm: 0.8125rem;  /* 13px — Fließtext in Tabellen */
+  --text-base: 0.9375rem;/* 15px */
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  /* --- Maße --------------------------------------------------------------
+   * Enges Vertikalraster statt großzügiger Hero-Abstände: eine Zeiterfassung
+   * lebt von Datendichte, nicht von Luft.
+   */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  /* Radius 2 px statt 12 px. Der Unterschied ist klein und entscheidet doch
+   * darüber, ob eine Fläche wie ein Formular oder wie eine App-Kachel wirkt. */
+  --radius: 2px;
+  --radius-sm: 1px;
+
+  --border: 1px solid var(--hairline);
+
+  /* Bewusst kein Schatten-Token. Getrennt wird mit Haarlinien; Schatten und
+   * abgerundete Karten sind genau die Optik, die vermieden werden soll. */
+
+  --content-width: 68rem;
+}
+
+/*
+ * Ausdrückliche Gegenliste. Was hier steht, gehört nicht in dieses Projekt:
+ *
+ *   ✗ font-family: Inter
+ *   ✗ linear-gradient(…#6366f1…#8b5cf6…) und Verwandte
+ *   ✗ backdrop-filter: blur(…) auf halbtransparenten Flächen
+ *   ✗ border-radius über 3px
+ *   ✗ box-shadow als Trennmittel
+ *   ✗ Grid aus drei gleich großen Karten als Seiteneinstieg
+ *   ✗ Emoji als Symbol
+ *   ✗ Beschriftungen wie „Übersicht auf einen Blick" ohne konkrete Aussage
+ */
