@@ -116,16 +116,13 @@ export function useSaveContractDefaults() {
 
   return useMutation({
     mutationFn: async (defaults: ContractDefaults) => {
-      const { error } = await supabase.from('settings').upsert(
-        {
-          key: SETTINGS_KEY,
-          valid_year: YEARLESS,
-          value: toStored(defaults),
-          description: 'Vorbelegung für neu angelegte Verträge.',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key,valid_year' },
-      );
+      // Über eine Funktion statt per upsert: die Eindeutigkeit hängt seit der
+      // Mandantentrennung an einem partiellen Index, den ein Konflikt-Ziel im
+      // Client nicht ansprechen kann. Die Funktion bindet den Wert zugleich an
+      // das Unternehmen des Aufrufers.
+      const { error } = await supabase.rpc('save_contract_defaults', {
+        p_value: toStored(defaults),
+      });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -83,6 +83,13 @@ Deno.serve(async (request) => {
     return json({ error: 'Diese Aktion ist Administratoren vorbehalten.' }, 403);
   }
 
+  // Das Unternehmen kommt aus dem Token des Aufrufers, nie aus dem Aufruf
+  // selbst. Sonst ließe sich ein Benutzer in einen fremden Mandanten anlegen.
+  const { data: organizationId, error: orgError } = await caller.rpc('current_organization_id');
+  if (orgError || !organizationId) {
+    return json({ error: 'Der Aufrufer ist keinem Unternehmen zugeordnet.' }, 403);
+  }
+
   let payload: Payload;
   try {
     payload = await request.json();
@@ -91,6 +98,23 @@ Deno.serve(async (request) => {
   }
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  /**
+   * Gehört die Zielperson zum Unternehmen des Aufrufers?
+   *
+   * Muss ausdrücklich geprüft werden: die folgenden Aufrufe laufen mit dem
+   * service_role-Schlüssel und umgehen damit Row Level Security. Ohne diese
+   * Prüfung könnte ein Administrator das Passwort einer Person aus einem
+   * fremden Unternehmen zurücksetzen, sofern er deren Kennung kennt.
+   */
+  async function belongsToCallerOrganization(userId: string): Promise<boolean> {
+    const { data } = await admin
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .maybeSingle();
+    return data?.organization_id === organizationId;
+  }
 
   switch (payload.action) {
     case 'create': {
@@ -111,6 +135,7 @@ Deno.serve(async (request) => {
           display_name: payload.displayName,
           role: payload.role ?? 'employee',
           hired_on: payload.hiredOn ?? new Date().toISOString().slice(0, 10),
+          organization_id: organizationId,
         },
       });
       if (error) return json({ error: error.message }, 400);
@@ -121,6 +146,9 @@ Deno.serve(async (request) => {
       if (payload.password.length < 10) {
         return json({ error: 'Das Passwort muss mindestens 10 Zeichen haben.' }, 400);
       }
+      if (!(await belongsToCallerOrganization(payload.userId))) {
+        return json({ error: 'Diese Person gehört nicht zu Ihrem Unternehmen.' }, 403);
+      }
       const { error } = await admin.auth.admin.updateUserById(payload.userId, {
         password: payload.password,
       });
@@ -129,6 +157,9 @@ Deno.serve(async (request) => {
     }
 
     case 'set-active': {
+      if (!(await belongsToCallerOrganization(payload.userId))) {
+        return json({ error: 'Diese Person gehört nicht zu Ihrem Unternehmen.' }, 403);
+      }
       // Deaktivieren statt löschen: die Aufzeichnungen sind nach § 26 AZG
       // aufzubewahren, und ein gelöschter Benutzer nähme sie mit.
       const { error: profileError } = await admin

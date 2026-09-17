@@ -1,10 +1,16 @@
 -- Testdaten für die lokale Entwicklung.
 --
--- Vier Personen, die zusammen jeden Zweig der Rechtslogik abdecken:
--- Vollzeit mit Gleitzeit, Teilzeit mit Mehrarbeit, geringfügig und ein
--- Lehrling, der demnächst achtzehn wird.
+-- Bewusst **zwei** Unternehmen. Mit einem einzigen ließe sich nicht zeigen,
+-- dass die Mandantentrennung greift — und genau das ist die Eigenschaft, auf
+-- die es bei mehreren Kunden in einer Datenbank ankommt.
+--
+--   Honestas Capital GmbH  vier Personen, decken jeden Zweig der Rechtslogik ab
+--   Musterbau GmbH         zwei Personen, dient als Gegenprobe
 --
 -- Passwort für alle: zeiterfassung
+
+select public.create_organization('Honestas Capital GmbH');
+select public.create_organization('Musterbau GmbH');
 
 -- ---------------------------------------------------------------------------
 -- Benutzer
@@ -12,8 +18,10 @@
 
 -- Die Token-Spalten müssen leere Zeichenketten enthalten, nicht NULL: GoTrue
 -- liest sie als Go-Strings ein und quittiert NULL beim Anmelden mit
--- "Database error querying schema". Deshalb stehen sie hier ausdrücklich da,
--- obwohl sie inhaltlich leer sind.
+-- "Database error querying schema".
+--
+-- organization_id wandert über raw_user_meta_data in den Trigger
+-- handle_new_user, der daraus das Profil anlegt.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
@@ -26,29 +34,41 @@ select
   'authenticated', 'authenticated', person.email,
   crypt('zeiterfassung', gen_salt('bf')), now(), now(), now(),
   '{"provider":"email","providers":["email"]}',
-  person.meta::jsonb,
+  person.meta::jsonb
+    || jsonb_build_object(
+         'organization_id',
+         (select id::text from organizations where name = person.firma)
+       ),
   '', '', '', '', '', '', '', ''
 from (values
   (
-    '11111111-1111-1111-1111-111111111111'::uuid, 'admin@example.at',
+    '11111111-1111-1111-1111-111111111111'::uuid, 'admin@example.at', 'Honestas Capital GmbH',
     '{"display_name":"Marlene Hofer","role":"admin","hired_on":"2015-03-01"}'
   ),
   (
-    '22222222-2222-2222-2222-222222222222'::uuid, 'anna@example.at',
+    '22222222-2222-2222-2222-222222222222'::uuid, 'anna@example.at', 'Honestas Capital GmbH',
     '{"display_name":"Anna Berger","hired_on":"2020-01-01"}'
   ),
   (
-    '33333333-3333-3333-3333-333333333333'::uuid, 'sofia@example.at',
+    '33333333-3333-3333-3333-333333333333'::uuid, 'sofia@example.at', 'Honestas Capital GmbH',
     '{"display_name":"Sofia Wagner","hired_on":"2023-07-01"}'
   ),
   (
-    '44444444-4444-4444-4444-444444444444'::uuid, 'jonas@example.at',
+    '44444444-4444-4444-4444-444444444444'::uuid, 'jonas@example.at', 'Honestas Capital GmbH',
     '{"display_name":"Jonas Steiner","hired_on":"2024-09-01"}'
+  ),
+  -- Zweites Unternehmen: dieselbe Personalnummer P-001 wie Marlene, um zu
+  -- zeigen, dass Eindeutigkeit je Mandant gilt und nicht global.
+  (
+    '55555555-5555-5555-5555-555555555555'::uuid, 'chef@musterbau.at', 'Musterbau GmbH',
+    '{"display_name":"Bernhard Gruber","role":"admin","hired_on":"2018-05-01"}'
+  ),
+  (
+    '66666666-6666-6666-6666-666666666666'::uuid, 'lisa@musterbau.at', 'Musterbau GmbH',
+    '{"display_name":"Lisa Mayr","hired_on":"2022-02-01"}'
   )
-) as person (id, email, meta);
+) as person (id, email, firma, meta);
 
--- Ohne passende Identität kennt GoTrue den E-Mail-Anmeldeweg für diese
--- Benutzer nicht.
 insert into auth.identities (
   id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 )
@@ -57,10 +77,9 @@ select
   jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
   now(), now(), now()
 from auth.users u
-where u.email like '%@example.at';
+where u.email like '%@example.at' or u.email like '%@musterbau.at';
 
--- Der Trigger on_auth_user_created hat die Profile bereits angelegt; hier
--- kommen die Stammdaten dazu, die er nicht kennen kann.
+-- Stammdaten, die der Trigger nicht kennen kann.
 update profiles set personnel_number = 'P-001', birth_date = '1982-11-04', state = 'W'
   where id = '11111111-1111-1111-1111-111111111111';
 update profiles set personnel_number = 'P-014', birth_date = '1990-05-12', state = 'W'
@@ -71,22 +90,24 @@ update profiles set personnel_number = 'P-027', birth_date = '1995-02-20', state
 update profiles set personnel_number = 'P-031', birth_date = '2008-09-17', state = 'W'
   where id = '44444444-4444-4444-4444-444444444444';
 
--- ---------------------------------------------------------------------------
--- Vertragsarten
--- ---------------------------------------------------------------------------
-
-insert into contract_types (id, label, category, description, sort_order) values
-  ('aaaaaaa1-0000-0000-0000-000000000001', 'Vollzeit', 'vollzeit', 'Volles kollektivvertragliches Ausmaß', 10),
-  ('aaaaaaa1-0000-0000-0000-000000000002', 'Teilzeit', 'teilzeit', 'Vereinbartes Ausmaß unter der Normalarbeitszeit', 20),
-  ('aaaaaaa1-0000-0000-0000-000000000003', 'Geringfügig', 'geringfuegig', 'Entgelt unter der Geringfügigkeitsgrenze', 30),
-  ('aaaaaaa1-0000-0000-0000-000000000004', 'Lehrling', 'lehrling', 'Lehrverhältnis; unter 18 gilt das KJBG', 40),
-  ('aaaaaaa1-0000-0000-0000-000000000005', 'Freier Dienstvertrag', 'freier_dienstnehmer', 'Kein Arbeitnehmer im Sinne des AZG', 50),
-  ('aaaaaaa1-0000-0000-0000-000000000006', 'Leitende:r Angestellte:r', 'leitend', 'Vom AZG ausgenommen nach § 1 Abs 2 Z 8', 60),
-  ('aaaaaaa1-0000-0000-0000-000000000007', 'Praktikum', 'praktikum', 'Ferial- oder Pflichtpraktikum', 70);
+update profiles set personnel_number = 'P-001', birth_date = '1975-01-30', state = 'ST'
+  where id = '55555555-5555-5555-5555-555555555555';
+update profiles set personnel_number = 'P-002', birth_date = '1993-08-11', state = 'ST'
+  where id = '66666666-6666-6666-6666-666666666666';
 
 -- ---------------------------------------------------------------------------
 -- Verträge
 -- ---------------------------------------------------------------------------
+
+-- Die Vertragsarten hat create_organization() je Unternehmen angelegt; hier
+-- werden sie über Bezeichnung und Mandant herausgesucht.
+create or replace function pg_temp.type_id(p_org text, p_label text)
+returns uuid language sql stable as $$
+  select ct.id
+  from contract_types ct
+  join organizations o on o.id = ct.organization_id
+  where o.name = p_org and ct.label = p_label;
+$$;
 
 -- Marlene Hofer — leitende Angestellte, vom AZG ausgenommen.
 insert into employment_contracts (
@@ -94,15 +115,14 @@ insert into employment_contracts (
   collective_agreement, daily_target_minutes, all_in, exempt_from_azg, vacation_days_per_year
 ) values (
   '11111111-1111-1111-1111-111111111111',
-  'aaaaaaa1-0000-0000-0000-000000000006',
+  pg_temp.type_id('Honestas Capital GmbH', 'Leitende:r Angestellte:r'),
   '2015-03-01', 38.5, 38.5, 'Handel',
   '{462,462,462,462,462,0,0}', true, true, 25
 );
 
 -- Anna Berger — Vollzeit mit Gleitzeit, aber OHNE ganztägige
 -- Verbrauchsmöglichkeit. Damit bleibt die tägliche Normalarbeitszeit bei zehn
--- Stunden; die elfte ist Überstunde. Genau der Fall, an dem sich die
--- Zuordnungslogik zeigen lässt.
+-- Stunden; die elfte ist Überstunde.
 insert into employment_contracts (
   employee_id, contract_type_id, valid_from, weekly_hours, collective_weekly_hours,
   collective_agreement, daily_target_minutes,
@@ -111,7 +131,7 @@ insert into employment_contracts (
   vacation_days_per_year
 ) values (
   '22222222-2222-2222-2222-222222222222',
-  'aaaaaaa1-0000-0000-0000-000000000001',
+  pg_temp.type_id('Honestas Capital GmbH', 'Vollzeit'),
   '2020-01-01', 38.5, 38.5, 'Handel',
   '{462,462,462,462,462,0,0}',
   true, 1, '2026-01-01', false,
@@ -126,7 +146,7 @@ insert into employment_contracts (
   collective_agreement, daily_target_minutes, vacation_days_per_year
 ) values (
   '33333333-3333-3333-3333-333333333333',
-  'aaaaaaa1-0000-0000-0000-000000000002',
+  pg_temp.type_id('Honestas Capital GmbH', 'Teilzeit'),
   '2023-07-01', 20, 38.5, 'Handel',
   '{240,240,240,240,240,0,0}', 25
 );
@@ -137,8 +157,25 @@ insert into employment_contracts (
   collective_agreement, daily_target_minutes, vacation_days_per_year
 ) values (
   '44444444-4444-4444-4444-444444444444',
-  'aaaaaaa1-0000-0000-0000-000000000004',
+  pg_temp.type_id('Honestas Capital GmbH', 'Lehrling'),
   '2024-09-01', 40, 40, 'Handel',
+  '{480,480,480,480,480,0,0}', 25
+);
+
+-- Musterbau GmbH — anderer Kollektivvertrag, andere Normalarbeitszeit.
+insert into employment_contracts (
+  employee_id, contract_type_id, valid_from, weekly_hours, collective_weekly_hours,
+  collective_agreement, daily_target_minutes, vacation_days_per_year
+) values (
+  '55555555-5555-5555-5555-555555555555',
+  pg_temp.type_id('Musterbau GmbH', 'Vollzeit'),
+  '2018-05-01', 40, 40, 'Bauindustrie',
+  '{480,480,480,480,480,0,0}', 25
+),
+(
+  '66666666-6666-6666-6666-666666666666',
+  pg_temp.type_id('Musterbau GmbH', 'Vollzeit'),
+  '2022-02-01', 40, 40, 'Bauindustrie',
   '{480,480,480,480,480,0,0}', 25
 );
 
@@ -148,7 +185,6 @@ insert into employment_contracts (
 
 -- Anna Berger: unauffällige Woche mit einer Ausnahme am Dienstag.
 insert into time_entries (employee_id, work_date, started_at, ended_at, kind, source, note) values
-  -- Montag
   ('22222222-2222-2222-2222-222222222222', '2026-09-14', '2026-09-14 08:12+02', '2026-09-14 12:30+02', 'work', 'stamped', null),
   ('22222222-2222-2222-2222-222222222222', '2026-09-14', '2026-09-14 12:30+02', '2026-09-14 13:00+02', 'break', 'stamped', null),
   ('22222222-2222-2222-2222-222222222222', '2026-09-14', '2026-09-14 13:00+02', '2026-09-14 17:04+02', 'work', 'stamped', null),
@@ -158,7 +194,6 @@ insert into time_entries (employee_id, work_date, started_at, ended_at, kind, so
   ('22222222-2222-2222-2222-222222222222', '2026-09-15', '2026-09-15 12:00+02', '2026-09-15 12:45+02', 'break', 'stamped', null),
   ('22222222-2222-2222-2222-222222222222', '2026-09-15', '2026-09-15 12:45+02', '2026-09-15 18:45+02', 'work', 'stamped', null),
   -- Mittwoch: Urlaub, siehe unten.
-  -- Donnerstag
   ('22222222-2222-2222-2222-222222222222', '2026-09-17', '2026-09-17 08:30+02', '2026-09-17 12:15+02', 'work', 'stamped', null),
   ('22222222-2222-2222-2222-222222222222', '2026-09-17', '2026-09-17 12:15+02', '2026-09-17 12:45+02', 'break', 'stamped', null),
   ('22222222-2222-2222-2222-222222222222', '2026-09-17', '2026-09-17 12:45+02', '2026-09-17 16:58+02', 'work', 'stamped', null),
@@ -192,3 +227,12 @@ insert into time_entries (employee_id, work_date, started_at, ended_at, kind, so
   ('44444444-4444-4444-4444-444444444444', '2026-09-18', '2026-09-18 07:30+02', '2026-09-18 12:00+02', 'work', 'stamped'),
   ('44444444-4444-4444-4444-444444444444', '2026-09-18', '2026-09-18 12:00+02', '2026-09-18 12:30+02', 'break', 'stamped'),
   ('44444444-4444-4444-4444-444444444444', '2026-09-18', '2026-09-18 12:30+02', '2026-09-18 16:00+02', 'work', 'stamped');
+
+-- Musterbau GmbH: Zeiten, die aus dem anderen Unternehmen niemand sehen darf.
+insert into time_entries (employee_id, work_date, started_at, ended_at, kind, source) values
+  ('66666666-6666-6666-6666-666666666666', '2026-09-14', '2026-09-14 06:30+02', '2026-09-14 12:00+02', 'work', 'stamped'),
+  ('66666666-6666-6666-6666-666666666666', '2026-09-14', '2026-09-14 12:00+02', '2026-09-14 12:30+02', 'break', 'stamped'),
+  ('66666666-6666-6666-6666-666666666666', '2026-09-14', '2026-09-14 12:30+02', '2026-09-14 15:30+02', 'work', 'stamped'),
+  ('66666666-6666-6666-6666-666666666666', '2026-09-15', '2026-09-15 06:30+02', '2026-09-15 12:00+02', 'work', 'stamped'),
+  ('66666666-6666-6666-6666-666666666666', '2026-09-15', '2026-09-15 12:00+02', '2026-09-15 12:30+02', 'break', 'stamped'),
+  ('66666666-6666-6666-6666-666666666666', '2026-09-15', '2026-09-15 12:30+02', '2026-09-15 15:30+02', 'work', 'stamped');

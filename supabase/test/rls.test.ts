@@ -21,6 +21,8 @@ const ANON_KEY =
 
 const ANNA = '22222222-2222-2222-2222-222222222222';
 const SOFIA = '33333333-3333-3333-3333-333333333333';
+/** Mitarbeiterin des zweiten Unternehmens. */
+const LISA = '66666666-6666-6666-6666-666666666666';
 
 function anonClient(): SupabaseClient {
   return createClient(URL, ANON_KEY, {
@@ -41,12 +43,15 @@ async function signIn(email: string): Promise<SupabaseClient> {
 let anna: SupabaseClient;
 let sofia: SupabaseClient;
 let admin: SupabaseClient;
+/** Administrator des zweiten Unternehmens — die Gegenprobe. */
+let fremderAdmin: SupabaseClient;
 
 beforeAll(async () => {
-  [anna, sofia, admin] = await Promise.all([
+  [anna, sofia, admin, fremderAdmin] = await Promise.all([
     signIn('anna@example.at'),
     signIn('sofia@example.at'),
     signIn('admin@example.at'),
+    signIn('chef@musterbau.at'),
   ]);
 }, 30_000);
 
@@ -242,6 +247,172 @@ describe('Das Änderungsprotokoll ist unveränderlich', () => {
   });
 });
 
+/**
+ * Die Prüfung, auf die es bei mehreren Kunden in einer Datenbank ankommt.
+ *
+ * Marlene Hofer ist Administratorin der Honestas Capital GmbH, Bernhard Gruber
+ * der Musterbau GmbH. Beide haben in ihrem Betrieb volle Rechte — und dürfen
+ * voneinander nichts sehen. Ein Admin ist kein Superuser, sondern Admin
+ * genau eines Unternehmens.
+ */
+describe('Unternehmen sehen einander nicht', () => {
+  it('zeigt jedem Admin nur die eigene Belegschaft', async () => {
+    const eigene = await admin.from('profiles').select('display_name');
+    const fremde = await fremderAdmin.from('profiles').select('display_name');
+
+    const namenA = new Set(eigene.data!.map((row) => row.display_name));
+    const namenB = new Set(fremde.data!.map((row) => row.display_name));
+
+    expect(namenA).toContain('Anna Berger');
+    expect(namenA).not.toContain('Lisa Mayr');
+    expect(namenB).toContain('Lisa Mayr');
+    expect(namenB).not.toContain('Anna Berger');
+
+    // Keine einzige Person in beiden Mengen.
+    expect([...namenA].filter((name) => namenB.has(name))).toEqual([]);
+  });
+
+  it('liefert dem fremden Admin keine Zeiten des anderen Unternehmens', async () => {
+    const { data, error } = await fremderAdmin
+      .from('time_entries')
+      .select('id')
+      .eq('employee_id', ANNA);
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+  });
+
+  it('liefert auch ohne Filter ausschließlich Zeiten des eigenen Unternehmens', async () => {
+    const { data } = await fremderAdmin.from('time_entries').select('employee_id');
+    expect(data!.length).toBeGreaterThan(0);
+    expect(new Set(data!.map((row) => row.employee_id))).toEqual(new Set([LISA]));
+  });
+
+  it('lässt den fremden Admin keine Zeit auf fremdem Namen anlegen', async () => {
+    const { error } = await fremderAdmin.from('time_entries').insert({
+      employee_id: ANNA,
+      work_date: '2026-09-21',
+      started_at: '2026-09-21T08:00:00+02:00',
+      ended_at: '2026-09-21T12:00:00+02:00',
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it('lässt den fremden Admin kein fremdes Profil ändern', async () => {
+    const { data } = await fremderAdmin
+      .from('profiles')
+      .update({ display_name: 'Übernommen' })
+      .eq('id', ANNA)
+      .select();
+    expect(data ?? []).toEqual([]);
+  });
+
+  it('trennt auch das Änderungsprotokoll', async () => {
+    const { data } = await fremderAdmin.from('audit_log').select('employee_id');
+    const fremdeEintraege = (data ?? []).filter((row) =>
+      [ANNA, SOFIA].includes(row.employee_id as string),
+    );
+    expect(fremdeEintraege).toEqual([]);
+  });
+
+  it('trennt die Vertragsarten', async () => {
+    const eigene = await admin.from('contract_types').select('id, label');
+    const fremde = await fremderAdmin.from('contract_types').select('id, label');
+
+    // Beide Unternehmen haben eine Vertragsart „Vollzeit" — aber nicht dieselbe.
+    expect(eigene.data!.some((row) => row.label === 'Vollzeit')).toBe(true);
+    expect(fremde.data!.some((row) => row.label === 'Vollzeit')).toBe(true);
+
+    const idsA = new Set(eigene.data!.map((row) => row.id));
+    const idsB = fremde.data!.map((row) => row.id);
+    expect(idsB.filter((id) => idsA.has(id))).toEqual([]);
+  });
+
+  it('gibt jedem Unternehmen einen eigenen Betriebsstandard', async () => {
+    const eigener = await admin
+      .from('settings')
+      .select('value')
+      .eq('key', 'contract_defaults')
+      .maybeSingle();
+    const fremder = await fremderAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'contract_defaults')
+      .maybeSingle();
+
+    expect(eigener.data).not.toBeNull();
+    expect(fremder.data).not.toBeNull();
+
+    // Änderung beim einen darf beim anderen nichts bewirken.
+    const { error } = await admin.rpc('save_contract_defaults', {
+      p_value: { collective_weekly_hours: 41, state: 'W' },
+    });
+    expect(error).toBeNull();
+
+    const nachher = await fremderAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'contract_defaults')
+      .maybeSingle();
+    expect((nachher.data!.value as Record<string, unknown>).collective_weekly_hours).not.toBe(41);
+  });
+
+  it('teilt die gesetzlichen Werte, ohne sie änderbar zu machen', async () => {
+    // Die Geringfügigkeitsgrenze gilt für ganz Österreich und hängt an keinem
+    // Unternehmen. Lesen dürfen sie alle, ändern niemand.
+    for (const [name, client] of [
+      ['eigener Admin', admin],
+      ['fremder Admin', fremderAdmin],
+    ] as const) {
+      const { data } = await client
+        .from('settings')
+        .select('value')
+        .eq('key', 'geringfuegigkeitsgrenze_cents')
+        .eq('valid_year', 2026)
+        .maybeSingle();
+      expect(data?.value, name).toBe(55110);
+    }
+
+    const { data: geaendert } = await admin
+      .from('settings')
+      .update({ value: 99999 })
+      .eq('key', 'geringfuegigkeitsgrenze_cents')
+      .eq('valid_year', 2026)
+      .select();
+    expect(geaendert ?? []).toEqual([]);
+  });
+
+  it('lässt niemanden eine Person in ein fremdes Unternehmen verschieben', async () => {
+    const { data: fremdeOrg } = await fremderAdmin
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', LISA)
+      .single();
+
+    // Der eigene Admin versucht, Anna in das andere Unternehmen umzuhängen.
+    const { data } = await admin
+      .from('profiles')
+      .update({ organization_id: fremdeOrg!.organization_id })
+      .eq('id', ANNA)
+      .select();
+    expect(data ?? []).toEqual([]);
+
+    const { data: danach } = await admin
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', ANNA)
+      .single();
+    expect(danach!.organization_id).not.toBe(fremdeOrg!.organization_id);
+  });
+
+  it('zeigt jedem nur das eigene Unternehmen', async () => {
+    const eigene = await admin.from('organizations').select('name');
+    const fremde = await fremderAdmin.from('organizations').select('name');
+
+    expect(eigene.data!.map((row) => row.name)).toEqual(['Honestas Capital GmbH']);
+    expect(fremde.data!.map((row) => row.name)).toEqual(['Musterbau GmbH']);
+  });
+});
+
 describe('Ohne Anmeldung geht nichts', () => {
   it('liefert anonym keine Zeilen', async () => {
     const gast = anonClient();
@@ -303,9 +474,15 @@ describe('Die Datenbank hält die Erfassung konsistent', () => {
   it('weist zwei gleichzeitig gültige Verträge ab', async () => {
     // Welche Wochenstunden gälten dann am Dienstag? Die Frage darf gar nicht
     // erst entstehen.
+    const { data: teilzeit } = await admin
+      .from('contract_types')
+      .select('id')
+      .eq('label', 'Teilzeit')
+      .single();
+
     const { error } = await admin.from('employment_contracts').insert({
       employee_id: ANNA,
-      contract_type_id: 'aaaaaaa1-0000-0000-0000-000000000002',
+      contract_type_id: teilzeit!.id,
       valid_from: '2024-01-01',
       weekly_hours: 20,
       collective_weekly_hours: 38.5,

@@ -45,6 +45,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["absence_kind"]
           note: string | null
+          organization_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -58,6 +59,7 @@ export type Database = {
           id?: string
           kind: Database["public"]["Enums"]["absence_kind"]
           note?: string | null
+          organization_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -71,6 +73,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["absence_kind"]
           note?: string | null
+          organization_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -80,6 +83,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -93,6 +103,7 @@ export type Database = {
           new_data: Json | null
           old_data: Json | null
           operation: string
+          organization_id: string | null
           record_id: string
           table_name: string
         }
@@ -104,6 +115,7 @@ export type Database = {
           new_data?: Json | null
           old_data?: Json | null
           operation: string
+          organization_id?: string | null
           record_id: string
           table_name: string
         }
@@ -115,6 +127,7 @@ export type Database = {
           new_data?: Json | null
           old_data?: Json | null
           operation?: string
+          organization_id?: string | null
           record_id?: string
           table_name?: string
         }
@@ -124,6 +137,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -136,6 +156,7 @@ export type Database = {
           description: string | null
           id: string
           label: string
+          organization_id: string | null
           sort_order: number
         }
         Insert: {
@@ -145,6 +166,7 @@ export type Database = {
           description?: string | null
           id?: string
           label: string
+          organization_id?: string | null
           sort_order?: number
         }
         Update: {
@@ -154,9 +176,18 @@ export type Database = {
           description?: string | null
           id?: string
           label?: string
+          organization_id?: string | null
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contract_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employment_contracts: {
         Row: {
@@ -180,6 +211,7 @@ export type Database = {
           monthly_gross_cents: number | null
           night_work: boolean
           note: string | null
+          organization_id: string | null
           shift_work: boolean
           updated_at: string
           vacation_days_per_year: number
@@ -208,6 +240,7 @@ export type Database = {
           monthly_gross_cents?: number | null
           night_work?: boolean
           note?: string | null
+          organization_id?: string | null
           shift_work?: boolean
           updated_at?: string
           vacation_days_per_year?: number
@@ -236,6 +269,7 @@ export type Database = {
           monthly_gross_cents?: number | null
           night_work?: boolean
           note?: string | null
+          organization_id?: string | null
           shift_work?: boolean
           updated_at?: string
           vacation_days_per_year?: number
@@ -258,7 +292,44 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employment_contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      organizations: {
+        Row: {
+          active: boolean
+          company_register_number: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          vat_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          company_register_number?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          vat_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          company_register_number?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          vat_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -269,6 +340,7 @@ export type Database = {
           hired_on: string
           id: string
           left_on: string | null
+          organization_id: string | null
           personnel_number: string | null
           role: Database["public"]["Enums"]["app_role"]
           state: Database["public"]["Enums"]["austrian_state"]
@@ -282,6 +354,7 @@ export type Database = {
           hired_on: string
           id: string
           left_on?: string | null
+          organization_id?: string | null
           personnel_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           state?: Database["public"]["Enums"]["austrian_state"]
@@ -295,36 +368,59 @@ export type Database = {
           hired_on?: string
           id?: string
           left_on?: string | null
+          organization_id?: string | null
           personnel_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           state?: Database["public"]["Enums"]["austrian_state"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
           description: string | null
+          id: number
           key: string
+          organization_id: string | null
           updated_at: string
           valid_year: number
           value: Json
         }
         Insert: {
           description?: string | null
+          id?: never
           key: string
+          organization_id?: string | null
           updated_at?: string
           valid_year: number
           value: Json
         }
         Update: {
           description?: string | null
+          id?: never
           key?: string
+          organization_id?: string | null
           updated_at?: string
           valid_year?: number
           value?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
@@ -335,6 +431,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["segment_kind"]
           note: string | null
+          organization_id: string | null
           source: Database["public"]["Enums"]["entry_source"]
           started_at: string
           updated_at: string
@@ -349,6 +446,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["segment_kind"]
           note?: string | null
+          organization_id?: string | null
           source?: Database["public"]["Enums"]["entry_source"]
           started_at: string
           updated_at?: string
@@ -363,6 +461,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["segment_kind"]
           note?: string | null
+          organization_id?: string | null
           source?: Database["public"]["Enums"]["entry_source"]
           started_at?: string
           updated_at?: string
@@ -377,6 +476,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "time_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -384,6 +490,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_to_organization: {
+        Args: {
+          p_email: string
+          p_organization: string
+          p_role?: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: string
+      }
       contract_on: {
         Args: { p_date: string; p_employee: string }
         Returns: {
@@ -407,6 +521,7 @@ export type Database = {
           monthly_gross_cents: number | null
           night_work: boolean
           note: string | null
+          organization_id: string | null
           shift_work: boolean
           updated_at: string
           vacation_days_per_year: number
@@ -421,8 +536,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_organization: { Args: { p_name: string }; Returns: string }
       current_employee_id: { Args: never; Returns: string }
+      current_organization_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      save_contract_defaults: { Args: { p_value: Json }; Returns: undefined }
     }
     Enums: {
       absence_kind:

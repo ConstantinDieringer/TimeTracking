@@ -18,6 +18,8 @@ npm run dev             # http://localhost:5173
 
 Die Testzugänge aus `supabase/seed.sql`, Passwort jeweils `zeiterfassung`:
 
+**Honestas Capital GmbH** — deckt zusammen jeden Zweig der Rechtslogik ab:
+
 | E-Mail | Rolle | Besonderheit |
 |---|---|---|
 | `admin@example.at` | Verwaltung | Leitende Angestellte, vom AZG ausgenommen |
@@ -25,8 +27,15 @@ Die Testzugänge aus `supabase/seed.sql`, Passwort jeweils `zeiterfassung`:
 | `sofia@example.at` | Mitarbeiterin | Teilzeit 20 h — zeigt Mehrarbeit gegen Überstunde |
 | `jonas@example.at` | Mitarbeiter | Lehrling, wird am 17. 9. 2026 achtzehn |
 
-Die vier Datensätze sind so gewählt, dass sie zusammen jeden Zweig der
-Rechtslogik auslösen.
+**Musterbau GmbH** — der zweite Mandant, die Gegenprobe:
+
+| E-Mail | Rolle | Besonderheit |
+|---|---|---|
+| `chef@musterbau.at` | Verwaltung | sieht von Honestas nichts, obwohl er Administrator ist |
+| `lisa@musterbau.at` | Mitarbeiterin | trägt dieselbe Personalnummer wie jemand drüben |
+
+Melde dich einmal mit jedem der beiden Administratoren an: die
+Mitarbeiterlisten überschneiden sich in keinem einzigen Eintrag.
 
 ## Befehle
 
@@ -54,6 +63,53 @@ web/               React-Oberfläche
 Die Trennung ist Absicht. `packages/legal` ist der Teil, bei dem Fehler teuer
 sind; er kennt weder Datenbank noch Oberfläche und ist deshalb vollständig
 testbar. Die Oberfläche setzt nur zusammen, was dort gerechnet wurde.
+
+### Mehrere Unternehmen in einer Datenbank
+
+Jeder Kunde ist eine Zeile in `organizations`; jede andere Tabelle trägt eine
+`organization_id`. Row Level Security trennt damit nicht nur Mitarbeiter von
+Mitarbeiter, sondern auch Unternehmen von Unternehmen. Ein Administrator ist
+Administrator **genau eines** Betriebs — es gibt bewusst keine Rolle, die
+darüber hinwegsieht, auch nicht für den Betreiber.
+
+Die Mandantenspalte wird auf jeder Tabelle mitgeführt statt über den
+Mitarbeiter hergeleitet. Das ist Redundanz mit Absicht: eine Policy, die
+`organization_id = current_organization_id()` prüft, ist auf einen Blick
+richtig, während eine mit verschachtelter Unterabfrage bei jeder Änderung neu
+durchdacht werden muss. Ein Trigger setzt die Spalte aus dem Mitarbeiter und
+überschreibt dabei, was der Client mitschickt — sonst ließe sich ein Datensatz
+durch Setzen der Spalte in einen fremden Mandanten schieben.
+
+Eindeutig **je Unternehmen**, nicht global: Personalnummern, Vertragsarten und
+der Betriebsstandard. Zwei Firmen dürfen beide eine „P-001" und beide eine
+Vertragsart „Vollzeit" haben. Gesetzliche Werte wie die
+Geringfügigkeitsgrenze stehen dagegen ohne Unternehmen in `settings`
+(`organization_id is null`) — lesbar für alle, änderbar für niemanden.
+
+`npm run test:rls` prüft das mit zwei echten Mandanten gegeneinander.
+
+### Einen neuen Kunden anlegen
+
+Unternehmen entstehen nur auf Einladung, also von Hand durch den Betreiber.
+Drei Schritte, der mittlere im Supabase-Dashboard:
+
+```sql
+-- 1. Unternehmen anlegen. Legt zugleich die sieben Vertragsarten und einen
+--    leeren Betriebsstandard an und gibt die Kennung zurück.
+select public.create_organization('Muster GmbH');
+```
+
+**2.** Dashboard → *Authentication → Users → Add user*: E-Mail und Passwort
+setzen, „Auto Confirm" anhaken.
+
+```sql
+-- 3. Den Benutzer zum ersten Administrator dieses Unternehmens machen.
+select public.assign_to_organization('admin@muster.at', '<kennung-aus-schritt-1>', 'admin');
+```
+
+Ab da macht der Kunde alles selbst: Betriebsstandard festlegen, Mitarbeiter
+anlegen, Verträge pflegen. Beide Funktionen sind für angemeldete Benutzer
+gesperrt und laufen nur im SQL-Editor.
 
 ### Kein eigener Server
 
