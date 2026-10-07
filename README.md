@@ -104,7 +104,14 @@ setzen, „Auto Confirm" anhaken.
 
 ```sql
 -- 3. Den Benutzer zum ersten Administrator dieses Unternehmens machen.
-select public.assign_to_organization('admin@muster.at', '<kennung-aus-schritt-1>', 'admin');
+--    Der Name ist optional, aber empfehlenswert: sonst steht in der Anwendung
+--    der Teil vor dem @ der E-Mail-Adresse.
+select public.assign_to_organization(
+  'admin@muster.at',
+  '<kennung-aus-schritt-1>',
+  'admin',
+  'Maria Muster'
+);
 ```
 
 Ab da macht der Kunde alles selbst: Betriebsstandard festlegen, Mitarbeiter

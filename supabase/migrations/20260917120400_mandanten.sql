@@ -296,7 +296,8 @@ revoke execute on function public.create_organization(text) from authenticated, 
 create or replace function public.assign_to_organization(
   p_email text,
   p_organization uuid,
-  p_role app_role default 'admin'
+  p_role app_role default 'admin',
+  p_display_name text default null
 )
 returns uuid
 language plpgsql
@@ -311,16 +312,23 @@ begin
     raise exception 'Kein Benutzer mit der E-Mail-Adresse %', p_email;
   end if;
 
+  if not exists (select 1 from public.organizations where id = p_organization) then
+    raise exception 'Kein Unternehmen mit der Kennung %', p_organization;
+  end if;
+
   update public.profiles
   set organization_id = p_organization,
-      role = p_role
+      role = p_role,
+      -- Ohne Namen bliebe der Teil vor dem @ stehen, den handle_new_user als
+      -- Notbehelf gesetzt hat. Aus "chef@muster.at" wird sonst "chef".
+      display_name = coalesce(p_display_name, display_name)
   where id = target;
 
   return target;
 end;
 $$;
 
-revoke execute on function public.assign_to_organization(text, uuid, app_role) from authenticated, anon;
+revoke execute on function public.assign_to_organization(text, uuid, app_role, text) from authenticated, anon;
 
 -- Der Betriebsstandard wird über eine Funktion geschrieben statt per upsert:
 -- die Eindeutigkeit hängt an einem partiellen Index, den ein
