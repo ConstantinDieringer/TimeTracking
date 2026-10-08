@@ -151,6 +151,18 @@ export function Monat() {
                 </span>
               )}
 
+              {/* Wie voll war der Tag? Ein dünner Balken am Zellenboden,
+                  gefüllt bis zum Anteil am Tagessoll. */}
+              {day.account && day.account.targetMinutes > 0 && day.work.workMinutes > 0 && (
+                <span className="calendar__bar" aria-hidden="true">
+                  <span
+                    style={{
+                      width: `${Math.min(day.work.workMinutes / day.account.targetMinutes, 1) * 100}%`,
+                    }}
+                  />
+                </span>
+              )}
+
               {day.account && day.account.balanceMinutes !== 0 && (
                 <span
                   className={`calendar__balance ${

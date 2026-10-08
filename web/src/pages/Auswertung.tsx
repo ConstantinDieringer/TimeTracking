@@ -270,6 +270,33 @@ export function Auswertung() {
               <dd className="num">{vacation.remainingDays.toLocaleString('de-AT')}</dd>
             </div>
           </dl>
+          {(() => {
+            const total = vacation.entitlementDays + vacation.carriedOverDays;
+            const used = total > 0 ? Math.min(vacation.consumedDays / total, 1) : 0;
+            return (
+              <div className="progress-block progress-block--spaced">
+                <div className="progress-block__labels">
+                  <span>
+                    <strong>{vacation.consumedDays.toLocaleString('de-AT')}</strong> von{' '}
+                    {total.toLocaleString('de-AT')} Tagen genommen
+                  </span>
+                  <span className="muted">
+                    {vacation.remainingDays.toLocaleString('de-AT')} übrig
+                  </span>
+                </div>
+                <div
+                  className="progress"
+                  role="progressbar"
+                  aria-label="Verbrauchter Urlaub"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(used * 100)}
+                >
+                  <div className="progress__bar" style={{ width: `${used * 100}%` }} />
+                </div>
+              </div>
+            );
+          })()}
           {vacation.aliquot && (
             <p className="muted figures__note">
               Der Anspruch ist wegen Ein- oder Austritt im laufenden Jahr aliquotiert

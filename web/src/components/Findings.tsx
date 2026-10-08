@@ -1,4 +1,5 @@
 import { formatDateShort, type RuleResult } from '@zeiterfassung/legal';
+import { Icon } from './Icon';
 
 /**
  * Darstellung der Regelbefunde.
@@ -6,6 +7,9 @@ import { formatDateShort, type RuleResult } from '@zeiterfassung/legal';
  * Die Fundstelle steht immer neben der Meldung. Das ist keine Zierde: eine
  * Warnung, die ihre gesetzliche Grundlage nennt, lässt sich nachschlagen und
  * gegebenenfalls widerlegen — eine ohne wirkt wie eine Behauptung der Software.
+ *
+ * Keine Befunde sind eine gute Nachricht und werden auch so gezeigt: mit
+ * Häkchen auf grünem Grund statt als graue Leerstelle.
  */
 export function Findings({
   findings,
@@ -17,7 +21,12 @@ export function Findings({
   emptyText?: string;
 }) {
   if (findings.length === 0) {
-    return emptyText ? <p className="empty">{emptyText}</p> : null;
+    return emptyText ? (
+      <p className="all-clear">
+        <Icon name="check" size={20} />
+        {emptyText}
+      </p>
+    ) : null;
   }
 
   return (
@@ -27,13 +36,19 @@ export function Findings({
           key={`${finding.code}-${finding.date ?? index}`}
           className={`finding finding--${finding.severity}`}
         >
-          <span className="finding__reference">{finding.reference}</span>
-          <p className="finding__message">
-            {showDate && finding.date && (
-              <span className="muted">{formatDateShort(finding.date)} — </span>
-            )}
-            {finding.message}
-          </p>
+          <Icon
+            name={finding.severity === 'verstoss' ? 'alert' : 'info'}
+            className="finding__icon"
+          />
+          <div className="finding__body">
+            <p className="finding__message">
+              {showDate && finding.date && (
+                <span className="finding__date">{formatDateShort(finding.date)}</span>
+              )}
+              {finding.message}
+            </p>
+            <span className="finding__reference">{finding.reference}</span>
+          </div>
         </div>
       ))}
     </div>

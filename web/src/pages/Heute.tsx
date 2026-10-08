@@ -9,12 +9,14 @@ import {
 import { useEffect, useState } from 'react';
 import { Ansicht } from '../components/Ansicht';
 import { Findings } from '../components/Findings';
+import { Icon } from '../components/Icon';
 import { Duration } from '../components/Num';
+import { Tageslinie } from '../components/Tageslinie';
 import { useOpenEntry, useStamp, useStopStamp, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 
 export function Heute() {
-  const { session } = useSession();
+  const { session, profile } = useSession();
   const employeeId = session?.user.id;
 
   // Sekundentakt, solange gestempelt wird — sonst stünde die laufende Dauer
@@ -40,12 +42,21 @@ export function Heute() {
   const target = day?.account?.targetMinutes ?? 0;
   const worked = day?.work.workMinutes ?? 0;
   const remaining = target - worked;
+  const progress = target > 0 ? Math.min(worked / target, 1) : 0;
+
+  const state = running ? (running.kind === 'break' ? 'break' : 'running') : worked > 0 ? 'done' : 'idle';
+  const firstName = profile?.display_name.split(/\s+/)[0] ?? '';
 
   return (
     <main className="page">
       <Ansicht />
       <div className="page__head">
         <div>
+          <p className="greeting">
+            <Icon name={greetingIcon(now)} size={16} />
+            {greeting(now)}
+            {firstName && `, ${firstName}`}
+          </p>
           <h1>{formatDateLong(today)}</h1>
           <p className="page__subtitle">
             {day?.contract
@@ -53,9 +64,9 @@ export function Heute() {
               : 'Kein gültiger Vertrag hinterlegt'}
           </p>
         </div>
-        <div className="row">
-          <span className="meta">Uhrzeit</span>
-          <span className="num">{formatClock(localMinutesOfDay(now))}</span>
+        <div className="clock-chip" aria-label="Aktuelle Uhrzeit">
+          <Icon name="clock" size={16} />
+          <span>{formatClock(localMinutesOfDay(now))}</span>
         </div>
       </div>
 
@@ -69,20 +80,16 @@ export function Heute() {
         </div>
       ))}
 
-      <section className="stamp">
+      <section className={`stamp stamp--${state}`}>
         <div className="stamp__state" aria-live="polite">
-          <span
-            className={`stamp__status ${
-              running ? (running.kind === 'break' ? 'stamp__status--break' : 'stamp__status--running') : ''
-            }`}
-          >
-            {running
-              ? running.kind === 'break'
+          <span className={`stamp__status stamp__status--${state}`}>
+            {state === 'running'
+              ? 'Arbeitszeit läuft'
+              : state === 'break'
                 ? 'Pause läuft'
-                : 'Arbeitszeit läuft'
-              : worked > 0
-                ? 'Beendet'
-                : 'Noch nicht begonnen'}
+                : state === 'done'
+                  ? 'Beendet'
+                  : 'Noch nicht begonnen'}
           </span>
           <p className="stamp__clock">
             {running ? formatDuration(runningMinutes) : formatDuration(worked)}
@@ -92,7 +99,7 @@ export function Heute() {
               ? `seit ${formatClock(localMinutesOfDay(runningSince))} Uhr`
               : worked > 0
                 ? 'heute erfasst'
-                : ' '}
+                : 'Ein Klick auf „Kommen“ startet die Aufzeichnung.'}
           </p>
         </div>
 
@@ -104,6 +111,7 @@ export function Heute() {
               disabled={busy || !employeeId}
               onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
             >
+              <Icon name="play" />
               Kommen
             </button>
           )}
@@ -116,6 +124,7 @@ export function Heute() {
                 disabled={busy}
                 onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'break' })}
               >
+                <Icon name="coffee" />
                 Pause beginnen
               </button>
               <button
@@ -124,6 +133,7 @@ export function Heute() {
                 disabled={busy}
                 onClick={() => stop.mutate(running.id)}
               >
+                <Icon name="stop" />
                 Gehen
               </button>
             </>
@@ -137,6 +147,7 @@ export function Heute() {
                 disabled={busy}
                 onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
               >
+                <Icon name="play" />
                 Pause beenden
               </button>
               <button
@@ -145,11 +156,41 @@ export function Heute() {
                 disabled={busy}
                 onClick={() => stop.mutate(running.id)}
               >
+                <Icon name="stop" />
                 Feierabend
               </button>
             </>
           )}
         </div>
+
+        {/* Fortschritt zum Tagessoll — die eine Frage, die man sich beim Blick
+            auf die Seite stellt: wie weit bin ich heute? */}
+        {target > 0 && (
+          <div className="progress-block">
+            <div className="progress-block__labels">
+              <span>
+                <strong>{formatDuration(worked)}</strong> von {formatDuration(target)} h
+              </span>
+              <span className="muted">
+                {remaining > 0 ? `noch ${formatDuration(remaining)} h` : 'Tagessoll erreicht'}
+              </span>
+            </div>
+            <div
+              className={`progress ${remaining <= 0 ? 'progress--done' : ''}`}
+              role="progressbar"
+              aria-label="Fortschritt zum Tagessoll"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+            >
+              <div className="progress__bar" style={{ width: `${progress * 100}%` }} />
+            </div>
+          </div>
+        )}
+
+        {day && day.work.intervals.length > 0 && (
+          <Tageslinie intervals={day.work.intervals} now={now} running={Boolean(running)} />
+        )}
 
         <dl className="stamp__figures">
           <div>
@@ -210,7 +251,10 @@ export function Heute() {
                         formatClock(localMinutesOfDay(interval.end))
                       )}
                     </td>
-                    <td>{SEGMENT_LABEL[interval.kind]}</td>
+                    <td>
+                      <span className={`kind-dot kind-dot--${interval.kind}`} />
+                      {SEGMENT_LABEL[interval.kind]}
+                    </td>
                     <td>
                       <Duration minutes={minutesBetween(interval.start, interval.end)} />
                     </td>
@@ -223,14 +267,17 @@ export function Heute() {
             </table>
           </div>
         ) : (
-          <p className="empty">Für heute ist noch nichts erfasst.</p>
+          <p className="empty">
+            <Icon name="clock" size={22} />
+            Für heute ist noch nichts erfasst.
+          </p>
         )}
       </section>
 
       <section className="section">
         <div className="section__head">
           <h2>Prüfung</h2>
-          <span className="meta">
+          <span className="tag tag--muted">
             {day?.evaluation?.regime === 'kjbg'
               ? 'KJBG — unter 18'
               : day?.evaluation?.regime === 'ausgenommen'
@@ -243,7 +290,7 @@ export function Heute() {
           emptyText={
             day?.evaluation?.regime === 'ausgenommen'
               ? 'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht (§ 1 Abs 2 AZG). Die Zeiten werden trotzdem aufgezeichnet.'
-              : 'Keine Beanstandungen.'
+              : 'Alles im Rahmen — keine Beanstandungen.'
           }
         />
       </section>
@@ -257,3 +304,16 @@ const SEGMENT_LABEL: Record<string, string> = {
   travel: 'Reisezeit',
   oncall: 'Rufbereitschaft',
 };
+
+function greeting(now: Date): string {
+  const hour = now.getHours();
+  if (hour < 5) return 'Gute Nacht';
+  if (hour < 11) return 'Guten Morgen';
+  if (hour < 18) return 'Guten Tag';
+  return 'Guten Abend';
+}
+
+function greetingIcon(now: Date): 'sun' | 'moon' {
+  const hour = now.getHours();
+  return hour >= 6 && hour < 19 ? 'sun' : 'moon';
+}

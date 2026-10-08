@@ -299,7 +299,7 @@ legend + * {
   align-items: center;
   justify-content: center;
   min-width: 6rem;
-  min-height: calc(var(--control-height) - 8px);
+  min-height: var(--control-height);
   padding: 0 var(--space-4);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -895,5 +895,310 @@ tr.is-today td {
 
   fieldset {
     padding: var(--space-4);
+  }
+}
+
+/* === Charakter ============================================================
+ * Elemente, die etwas zeigen, nicht nur schmücken: Symbole neben
+ * Beschriftungen, Fortschritt, Zeitstrahl, freundliche Erfolgszustände.
+ * Bewegung nur dort, wo sie einen Zustand anzeigt (läuft gerade).
+ */
+
+.icon {
+  flex-shrink: 0;
+}
+
+.nav a {
+  gap: var(--space-2);
+}
+
+.nav a .icon {
+  opacity: 0.85;
+}
+
+.footer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Begrüßung über dem Datum. */
+.greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* Uhrzeit als kleine Kapsel rechts im Seitenkopf. */
+.clock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.clock-chip .icon {
+  color: var(--accent);
+}
+
+/* --- Fortschritt --------------------------------------------------------- */
+
+.progress-block {
+  grid-column: 1 / -1;
+}
+
+.progress-block--spaced {
+  margin-top: var(--space-4);
+}
+
+.progress-block__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.progress {
+  height: 0.625rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  min-width: 0;
+  background: var(--accent-strong);
+  border-radius: inherit;
+  transition: width 400ms ease-out;
+}
+
+.progress--done .progress__bar {
+  background: var(--accent);
+}
+
+/* --- Zeitstrahl ---------------------------------------------------------- */
+
+.timeline {
+  grid-column: 1 / -1;
+}
+
+.timeline__track {
+  position: relative;
+  height: 1.75rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.timeline__segment {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 4px;
+  background: var(--accent-strong);
+}
+
+.timeline__segment--break {
+  background: #f59e0b;
+  top: 8px;
+  bottom: 8px;
+}
+
+.timeline__segment--travel {
+  background: #0e7490;
+}
+
+.timeline__segment--oncall {
+  background: #94a3b8;
+}
+
+.timeline__now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+}
+
+.timeline__ticks {
+  position: relative;
+  height: 1.25rem;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+.timeline__ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.timeline__gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--hairline-strong);
+}
+
+.timeline__legend {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+.timeline__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Farbpunkt für die Art eines Abschnitts — dieselben Farben wie im
+ * Zeitstrahl, damit Tabelle und Strahl zusammen lesbar sind. */
+.kind-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-strong);
+  vertical-align: middle;
+}
+
+.timeline__legend .kind-dot {
+  margin-right: 0;
+}
+
+.kind-dot--break {
+  background: #f59e0b;
+}
+
+.kind-dot--travel {
+  background: #0e7490;
+}
+
+.kind-dot--oncall {
+  background: #94a3b8;
+}
+
+/* --- Stempelkarte nach Zustand ------------------------------------------- */
+
+.stamp--running {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow), 0 0 0 4px var(--accent-soft);
+}
+
+.stamp--break {
+  border-color: var(--warn-line);
+  box-shadow: var(--shadow), 0 0 0 4px var(--warn-soft);
+}
+
+/* Der Punkt im Status pulsiert, solange die Uhr läuft — das einzige
+ * bewegte Element der Anwendung, und es zeigt etwas an. */
+.stamp__status--running::before,
+.stamp__status--break::before {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.55;
+  }
+}
+
+/* --- Befunde und Leerzustände -------------------------------------------- */
+
+.finding {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.finding__icon {
+  margin-top: 0.1rem;
+  color: var(--ink-muted);
+}
+
+.finding--hinweis .finding__icon {
+  color: var(--warn);
+}
+
+.finding--verstoss .finding__icon {
+  color: var(--violation);
+}
+
+.finding__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.finding__date {
+  font-weight: 600;
+  margin-right: var(--space-2);
+}
+
+/* Keine Beanstandungen ist eine gute Nachricht. */
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--radius);
+  color: var(--accent-hover);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.empty .icon {
+  color: var(--ink-faint);
+}
+
+@media (max-width: 40rem) {
+  .masthead__logout-label {
+    display: none;
+  }
+
+  .clock-chip {
+    align-self: flex-start;
   }
 }

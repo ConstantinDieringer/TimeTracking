@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router';
+import { Icon } from './components/Icon';
 import { Loading } from './components/Loading';
 import { LogoMark } from './components/LogoMark';
 import { useSession } from './lib/session';
@@ -82,10 +83,19 @@ export function App() {
             {/* Ein Punkt für Tages- und Monatsansicht; zwischen beiden schaltet
                 der Umschalter auf der Seite. */}
             <Link to="/" aria-current={isTimes ? 'page' : undefined}>
+              <Icon name="clock" />
               Meine Zeiten
             </Link>
-            <NavLink to="/auswertung">Auswertung</NavLink>
-            {isAdmin && <NavLink to="/admin">Verwaltung</NavLink>}
+            <NavLink to="/auswertung">
+              <Icon name="chart" />
+              Auswertung
+            </NavLink>
+            {isAdmin && (
+              <NavLink to="/admin">
+                <Icon name="users" />
+                Verwaltung
+              </NavLink>
+            )}
           </nav>
           <div className="masthead__account">
             <span className="avatar" aria-hidden="true">
@@ -94,8 +104,14 @@ export function App() {
             <span className="masthead__user" title={profile.display_name}>
               {profile.display_name}
             </span>
-            <button className="button button--quiet" type="button" onClick={signOut}>
-              Abmelden
+            <button
+              className="button button--quiet"
+              type="button"
+              onClick={signOut}
+              title="Abmelden"
+            >
+              <Icon name="logout" />
+              <span className="masthead__logout-label">Abmelden</span>
             </button>
           </div>
         </div>
@@ -119,7 +135,10 @@ export function App() {
 
       <footer className="footer">
         <div className="footer__inner">
-          <Link to="/datenschutz">Datenschutz</Link>
+          <Link className="footer__link" to="/datenschutz">
+            <Icon name="shield" size={16} />
+            Datenschutz
+          </Link>
           <span>Aufzeichnung nach § 26 AZG · Daten in der EU</span>
         </div>
       </footer>
