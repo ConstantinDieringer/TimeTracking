@@ -18,6 +18,7 @@ import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
 import { Duration } from '../components/Num';
 import { VertragsForm } from '../components/VertragsForm';
+import { Zugang } from '../components/Zugang';
 import { contractOn } from '../lib/mapping';
 import { useAuditLog, useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { supabase, type Tables } from '../lib/supabase';
@@ -182,6 +183,8 @@ export function AdminMitarbeiter() {
           die Anzeige der Landesfeiertage — einen Entgeltanspruch begründen diese nicht.
         </p>
       </section>
+
+      <Zugang employeeId={employeeId} displayName={employee.data.displayName} />
 
       <section className="section">
         <div className="section__head">

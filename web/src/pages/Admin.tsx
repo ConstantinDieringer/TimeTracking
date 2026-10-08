@@ -11,8 +11,10 @@ import { Link } from 'react-router';
 import { Duration } from '../components/Num';
 import { NeuerZugang } from '../components/NeuerZugang';
 import { useOverview } from '../lib/overview';
+import { useSession } from '../lib/session';
 
 export function Admin() {
+  const { organization } = useSession();
   const today = localDateOf(new Date());
   const [month, setMonth] = useState(startOfMonth(today).slice(0, 7));
   const [addingUser, setAddingUser] = useState(false);
@@ -107,7 +109,11 @@ export function Admin() {
               <tr key={row.employee.id}>
                 <td>
                   <Link to={`/admin/${row.employee.id}`}>{row.employee.displayName}</Link>
-                  {row.role === 'admin' && <span className="tag tag--muted">Verwaltung</span>}
+                  {row.employee.id === organization?.owner_id ? (
+                    <span className="tag tag--muted">Inhaber</span>
+                  ) : (
+                    row.role === 'admin' && <span className="tag tag--muted">Verwaltung</span>
+                  )}
                 </td>
                 <td className="num num--muted">{row.employee.personnelNumber ?? '—'}</td>
                 <td>

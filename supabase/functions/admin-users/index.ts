@@ -116,6 +116,25 @@ Deno.serve(async (request) => {
     return data?.organization_id === organizationId;
   }
 
+  /**
+   * Ist die Zielperson der Inhaber des Unternehmens? Den schützt die Datenbank
+   * bereits per Trigger vor Deaktivierung und Herabstufung; das Passwort
+   * dagegen liegt in Supabase Auth, wo kein Trigger hinreicht.
+   */
+  async function isOwner(userId: string): Promise<boolean> {
+    const { data } = await admin
+      .from('organizations')
+      .select('owner_id')
+      .eq('id', organizationId)
+      .maybeSingle();
+    return data?.owner_id === userId;
+  }
+
+  const { data: callerData } = await caller.auth.getUser(
+    authorization.replace(/^Bearer\s+/i, ''),
+  );
+  const callerId = callerData.user?.id;
+
   switch (payload.action) {
     case 'create': {
       if (!payload.email || !payload.password || !payload.displayName) {
@@ -133,12 +152,29 @@ Deno.serve(async (request) => {
         email_confirm: true,
         user_metadata: {
           display_name: payload.displayName,
-          role: payload.role ?? 'employee',
-          hired_on: payload.hiredOn ?? new Date().toISOString().slice(0, 10),
-          organization_id: organizationId,
         },
       });
       if (error) return json({ error: error.message }, 400);
+
+      // Rolle, Unternehmen und Eintrittsdatum setzt erst dieser Schritt mit
+      // dem service_role-Schlüssel. Nicht über user_metadata — das kann jeder
+      // Benutzer selbst beschreiben, und der Trigger handle_new_user übernimmt
+      // daraus bewusst nur den Namen. Und nicht über app_metadata — GoTrue
+      // schreibt das erst nach dem INSERT, den der Trigger sieht.
+      const { error: profileError } = await admin
+        .from('profiles')
+        .update({
+          organization_id: organizationId,
+          role: payload.role === 'admin' ? 'admin' : 'employee',
+          hired_on: payload.hiredOn ?? new Date().toISOString().slice(0, 10),
+          display_name: payload.displayName,
+        })
+        .eq('id', data.user.id);
+      if (profileError) {
+        // Kein Konto ohne Zuordnung zurücklassen.
+        await admin.auth.admin.deleteUser(data.user.id);
+        return json({ error: profileError.message }, 400);
+      }
       return json({ userId: data.user.id });
     }
 
@@ -148,6 +184,9 @@ Deno.serve(async (request) => {
       }
       if (!(await belongsToCallerOrganization(payload.userId))) {
         return json({ error: 'Diese Person gehört nicht zu Ihrem Unternehmen.' }, 403);
+      }
+      if (payload.userId !== callerId && (await isOwner(payload.userId))) {
+        return json({ error: 'Das Passwort des Inhabers kann nur er selbst ändern.' }, 403);
       }
       const { error } = await admin.auth.admin.updateUserById(payload.userId, {
         password: payload.password,
@@ -159,6 +198,13 @@ Deno.serve(async (request) => {
     case 'set-active': {
       if (!(await belongsToCallerOrganization(payload.userId))) {
         return json({ error: 'Diese Person gehört nicht zu Ihrem Unternehmen.' }, 403);
+      }
+      // Der Trigger protect_owner würde das Profil-Update ohnehin abweisen;
+      // hier früher und mit verständlicher Meldung. Die Reihenfolge danach
+      // (erst Profil, dann Auth-Sperre) bleibt trotzdem wichtig: scheitert das
+      // Profil, wird niemand gesperrt.
+      if (!payload.active && (await isOwner(payload.userId))) {
+        return json({ error: 'Der Inhaber kann nicht deaktiviert werden.' }, 403);
       }
       // Deaktivieren statt löschen: die Aufzeichnungen sind nach § 26 AZG
       // aufzubewahren, und ein gelöschter Benutzer nähme sie mit.

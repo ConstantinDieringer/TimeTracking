@@ -7,22 +7,37 @@ dokumentiert, sondern laufend überwacht.
 
 ## Schnellstart
 
-Voraussetzungen: Node ≥ 20 und Docker.
+Voraussetzungen: Node ≥ 20 und ein Supabase-Cloud-Projekt. Docker ist nicht
+nötig.
 
 ```bash
 npm install
-npm run db:start        # startet Postgres, Auth und Studio in Docker
-cp .env.example .env    # URL und ANON_KEY aus der Ausgabe von db:start eintragen
-npm run dev             # http://localhost:5173
+npx supabase login                          # einmalig, öffnet den Browser
+npx supabase link --project-ref <ref>       # fragt nach dem Datenbank-Passwort
+cp .env.example .env                        # Project URL und anon-Schlüssel eintragen
+npm run db:push                             # Migrationen in die Cloud
+npm run functions:deploy                    # Edge Function admin-users
+npm run dev                                 # http://localhost:5173
 ```
 
-Die Testzugänge aus `supabase/seed.sql`, Passwort jeweils `zeiterfassung`:
+Im Dashboard unter *Authentication → Sign In / Providers* die
+Selbstregistrierung abschalten („Allow new users to sign up“). Rechte verleiht
+sie zwar keine mehr (siehe [Rollen](#rollen-und-inhaber)), aber bis es
+Einladungen gibt, hat niemand einen Grund, sich selbst zu registrieren.
+
+### Testdaten
+
+`supabase/seed.sql` legt zwei Testunternehmen an, Passwort jeweils
+`zeiterfassung`. In die Cloud kommen sie mit `npx supabase db push
+--include-seed`. **Vor dem Echtbetrieb wieder entfernen** — das Passwort steht
+hier im Klartext.
 
 **Honestas Capital GmbH** — deckt zusammen jeden Zweig der Rechtslogik ab:
 
 | E-Mail | Rolle | Besonderheit |
 |---|---|---|
-| `admin@example.at` | Verwaltung | Leitende Angestellte, vom AZG ausgenommen |
+| `admin@example.at` | Inhaberin | Leitende Angestellte, vom AZG ausgenommen |
+| `markus@example.at` | Verwaltung | zweiter Administrator — kann der Inhaberin nichts anhaben |
 | `anna@example.at` | Mitarbeiterin | Vollzeit mit Gleitzeit **ohne** ganztägigen Verbrauch |
 | `sofia@example.at` | Mitarbeiterin | Teilzeit 20 h — zeigt Mehrarbeit gegen Überstunde |
 | `jonas@example.at` | Mitarbeiter | Lehrling, wird am 17. 9. 2026 achtzehn |
@@ -31,11 +46,11 @@ Die Testzugänge aus `supabase/seed.sql`, Passwort jeweils `zeiterfassung`:
 
 | E-Mail | Rolle | Besonderheit |
 |---|---|---|
-| `chef@musterbau.at` | Verwaltung | sieht von Honestas nichts, obwohl er Administrator ist |
+| `chef@musterbau.at` | Inhaber | sieht von Honestas nichts, obwohl er Administrator ist |
 | `lisa@musterbau.at` | Mitarbeiterin | trägt dieselbe Personalnummer wie jemand drüben |
 
-Melde dich einmal mit jedem der beiden Administratoren an: die
-Mitarbeiterlisten überschneiden sich in keinem einzigen Eintrag.
+Melde dich einmal mit jedem der beiden Inhaber an: die Mitarbeiterlisten
+überschneiden sich in keinem einzigen Eintrag.
 
 ## Befehle
 
@@ -44,13 +59,21 @@ Mitarbeiterlisten überschneiden sich in keinem einzigen Eintrag.
 | `npm run dev` | Entwicklungsserver |
 | `npm run build` | Produktionsbündel nach `web/dist` |
 | `npm test` | Unit-Tests der Rechtslogik und der Exporte |
-| `npm run test:rls` | Prüfung der Zugriffstrennung gegen die laufende Datenbank |
-| `npm run db:start` / `db:stop` | lokale Supabase-Instanz |
-| `npm run db:reset` | Schema und Testdaten neu aufsetzen |
-| `npm run db:types` | Datenbanktypen für das Frontend neu erzeugen |
+| `npm run test:rls` | Prüfung der Zugriffstrennung gegen das verknüpfte Cloud-Projekt |
+| `npm run db:push` | neue Migrationen in die Cloud übertragen |
+| `npm run db:types` | Datenbanktypen für das Frontend aus der Cloud neu erzeugen |
+| `npm run functions:deploy` | Edge Function `admin-users` deployen |
 
-Die lokale Instanz läuft auf den Ports 544xx statt der Supabase-Standardports
-54321 ff., damit sie neben anderen lokalen Projekten bestehen kann.
+`test:rls` holt Projekt und Schlüssel aus der Supabase CLI und meldet sich nur
+mit den Testzugängen an; es setzt also die Testdaten voraus.
+
+Wer doch lokal mit Docker arbeiten will: `npm run db:start`, `db:reset`,
+`db:stop` und `test:rls:local` stehen weiter bereit. Die lokale Instanz läuft
+auf den Ports 544xx statt der Supabase-Standardports 54321 ff.
+
+Neue Tabellen brauchen in ihrer Migration eigene `grant`-Zeilen: neue
+Cloud-Projekte geben `authenticated` und `service_role` keine Tabellenrechte
+mehr von selbst (siehe `20261008120100_tabellenrechte.sql`).
 
 ## Aufbau
 
@@ -88,35 +111,51 @@ Geringfügigkeitsgrenze stehen dagegen ohne Unternehmen in `settings`
 
 `npm run test:rls` prüft das mit zwei echten Mandanten gegeneinander.
 
+### Rollen und Inhaber
+
+Jedes Unternehmen hat genau einen **Inhaber**, beliebig viele
+**Administratoren** (in der Oberfläche „Verwaltung“) und **Mitarbeiter**.
+
+- Der Inhaber ist immer aktiver Administrator seines Unternehmens. Ein
+  Datenbank-Trigger weist jede Änderung ab, die das bräche — Herabstufen,
+  Deaktivieren, Verschieben —, auch über die Edge Function. Sein Passwort kann
+  nur er selbst ändern. So kann sich ein Unternehmen nie aussperren.
+- Weitergeben kann die Inhaberschaft nur der Inhaber selbst
+  (`transfer_ownership`, in der Oberfläche unter *Verwaltung → Person →
+  Zugang*). Er bleibt danach Administrator.
+- Administratoren befördern Mitarbeiter zur Verwaltung und stufen
+  Administratoren herab. Profile löschen kann niemand — ausgeschieden wird
+  durch Deaktivieren, damit die Aufzeichnungen nach § 26 AZG erhalten bleiben.
+
+**Konto und Unternehmen sind getrennt.** Ein neues Konto gehört zu keinem
+Unternehmen und sieht nichts. Rolle und Unternehmen vergibt nur der Server
+(`create_organization`, `assign_to_organization`, die Edge Function
+`admin-users`), nie das, was ein Benutzer bei der Registrierung selbst
+mitschickt: der Trigger `handle_new_user` übernimmt aus `user_metadata` nur den
+Namen. Firmennamen sind nicht eindeutig — eindeutig ist nur die interne
+Kennung, deshalb lässt sich kein Name „wegschnappen“.
+
 ### Einen neuen Kunden anlegen
 
-Unternehmen entstehen nur auf Einladung, also von Hand durch den Betreiber.
-Drei Schritte, der mittlere im Supabase-Dashboard:
+Unternehmen legt vorerst der Betreiber von Hand an (später übernimmt das die
+Bezahlung). Zwei Schritte:
+
+**1.** Dashboard → *Authentication → Users → Add user*: E-Mail und Passwort
+des künftigen Inhabers setzen, „Auto Confirm" anhaken.
 
 ```sql
--- 1. Unternehmen anlegen. Legt zugleich die sieben Vertragsarten und einen
---    leeren Betriebsstandard an und gibt die Kennung zurück.
-select public.create_organization('Muster GmbH');
-```
-
-**2.** Dashboard → *Authentication → Users → Add user*: E-Mail und Passwort
-setzen, „Auto Confirm" anhaken.
-
-```sql
--- 3. Den Benutzer zum ersten Administrator dieses Unternehmens machen.
---    Der Name ist optional, aber empfehlenswert: sonst steht in der Anwendung
---    der Teil vor dem @ der E-Mail-Adresse.
-select public.assign_to_organization(
-  'admin@muster.at',
-  '<kennung-aus-schritt-1>',
-  'admin',
-  'Maria Muster'
-);
+-- 2. Unternehmen mit diesem Benutzer als Inhaber anlegen. Legt zugleich die
+--    sieben Vertragsarten und einen leeren Betriebsstandard an und gibt die
+--    Kennung zurück. Der Name ist optional, aber empfehlenswert: sonst steht
+--    in der Anwendung der Teil vor dem @ der E-Mail-Adresse.
+select public.create_organization('Muster GmbH', 'maria@muster.at', 'Maria Muster');
 ```
 
 Ab da macht der Kunde alles selbst: Betriebsstandard festlegen, Mitarbeiter
-anlegen, Verträge pflegen. Beide Funktionen sind für angemeldete Benutzer
-gesperrt und laufen nur im SQL-Editor.
+anlegen, Verträge pflegen. Weitere bestehende Benutzer ordnet
+`assign_to_organization(email, kennung, rolle, name)` zu — aber nur solche,
+die noch keinem anderen Unternehmen angehören. Beide Funktionen sind für
+angemeldete Benutzer gesperrt und laufen nur im SQL-Editor.
 
 ### Kein eigener Server
 

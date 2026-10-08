@@ -19,8 +19,18 @@ const ANON_KEY =
   process.env.SUPABASE_ANON_KEY ??
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
+// Nur für das Anlegen eines Testbenutzers wie über die Registrierung. Der
+// service_role-Schlüssel der lokalen Instanz ist ebenfalls ein Demo-Schlüssel.
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qJwcBOJ7I0J0GpC2lPZnXE';
+
+/** Inhaberin der Honestas Capital GmbH. */
+const MARLENE = '11111111-1111-1111-1111-111111111111';
 const ANNA = '22222222-2222-2222-2222-222222222222';
 const SOFIA = '33333333-3333-3333-3333-333333333333';
+/** Zweiter Administrator der Honestas Capital GmbH, nicht Inhaber. */
+const MARKUS = '77777777-7777-7777-7777-777777777777';
 /** Mitarbeiterin des zweiten Unternehmens. */
 const LISA = '66666666-6666-6666-6666-666666666666';
 
@@ -45,13 +55,16 @@ let sofia: SupabaseClient;
 let admin: SupabaseClient;
 /** Administrator des zweiten Unternehmens — die Gegenprobe. */
 let fremderAdmin: SupabaseClient;
+/** Administrator ohne Inhaberschaft. */
+let markus: SupabaseClient;
 
 beforeAll(async () => {
-  [anna, sofia, admin, fremderAdmin] = await Promise.all([
+  [anna, sofia, admin, fremderAdmin, markus] = await Promise.all([
     signIn('anna@example.at'),
     signIn('sofia@example.at'),
     signIn('admin@example.at'),
     signIn('chef@musterbau.at'),
+    signIn('markus@example.at'),
   ]);
 }, 30_000);
 
@@ -410,6 +423,190 @@ describe('Unternehmen sehen einander nicht', () => {
 
     expect(eigene.data!.map((row) => row.name)).toEqual(['Honestas Capital GmbH']);
     expect(fremde.data!.map((row) => row.name)).toEqual(['Musterbau GmbH']);
+  });
+});
+
+/**
+ * Rolle und Unternehmen vergibt nur der Server. Was ein Benutzer bei der
+ * Registrierung selbst mitschickt (`signUp({ options: { data } })`), landet in
+ * user_metadata — und daraus darf nichts als der Name übernommen werden.
+ */
+describe('Die Registrierung vergibt keine Rechte', () => {
+  it('ordnet ein Konto mit selbst behaupteter Admin-Rolle keinem Unternehmen zu', async () => {
+    const service = createClient(URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: honestas } = await admin.from('organizations').select('id').single();
+
+    const email = `angreifer-${Date.now()}@example.com`;
+    // Derselbe Trigger wie bei signUp: user_metadata ist genau das, was ein
+    // Angreifer bei der Registrierung frei befüllen kann.
+    const { data: created, error: createError } = await service.auth.admin.createUser({
+      email,
+      password: 'zeiterfassung',
+      email_confirm: true,
+      user_metadata: {
+        display_name: 'Angreifer',
+        role: 'admin',
+        organization_id: honestas!.id,
+        hired_on: '2000-01-01',
+      },
+    });
+    expect(createError).toBeNull();
+
+    try {
+      const angreifer = await signIn(email);
+
+      const { data: eigenes } = await angreifer
+        .from('profiles')
+        .select('role, organization_id, hired_on')
+        .single();
+      expect(eigenes!.role).toBe('employee');
+      expect(eigenes!.organization_id).toBeNull();
+      expect(eigenes!.hired_on).not.toBe('2000-01-01');
+
+      const { data: istAdmin } = await angreifer.rpc('is_admin');
+      expect(istAdmin).toBe(false);
+
+      const { data: profile } = await angreifer.from('profiles').select('id');
+      expect(profile).toHaveLength(1);
+      const { data: zeiten } = await angreifer.from('time_entries').select('id');
+      expect(zeiten).toEqual([]);
+      const { data: firmen } = await angreifer.from('organizations').select('id');
+      expect(firmen).toEqual([]);
+    } finally {
+      await service.auth.admin.deleteUser(created!.user!.id);
+    }
+  });
+
+  it('lässt angemeldete Benutzer kein Unternehmen anlegen und niemanden zuordnen', async () => {
+    const anlegen = await admin.rpc('create_organization', {
+      p_name: 'Eigenmächtig GmbH',
+      p_owner_email: 'anna@example.at',
+    });
+    expect(anlegen.error).not.toBeNull();
+
+    const zuordnen = await fremderAdmin.rpc('assign_to_organization', {
+      p_email: 'anna@example.at',
+      p_organization: (await fremderAdmin.from('organizations').select('id').single()).data!.id,
+      p_role: 'employee',
+    });
+    expect(zuordnen.error).not.toBeNull();
+  });
+});
+
+/**
+ * Marlene Hofer ist Inhaberin der Honestas Capital GmbH, Markus Leitner
+ * gewöhnlicher Administrator. Was immer Administratoren untereinander tun:
+ * die Inhaberin kommt immer hinein.
+ */
+describe('Der Inhaber ist geschützt', () => {
+  async function ownerOfHonestas(): Promise<string> {
+    const { data } = await admin.from('organizations').select('owner_id').single();
+    return data!.owner_id as string;
+  }
+
+  it('führt Marlene als Inhaberin', async () => {
+    expect(await ownerOfHonestas()).toBe(MARLENE);
+    const { data } = await admin.rpc('is_owner');
+    expect(data).toBe(true);
+    const { data: nichtInhaber } = await markus.rpc('is_owner');
+    expect(nichtInhaber).toBe(false);
+  });
+
+  it('lässt einen Administrator den Inhaber nicht herabstufen', async () => {
+    const { error } = await markus
+      .from('profiles')
+      .update({ role: 'employee' })
+      .eq('id', MARLENE)
+      .select();
+    expect(error).not.toBeNull();
+
+    const { data } = await admin.from('profiles').select('role').eq('id', MARLENE).single();
+    expect(data!.role).toBe('admin');
+  });
+
+  it('lässt einen Administrator den Inhaber nicht deaktivieren', async () => {
+    const { error } = await markus
+      .from('profiles')
+      .update({ active: false })
+      .eq('id', MARLENE)
+      .select();
+    expect(error).not.toBeNull();
+
+    const { data } = await admin.from('profiles').select('active').eq('id', MARLENE).single();
+    expect(data!.active).toBe(true);
+  });
+
+  it('lässt auch den Inhaber sich nicht selbst herabstufen', async () => {
+    const { error } = await admin.from('profiles').update({ role: 'employee' }).eq('id', MARLENE);
+    expect(error).not.toBeNull();
+  });
+
+  it('lässt Administratoren befördern und herabstufen', async () => {
+    const befoerdert = await markus
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', SOFIA)
+      .select('role');
+    expect(befoerdert.error).toBeNull();
+    expect(befoerdert.data).toEqual([{ role: 'admin' }]);
+
+    const herabgestuft = await admin
+      .from('profiles')
+      .update({ role: 'employee' })
+      .eq('id', SOFIA)
+      .select('role');
+    expect(herabgestuft.error).toBeNull();
+    expect(herabgestuft.data).toEqual([{ role: 'employee' }]);
+  });
+
+  it('lässt Administratoren kein Profil löschen', async () => {
+    // Ein gelöschtes Profil nähme alle Zeiten mit, die nach § 26 AZG
+    // aufzubewahren sind.
+    const { data } = await admin.from('profiles').delete().eq('id', SOFIA).select();
+    expect(data ?? []).toEqual([]);
+
+    const { data: danach } = await admin.from('profiles').select('id').eq('id', SOFIA);
+    expect(danach).toHaveLength(1);
+  });
+
+  it('lässt nur den Inhaber die Inhaberschaft übertragen', async () => {
+    const durchAdmin = await markus.rpc('transfer_ownership', { p_new_owner: MARKUS });
+    expect(durchAdmin.error).not.toBeNull();
+
+    const durchMitarbeiterin = await anna.rpc('transfer_ownership', { p_new_owner: ANNA });
+    expect(durchMitarbeiterin.error).not.toBeNull();
+
+    expect(await ownerOfHonestas()).toBe(MARLENE);
+  });
+
+  it('überträgt nicht in ein fremdes Unternehmen', async () => {
+    const { error } = await admin.rpc('transfer_ownership', { p_new_owner: LISA });
+    expect(error).not.toBeNull();
+    expect(await ownerOfHonestas()).toBe(MARLENE);
+  });
+
+  it('überträgt die Inhaberschaft und schützt danach den neuen Inhaber', async () => {
+    const hin = await admin.rpc('transfer_ownership', { p_new_owner: MARKUS });
+    expect(hin.error).toBeNull();
+
+    try {
+      expect(await ownerOfHonestas()).toBe(MARKUS);
+
+      // Marlene bleibt Administratorin, ist aber nicht mehr geschützt —
+      // und kann ihrerseits Markus nichts mehr anhaben.
+      const { data: marlene } = await admin.from('profiles').select('role').eq('id', MARLENE).single();
+      expect(marlene!.role).toBe('admin');
+
+      const angriff = await admin.from('profiles').update({ role: 'employee' }).eq('id', MARKUS);
+      expect(angriff.error).not.toBeNull();
+    } finally {
+      const zurueck = await markus.rpc('transfer_ownership', { p_new_owner: MARLENE });
+      expect(zurueck.error).toBeNull();
+    }
+
+    expect(await ownerOfHonestas()).toBe(MARLENE);
   });
 });
 

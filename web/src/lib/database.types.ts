@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -7,30 +7,10 @@
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -308,6 +288,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          owner_id: string
           updated_at: string
           vat_id: string | null
         }
@@ -317,6 +298,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          owner_id: string
           updated_at?: string
           vat_id?: string | null
         }
@@ -326,10 +308,19 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          owner_id?: string
           updated_at?: string
           vat_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -492,6 +483,7 @@ export type Database = {
     Functions: {
       assign_to_organization: {
         Args: {
+          p_display_name?: string
           p_email: string
           p_organization: string
           p_role?: Database["public"]["Enums"]["app_role"]
@@ -536,11 +528,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_organization: { Args: { p_name: string }; Returns: string }
+      create_organization: {
+        Args: {
+          p_name: string
+          p_owner_display_name?: string
+          p_owner_email: string
+        }
+        Returns: string
+      }
       current_employee_id: { Args: never; Returns: string }
       current_organization_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_owner: { Args: never; Returns: boolean }
       save_contract_defaults: { Args: { p_value: Json }; Returns: undefined }
+      transfer_ownership: { Args: { p_new_owner: string }; Returns: undefined }
     }
     Enums: {
       absence_kind:
@@ -689,9 +690,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       absence_kind: [
@@ -720,4 +718,3 @@ export const Constants = {
     },
   },
 } as const
-

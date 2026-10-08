@@ -22,6 +22,24 @@ export function App() {
 
   if (!session || !profile) return <Login />;
 
+  // Ein Konto ohne Unternehmen ist kein Fehler, sondern der Normalzustand nach
+  // der Registrierung: zugeordnet wird erst über eine Einladung oder beim
+  // Anlegen eines Unternehmens.
+  if (!profile.organization_id) {
+    return (
+      <main className="page">
+        <h1>Keinem Unternehmen zugeordnet</h1>
+        <p className="muted">
+          Dieser Zugang gehört noch zu keinem Unternehmen. Sobald Sie die Verwaltung Ihres
+          Unternehmens hinzufügt, steht Ihnen die Zeiterfassung hier zur Verfügung.
+        </p>
+        <button className="button" type="button" onClick={signOut}>
+          Abmelden
+        </button>
+      </main>
+    );
+  }
+
   if (!profile.active) {
     return (
       <main className="page">

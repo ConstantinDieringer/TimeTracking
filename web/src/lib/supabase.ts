@@ -20,6 +20,7 @@ export const supabase = createClient<Database>(url, anonKey, {
 
 export type Tables = Database['public']['Tables'];
 export type ProfileRow = Tables['profiles']['Row'];
+export type OrganizationRow = Tables['organizations']['Row'];
 export type ContractRow = Tables['employment_contracts']['Row'];
 export type ContractTypeRow = Tables['contract_types']['Row'];
 export type TimeEntryRow = Tables['time_entries']['Row'];
