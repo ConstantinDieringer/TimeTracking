@@ -303,7 +303,7 @@ widerlegen.
 - **Mehrarbeitszuschlag.** Die Ungleichbehandlung von Teilzeitkräften (25 %
   gegenüber 50 %) steht unionsrechtlich in Diskussion. Die Sätze sind deshalb
   konfigurierbar und nicht fest verdrahtet.
-- **PDF-Schrift.** Das Monatsjournal setzt Helvetica statt IBM Plex, weil
+- **PDF-Schrift.** Das Monatsjournal setzt Helvetica statt Geist, weil
   @fontsource nur WOFF und WOFF2 liefert und pdf-lib daraus nichts einbetten
   kann. WinAnsi deckt den deutschen Zeichenvorrat vollständig ab.
 - **Rechtliche Prüfung.** Die Rechtslogik ist sorgfältig umgesetzt und
