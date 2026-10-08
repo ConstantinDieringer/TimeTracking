@@ -7,6 +7,7 @@ import {
   minutesBetween,
 } from '@zeiterfassung/legal';
 import { useEffect, useState } from 'react';
+import { Ansicht } from '../components/Ansicht';
 import { Findings } from '../components/Findings';
 import { Duration } from '../components/Num';
 import { useOpenEntry, useStamp, useStopStamp, useTimesheet } from '../lib/queries';
@@ -42,6 +43,7 @@ export function Heute() {
 
   return (
     <main className="page">
+      <Ansicht />
       <div className="page__head">
         <div>
           <h1>{formatDateLong(today)}</h1>

@@ -5,7 +5,6 @@ import { LogoMark } from './components/LogoMark';
 import { useSession } from './lib/session';
 import { Login } from './pages/Login';
 import { Heute } from './pages/Heute';
-import { Woche } from './pages/Woche';
 import { Monat } from './pages/Monat';
 import { Auswertung } from './pages/Auswertung';
 import { Admin } from './pages/Admin';
@@ -16,6 +15,7 @@ import { Datenschutz } from './pages/Datenschutz';
 export function App() {
   const { session, profile, loading, isAdmin, signOut } = useSession();
   const location = useLocation();
+  const isTimes = location.pathname === '/' || location.pathname.startsWith('/monat');
 
   // Auf dem Telefon ist die Navigation eine wischbare Leiste. Der aktive
   // Punkt soll darin immer sichtbar sein, nicht halb abgeschnitten am Rand.
@@ -79,9 +79,11 @@ export function App() {
             Zeiterfassung
           </Link>
           <nav className="nav" aria-label="Hauptnavigation">
-            <NavLink to="/">Heute</NavLink>
-            <NavLink to="/woche">Woche</NavLink>
-            <NavLink to="/monat">Monat</NavLink>
+            {/* Ein Punkt für Tages- und Monatsansicht; zwischen beiden schaltet
+                der Umschalter auf der Seite. */}
+            <Link to="/" aria-current={isTimes ? 'page' : undefined}>
+              Meine Zeiten
+            </Link>
             <NavLink to="/auswertung">Auswertung</NavLink>
             {isAdmin && <NavLink to="/admin">Verwaltung</NavLink>}
           </nav>
@@ -102,8 +104,8 @@ export function App() {
       <div id="inhalt" className="app__content">
         <Routes>
           <Route path="/" element={<Heute />} />
-          <Route path="/woche" element={<Woche />} />
-          <Route path="/woche/:date" element={<Woche />} />
+          {/* Die Wochenansicht gibt es nicht mehr; alte Lesezeichen landen im Monat. */}
+          <Route path="/woche/*" element={<Navigate to="/monat" replace />} />
           <Route path="/monat" element={<Monat />} />
           <Route path="/monat/:month" element={<Monat />} />
           <Route path="/auswertung" element={<Auswertung />} />

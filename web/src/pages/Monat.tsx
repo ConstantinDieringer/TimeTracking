@@ -14,6 +14,7 @@ import {
 } from '@zeiterfassung/legal';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { Ansicht } from '../components/Ansicht';
 import { DayEditor } from '../components/DayEditor';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
@@ -69,6 +70,7 @@ export function Monat() {
 
   return (
     <main className="page">
+      <Ansicht />
       <div className="page__head">
         <div>
           <h1>

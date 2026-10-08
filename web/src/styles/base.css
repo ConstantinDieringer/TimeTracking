@@ -282,6 +282,56 @@ legend + * {
   color: var(--ink-faint);
 }
 
+/* Umschalter zwischen gleichrangigen Ansichten — eine graue Schiene, die
+ * gewählte Ansicht liegt als weiße Fläche darauf. */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: var(--space-5);
+  background: var(--surface-muted);
+  border: var(--border);
+  border-radius: var(--radius);
+}
+
+.segmented a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 6rem;
+  min-height: calc(var(--control-height) - 8px);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-decoration: none;
+  transition:
+    background-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.segmented a:hover {
+  color: var(--ink);
+}
+
+.segmented a[aria-current='page'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 40rem) {
+  .segmented {
+    display: flex;
+  }
+
+  .segmented a {
+    flex: 1;
+  }
+}
+
 /* --- Layout -------------------------------------------------------------- */
 
 .app {
@@ -825,6 +875,10 @@ tr.is-today td {
 
   .page__head .row {
     justify-content: space-between;
+  }
+
+  .page__head > .pager {
+    align-self: flex-start;
   }
 
   .section {
