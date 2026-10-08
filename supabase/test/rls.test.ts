@@ -610,6 +610,176 @@ describe('Der Inhaber ist geschützt', () => {
   });
 });
 
+describe('Stammdaten und Inhaberschaft sind protokolliert', () => {
+  it('protokolliert eine Änderung an Stammdaten mit Alt- und Neuwert', async () => {
+    const { data: vorher } = await admin
+      .from('profiles')
+      .select('personnel_number')
+      .eq('id', SOFIA)
+      .single();
+    const marke = `P-T${Date.now() % 100000}`;
+
+    try {
+      await admin.from('profiles').update({ personnel_number: marke }).eq('id', SOFIA);
+
+      const { data: protokoll } = await admin
+        .from('audit_log')
+        .select('old_data, new_data, changed_by')
+        .eq('table_name', 'profiles')
+        .eq('record_id', SOFIA)
+        .order('changed_at', { ascending: false })
+        .limit(1)
+        .single();
+      expect((protokoll!.old_data as Record<string, unknown>).personnel_number).toBe(
+        vorher!.personnel_number,
+      );
+      expect((protokoll!.new_data as Record<string, unknown>).personnel_number).toBe(marke);
+      expect(protokoll!.changed_by).toBe(MARLENE);
+
+      // Sofia sieht die Änderung an ihren eigenen Stammdaten ebenfalls.
+      const { data: eigene } = await sofia
+        .from('audit_log')
+        .select('id')
+        .eq('table_name', 'profiles')
+        .eq('record_id', SOFIA);
+      expect(eigene!.length).toBeGreaterThan(0);
+    } finally {
+      await admin
+        .from('profiles')
+        .update({ personnel_number: vorher!.personnel_number })
+        .eq('id', SOFIA);
+    }
+  });
+
+  it('protokolliert Änderungen am Unternehmen nur für die Verwaltung sichtbar', async () => {
+    const { data: firma } = await admin.from('organizations').select('id').single();
+
+    const fuerAdmin = await admin
+      .from('audit_log')
+      .select('id')
+      .eq('table_name', 'organizations')
+      .eq('record_id', firma!.id);
+    expect(fuerAdmin.data!.length).toBeGreaterThan(0);
+
+    const fuerAnna = await anna
+      .from('audit_log')
+      .select('id')
+      .eq('table_name', 'organizations');
+    expect(fuerAnna.data).toEqual([]);
+  });
+});
+
+describe('Datenschutzinformation', () => {
+  it('lässt die Verwaltung den Text setzen und alle im Unternehmen lesen', async () => {
+    const text = `Datenschutzinformation Test ${Date.now()}`;
+    const { error } = await markus.rpc('save_privacy_notice', { p_text: text });
+    expect(error).toBeNull();
+
+    const { data } = await anna
+      .from('settings')
+      .select('value')
+      .eq('key', 'privacy_notice')
+      .maybeSingle();
+    expect(data!.value).toBe(text);
+
+    // Das andere Unternehmen sieht den Text nicht.
+    const fremd = await fremderAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'privacy_notice')
+      .maybeSingle();
+    expect(fremd.data?.value).not.toBe(text);
+  });
+
+  it('lässt Mitarbeiter den Text nicht ändern', async () => {
+    const { error } = await anna.rpc('save_privacy_notice', { p_text: 'überschrieben' });
+    expect(error).not.toBeNull();
+  });
+});
+
+/**
+ * Speicherbegrenzung: nach Ablauf der Frist wird eine ausgeschiedene Person
+ * vollständig gelöscht — Aufzeichnungen, Protokoll, Zugang. Das darf nur der
+ * Betreiber, und nur für Fällige.
+ */
+describe('Löschung nach Ablauf der Aufbewahrungsfrist', () => {
+  const service = () =>
+    createClient(URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+  it('bleibt angemeldeten Benutzern verschlossen', async () => {
+    expect((await admin.rpc('retention_overview')).error).not.toBeNull();
+    expect((await admin.rpc('purge_employee', { p_employee: SOFIA })).error).not.toBeNull();
+  });
+
+  it('löscht nur Fällige und nie aktive Personen', async () => {
+    const { error } = await service().rpc('purge_employee', { p_employee: SOFIA });
+    expect(error).not.toBeNull();
+  });
+
+  it('löscht eine fällige Person mit allen Aufzeichnungen', async () => {
+    const svc = service();
+    const { data: firma } = await fremderAdmin.from('organizations').select('id').single();
+
+    const { data: created, error: createError } = await svc.auth.admin.createUser({
+      email: `ausgeschieden-${Date.now()}@example.com`,
+      password: 'zeiterfassung',
+      email_confirm: true,
+      user_metadata: { display_name: 'Ausgeschieden' },
+    });
+    expect(createError).toBeNull();
+    const id = created!.user!.id;
+
+    try {
+      await svc
+        .from('profiles')
+        .update({ organization_id: firma!.id, hired_on: '2010-01-01' })
+        .eq('id', id);
+      const { error: entryError } = await svc.from('time_entries').insert({
+        employee_id: id,
+        work_date: '2015-03-02',
+        started_at: '2015-03-02T08:00:00+01:00',
+        ended_at: '2015-03-02T12:00:00+01:00',
+      });
+      expect(entryError).toBeNull();
+
+      // Noch aktiv: nicht löschbar.
+      expect((await svc.rpc('purge_employee', { p_employee: id })).error).not.toBeNull();
+
+      await svc.from('profiles').update({ active: false, left_on: '2015-06-30' }).eq('id', id);
+
+      const { data: faellig } = await svc.rpc('retention_overview');
+      const zeile = (faellig as Array<{ employee_id: string; due: boolean }>).find(
+        (row) => row.employee_id === id,
+      );
+      expect(zeile?.due).toBe(true);
+
+      const { error } = await svc.rpc('purge_employee', { p_employee: id });
+      expect(error).toBeNull();
+
+      const { data: profil } = await svc.from('profiles').select('id').eq('id', id);
+      expect(profil).toEqual([]);
+      const { data: zeiten } = await svc.from('time_entries').select('id').eq('employee_id', id);
+      expect(zeiten).toEqual([]);
+
+      // Vom Protokoll bleibt nur die Löschzeile, ohne personenbezogene Daten.
+      const { data: protokoll } = await svc
+        .from('audit_log')
+        .select('employee_id, old_data, new_data')
+        .eq('record_id', id);
+      expect(protokoll).toHaveLength(1);
+      expect(protokoll![0]!.employee_id).toBeNull();
+      expect(protokoll![0]!.old_data).toBeNull();
+
+      const { data: zugang } = await svc.auth.admin.getUserById(id);
+      expect(zugang.user).toBeNull();
+    } finally {
+      await svc.auth.admin.deleteUser(id).catch(() => undefined);
+    }
+  });
+});
+
 describe('Ohne Anmeldung geht nichts', () => {
   it('liefert anonym keine Zeilen', async () => {
     const gast = anonClient();

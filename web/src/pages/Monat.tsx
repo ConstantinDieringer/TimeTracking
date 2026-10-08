@@ -15,9 +15,11 @@ import {
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { DayEditor } from '../components/DayEditor';
+import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
 import { Duration } from '../components/Num';
-import { useTimesheet } from '../lib/queries';
+import { contractOn } from '../lib/mapping';
+import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 import { collectFindings, sumBalance } from '../lib/timesheet';
 
@@ -41,6 +43,8 @@ export function Monat() {
   // und läuft in ganzen Wochen weiter — sonst rutschen die Spalten.
   const gridStart = startOfIsoWeek(from);
   const { timesheet, isLoading } = useTimesheet({ employeeId, from: gridStart, to });
+  const employee = useEmployee(employeeId);
+  const contracts = useContracts(employeeId);
 
   const monthDays = timesheet?.days.filter((day) => day.date >= from && day.date <= to) ?? [];
   const gridDays = timesheet?.days.filter((day) => day.date >= gridStart && day.date <= to) ?? [];
@@ -227,6 +231,25 @@ export function Monat() {
           <span className="meta">{findings.length} Befunde</span>
         </div>
         <Findings findings={findings} showDate emptyText="Keine Beanstandungen in diesem Monat." />
+      </section>
+
+      <section className="section">
+        <div className="section__head">
+          <h2>Meine Aufzeichnungen</h2>
+          <span className="meta">§ 26 Abs 8 AZG</span>
+        </div>
+        {timesheet && employee.data ? (
+          <Export
+            employee={employee.data}
+            personnelNumber={employee.data.personnelNumber}
+            contract={contractOn(contracts.data ?? [], from)}
+            month={from.slice(0, 7)}
+            days={monthDays}
+            timesheet={timesheet}
+          />
+        ) : (
+          <p className="muted">Wird geladen …</p>
+        )}
       </section>
     </main>
   );

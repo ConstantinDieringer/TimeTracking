@@ -464,3 +464,17 @@
     min-height: 4rem;
   }
 }
+
+/* Fließtext aus einem Freitextfeld: Absätze und Aufzählungen bleiben, wie
+   die Verwaltung sie eingegeben hat. */
+.prose {
+  max-width: 72ch;
+  white-space: pre-wrap;
+  line-height: var(--leading-normal);
+}
+
+textarea {
+  width: 100%;
+  line-height: var(--leading-normal);
+  resize: vertical;
+}

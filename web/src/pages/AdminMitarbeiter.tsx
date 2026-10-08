@@ -328,7 +328,8 @@ export function AdminMitarbeiter() {
         </div>
         <p className="muted">
           Wird von einem Datenbank-Trigger geschrieben und lässt sich weder ändern noch löschen —
-          auch nicht aus der Verwaltung heraus.
+          auch nicht aus der Verwaltung heraus. Erfasst Zeiten, Abwesenheiten, Verträge und
+          Stammdaten einschließlich Rolle und Deaktivierung.
         </p>
         <div className="table-scroll">
           <table>
@@ -363,6 +364,7 @@ const TABLE_LABEL: Record<string, string> = {
   time_entries: 'Zeiterfassung',
   absences: 'Abwesenheit',
   employment_contracts: 'Vertrag',
+  profiles: 'Stammdaten',
 };
 
 const OPERATION_LABEL: Record<string, string> = {
@@ -399,6 +401,15 @@ const FIELD_LABEL: Record<string, string> = {
   weekly_hours: 'Wochenstunden',
   valid_from: 'Gültig ab',
   valid_to: 'Gültig bis',
+  display_name: 'Name',
+  personnel_number: 'Personalnummer',
+  birth_date: 'Geburtsdatum',
+  hired_on: 'Eintritt',
+  left_on: 'Austritt',
+  state: 'Bundesland',
+  role: 'Rolle',
+  active: 'Aktiv',
+  organization_id: 'Unternehmen',
 };
 
 function format(value: unknown): string {

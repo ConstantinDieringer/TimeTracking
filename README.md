@@ -190,8 +190,9 @@ Gespeichert wird das in der Tabelle `settings` unter dem Schlüssel
 
 ### Änderungsprotokoll
 
-Jede Änderung an Zeiten, Abwesenheiten und Verträgen schreibt ein
-**Postgres-Trigger** mit Alt- und Neuwert, Zeitpunkt und Benutzer. Bewusst als
+Jede Änderung an Zeiten, Abwesenheiten, Verträgen, Stammdaten (einschließlich
+Rolle und Deaktivierung) und am Unternehmen (einschließlich Inhaberwechsel)
+schreibt ein **Postgres-Trigger** mit Alt- und Neuwert, Zeitpunkt und Benutzer. Bewusst als
 Trigger und nicht im Anwendungscode: so lässt er sich vom Client nicht umgehen.
 Auf `audit_log` gibt es keine Policy für INSERT, UPDATE oder DELETE — auch ein
 Administrator kann das Protokoll nicht bereinigen.
@@ -200,6 +201,34 @@ Da es keinen Freigabe-Workflow gibt, trägt dieses Protokoll die
 Prüfungsfestigkeit allein. Nachträge und Korrekturen bleiben erlaubt — bei
 vergessenem Ausstempeln sind sie unvermeidlich —, aber sie sind lückenlos
 nachvollziehbar.
+
+### Aufbewahrung und Löschung
+
+Ausgeschiedene Mitarbeiter werden deaktiviert, nicht gelöscht. Nach Ablauf der
+Aufbewahrungsfrist — eingestellt auf sieben Jahre ab Ende des Austrittsjahres
+(`settings.retention_years_after_exit`), mit der Steuerberatung abzustimmen —
+löscht der Betreiber sie vollständig:
+
+```sql
+select * from public.retention_overview() where due;   -- wer ist fällig?
+select public.purge_employee('<employee-id>');         -- endgültig löschen
+```
+
+Gelöscht werden Zeiten, Abwesenheiten, Verträge, Protokollzeilen und der
+Zugang; zurück bleibt eine Protokollzeile ohne personenbezogene Daten. Bewusst
+kein automatischer Lauf: Löschen ist endgültig. Einmal im Jahr, etwa im Jänner,
+ausführen.
+
+### Pflichten des Arbeitgebers in der Anwendung
+
+- **§ 26 Abs 8 AZG:** jeder Mitarbeiter lädt seine Aufzeichnungen unter
+  *Monat → Meine Aufzeichnungen* selbst als PDF oder CSV herunter.
+- **Art. 13 DSGVO:** unter *Datenschutz* hinterlegt die Verwaltung die
+  Datenschutzinformation; alle Mitarbeiter können sie lesen. Eine Vorlage, die
+  beschreibt, was die Software tatsächlich verarbeitet, lässt sich übernehmen.
+
+Was darüber hinaus organisatorisch zu erledigen ist — Verträge, Verzeichnis,
+Betriebsvereinbarung — steht in [docs/rechtliche-checkliste.md](docs/rechtliche-checkliste.md).
 
 ## Was die Rechtslogik abdeckt
 
@@ -274,6 +303,7 @@ widerlegen.
 - **PDF-Schrift.** Das Monatsjournal setzt Helvetica statt IBM Plex, weil
   @fontsource nur WOFF und WOFF2 liefert und pdf-lib daraus nichts einbetten
   kann. WinAnsi deckt den deutschen Zeichenvorrat vollständig ab.
-- **Betrieb.** Supabase-Projekt in der EU-Region anlegen und eine Löschroutine
-  nach Ablauf der Aufbewahrungsfrist ergänzen (§ 26 AZG: mindestens ein Jahr,
-  bei Lenkern 24 Monate).
+- **Rechtliche Prüfung.** Die Rechtslogik ist sorgfältig umgesetzt und
+  getestet, aber nicht von einer Arbeitsrechtsexpertin abgenommen. Vor dem
+  Verkauf an Kunden prüfen lassen, insbesondere Kollektivvertragsregeln,
+  Reisezeit und Rufbereitschaft.

@@ -540,7 +540,20 @@ export type Database = {
       current_organization_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
+      purge_employee: { Args: { p_employee: string }; Returns: undefined }
+      retention_overview: {
+        Args: never
+        Returns: {
+          deletable_from: string
+          display_name: string
+          due: boolean
+          employee_id: string
+          left_on: string
+          organization_name: string
+        }[]
+      }
       save_contract_defaults: { Args: { p_value: Json }; Returns: undefined }
+      save_privacy_notice: { Args: { p_text: string }; Returns: undefined }
       transfer_ownership: { Args: { p_new_owner: string }; Returns: undefined }
     }
     Enums: {

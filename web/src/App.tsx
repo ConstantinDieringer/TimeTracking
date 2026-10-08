@@ -8,6 +8,7 @@ import { Auswertung } from './pages/Auswertung';
 import { Admin } from './pages/Admin';
 import { AdminEinstellungen } from './pages/AdminEinstellungen';
 import { AdminMitarbeiter } from './pages/AdminMitarbeiter';
+import { Datenschutz } from './pages/Datenschutz';
 
 export function App() {
   const { session, profile, loading, isAdmin, signOut } = useSession();
@@ -65,6 +66,7 @@ export function App() {
             <NavLink to="/monat">Monat</NavLink>
             <NavLink to="/auswertung">Auswertung</NavLink>
             {isAdmin && <NavLink to="/admin">Verwaltung</NavLink>}
+            <NavLink to="/datenschutz">Datenschutz</NavLink>
           </nav>
           <span className="masthead__user">{profile.display_name}</span>
           <button className="button button--quiet" type="button" onClick={signOut}>
@@ -80,6 +82,7 @@ export function App() {
         <Route path="/monat" element={<Monat />} />
         <Route path="/monat/:month" element={<Monat />} />
         <Route path="/auswertung" element={<Auswertung />} />
+        <Route path="/datenschutz" element={<Datenschutz />} />
         {isAdmin && <Route path="/admin" element={<Admin />} />}
         {isAdmin && <Route path="/admin/einstellungen" element={<AdminEinstellungen />} />}
         {isAdmin && <Route path="/admin/:employeeId" element={<AdminMitarbeiter />} />}
