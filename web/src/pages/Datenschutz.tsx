@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { privacyNoticeTemplate, usePrivacyNotice, useSavePrivacyNotice } from '../lib/privacy';
 import { useSession } from '../lib/session';
 import { Loading } from '../components/Loading';
+import { useToast } from '../components/Toast';
 
 /**
  * Datenschutzinformation nach Art. 13 DSGVO — für alle lesbar, für die
@@ -11,6 +12,7 @@ export function Datenschutz() {
   const { isAdmin, organization } = useSession();
   const notice = usePrivacyNotice();
   const save = useSavePrivacyNotice();
+  const toast = useToast();
 
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState(false);
@@ -26,6 +28,7 @@ export function Datenschutz() {
     try {
       await save.mutateAsync(draft.trim());
       setEditing(false);
+      toast.show('success', 'Datenschutzinformation gespeichert', 'Alle Mitarbeiter sehen jetzt den neuen Text.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Speichern fehlgeschlagen.');
     }

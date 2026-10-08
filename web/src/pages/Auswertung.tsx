@@ -125,26 +125,26 @@ export function Auswertung() {
           <div>
             <dt className="meta">Gearbeitet</dt>
             <dd>
-              <Duration minutes={yearWorked} zeroAs="0:00" />
+              <Duration minutes={yearWorked} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Sollzeit</dt>
             <dd>
-              <Duration minutes={yearTarget} muted zeroAs="0:00" />
+              <Duration minutes={yearTarget} muted zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Saldo seit Jahresbeginn</dt>
             <dd>
-              <Duration minutes={yearBalance} sign />
+              <Duration minutes={yearBalance} sign animate />
             </dd>
           </div>
           {flexPeriod && (
             <div>
               <dt className="meta">Gleitzeitsaldo</dt>
               <dd>
-                <Duration minutes={flexBalance ?? 0} sign />
+                <Duration minutes={flexBalance ?? 0} sign animate />
               </dd>
             </div>
           )}

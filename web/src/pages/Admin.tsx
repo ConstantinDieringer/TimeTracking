@@ -7,7 +7,7 @@ import {
   startOfMonth,
 } from '@zeiterfassung/legal';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { NeuerZugang } from '../components/NeuerZugang';
@@ -17,6 +17,7 @@ import { useSession } from '../lib/session';
 
 export function Admin() {
   const { organization } = useSession();
+  const navigate = useNavigate();
   const today = localDateOf(new Date());
   const [month, setMonth] = useState(startOfMonth(today).slice(0, 7));
   const [addingUser, setAddingUser] = useState(false);
@@ -103,9 +104,20 @@ export function Admin() {
           </thead>
           <tbody>
             {aktive.map((row) => (
-              <tr key={row.employee.id}>
+              // Die ganze Zeile führt zum Mitarbeiterblatt; der Link im Namen
+              // bleibt für Tastatur und Bildschirmleser das eigentliche Ziel.
+              <tr
+                key={row.employee.id}
+                className="is-clickable"
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest('a, button')) return;
+                  navigate(`/admin/${row.employee.id}`, { viewTransition: true });
+                }}
+              >
                 <td>
-                  <Link to={`/admin/${row.employee.id}`}>{row.employee.displayName}</Link>
+                  <Link to={`/admin/${row.employee.id}`} viewTransition>
+                    {row.employee.displayName}
+                  </Link>
                   {row.employee.id === organization?.owner_id ? (
                     <span className="tag tag--muted">Inhaber</span>
                   ) : (

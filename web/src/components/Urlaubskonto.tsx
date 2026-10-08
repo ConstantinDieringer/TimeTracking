@@ -10,6 +10,7 @@ import { useContractDefaults } from '../lib/defaults';
 import { contractOn } from '../lib/mapping';
 import { useAbsences, useContracts, useEmployee } from '../lib/queries';
 import { Icon } from './Icon';
+import { Counter } from './Num';
 
 /**
  * Urlaubskonto einer Person — für sie selbst in der Auswertung, für die
@@ -84,19 +85,27 @@ export function Urlaubskonto({ employeeId }: { employeeId: string }) {
       <dl className="figures">
         <div>
           <dt className="meta">{ledger.accruing ? 'Bisher erworben' : 'Anspruch'}</dt>
-          <dd className="num">{days(ledger.entitlementDays)}</dd>
+          <dd className="num">
+            <Counter value={ledger.entitlementDays} />
+          </dd>
         </div>
         <div>
           <dt className="meta">Aus Vorjahren</dt>
-          <dd className="num">{days(ledger.carriedOverDays)}</dd>
+          <dd className="num">
+            <Counter value={ledger.carriedOverDays} />
+          </dd>
         </div>
         <div>
           <dt className="meta">Verbraucht</dt>
-          <dd className="num">{days(ledger.consumedDays)}</dd>
+          <dd className="num">
+            <Counter value={ledger.consumedDays} />
+          </dd>
         </div>
         <div>
           <dt className="meta">Offen</dt>
-          <dd className="num">{days(ledger.remainingDays)}</dd>
+          <dd className="num">
+            <Counter value={ledger.remainingDays} />
+          </dd>
         </div>
       </dl>
 

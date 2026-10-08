@@ -7,6 +7,7 @@ import { supabase, type ContractTypeRow } from '../lib/supabase';
 import { GleitzeitFelder, pruefeGleitzeit, type GleitzeitWerte } from './GleitzeitFelder';
 import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
 import { Loading } from './Loading';
+import { useToast } from './Toast';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -126,6 +127,7 @@ export function VertragsForm({
   const types = useContractTypes();
   const defaults = useContractDefaults();
   const client = useQueryClient();
+  const toast = useToast();
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +225,7 @@ export function VertragsForm({
 
     void client.invalidateQueries({ queryKey: ['contracts'] });
     void client.invalidateQueries({ queryKey: ['overview'] });
+    toast.show('success', 'Vertrag gespeichert');
     onDone();
   }
 

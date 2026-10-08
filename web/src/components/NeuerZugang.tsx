@@ -11,6 +11,7 @@ import { useContractTypes } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import { GleitzeitFelder, pruefeGleitzeit, type GleitzeitWerte } from './GleitzeitFelder';
 import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
+import { useToast } from './Toast';
 
 /**
  * Anlegen eines Mitarbeiters.
@@ -26,6 +27,7 @@ import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
  * Administratoren zu.
  */
 export function NeuerZugang({ onDone }: { onDone: () => void }) {
+  const toast = useToast();
   const types = useContractTypes();
   const defaults = useContractDefaults();
 
@@ -197,6 +199,7 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
       return;
     }
 
+    toast.show('success', `${displayName} angelegt`, 'Zugangsdaten jetzt persönlich übergeben.');
     onDone();
   }
 

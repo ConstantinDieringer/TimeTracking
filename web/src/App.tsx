@@ -75,23 +75,23 @@ export function App() {
       </a>
       <header className="masthead">
         <div className="masthead__inner">
-          <Link className="masthead__title" to="/">
+          <Link className="masthead__title" to="/" viewTransition>
             <LogoMark />
             Zeiterfassung
           </Link>
           <nav className="nav" aria-label="Hauptnavigation">
             {/* Ein Punkt für Tages- und Monatsansicht; zwischen beiden schaltet
                 der Umschalter auf der Seite. */}
-            <Link to="/" aria-current={isTimes ? 'page' : undefined}>
+            <Link to="/" aria-current={isTimes ? 'page' : undefined} viewTransition>
               <Icon name="clock" />
               Meine Zeiten
             </Link>
-            <NavLink to="/auswertung">
+            <NavLink to="/auswertung" viewTransition>
               <Icon name="chart" />
               Auswertung
             </NavLink>
             {isAdmin && (
-              <NavLink to="/admin">
+              <NavLink to="/admin" viewTransition>
                 <Icon name="users" />
                 Verwaltung
               </NavLink>

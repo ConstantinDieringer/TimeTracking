@@ -2,6 +2,7 @@ import {
   addMonths,
   describeAbsence,
   endOfMonth,
+  formatDateLong,
   formatDuration,
   isWeekend,
   localDateOf,
@@ -41,6 +42,8 @@ export function Monat() {
   const { year, month } = parseIsoDate(from);
 
   const [editing, setEditing] = useState<IsoDate | null>(null);
+  // Der Tag, über dem Maus oder Tastaturfokus gerade steht — für die Vorschau.
+  const [peek, setPeek] = useState<IsoDate | null>(null);
 
   // Das Raster beginnt beim Montag der Woche, in die der Monatserste fällt,
   // und läuft in ganzen Wochen weiter — sonst rutschen die Spalten.
@@ -52,6 +55,7 @@ export function Monat() {
   const monthDays = timesheet?.days.filter((day) => day.date >= from && day.date <= to) ?? [];
   const gridDays = timesheet?.days.filter((day) => day.date >= gridStart && day.date <= to) ?? [];
   const editingDay = editing ? (timesheet?.byDate.get(editing) ?? null) : null;
+  const peekDay = peek ? (timesheet?.byDate.get(peek) ?? null) : null;
 
   const worked = monthDays.reduce((sum, day) => sum + day.work.workMinutes, 0);
   // Das volle Monatssoll ist die Planungsgröße, das Soll bis heute die
@@ -86,15 +90,24 @@ export function Monat() {
           unit="Monat"
           currentLabel="Dieser Monat"
           isCurrent={from === startOfMonth(today)}
-          onPrevious={() => navigate(`/monat/${addMonths(from, -1).slice(0, 7)}`)}
-          onCurrent={() => navigate('/monat')}
-          onNext={() => navigate(`/monat/${addMonths(from, 1).slice(0, 7)}`)}
+          onPrevious={() =>
+            navigate(`/monat/${addMonths(from, -1).slice(0, 7)}`, { viewTransition: true })
+          }
+          onCurrent={() => navigate('/monat', { viewTransition: true })}
+          onNext={() =>
+            navigate(`/monat/${addMonths(from, 1).slice(0, 7)}`, { viewTransition: true })
+          }
         />
       </div>
 
       {isLoading && <Loading />}
 
-      <div className="calendar" role="grid" aria-label={`${monthName(month)} ${year}`}>
+      <div
+        className="calendar"
+        role="grid"
+        aria-label={`${monthName(month)} ${year}`}
+        onMouseLeave={() => setPeek(null)}
+      >
         {WEEKDAY_HEADS.map((head) => (
           <div key={head} className="calendar__head" role="columnheader">
             {head}
@@ -120,6 +133,7 @@ export function Monat() {
             holiday ? 'calendar__cell--holiday' : '',
             day.date === today ? 'calendar__cell--today' : '',
             day.account?.future ? 'calendar__cell--future' : '',
+            day.date === editing ? 'calendar__cell--selected' : '',
             severity !== 'ok' ? `calendar__cell--${severity}` : '',
           ]
             .filter(Boolean)
@@ -131,7 +145,10 @@ export function Monat() {
               type="button"
               className={classes}
               role="gridcell"
+              aria-pressed={day.date === editing}
               onClick={() => setEditing(editing === day.date ? null : day.date)}
+              onMouseEnter={() => setPeek(day.date)}
+              onFocus={() => setPeek(day.date)}
             >
               <span className="calendar__day">{parseIsoDate(day.date).day}</span>
 
@@ -177,10 +194,50 @@ export function Monat() {
         })}
       </div>
 
-      <p className="calendar__legend meta">
-        Ein Punkt oben rechts steht für einen Befund: bernsteinfarben für einen Hinweis, rot für
-        einen Verstoß. Ein Klick öffnet den Tag.
-      </p>
+      {/* Vorschau des Tages unter Maus oder Fokus — die Details, ohne den Tag
+          gleich öffnen zu müssen. Ohne Auswahl steht hier die Legende. */}
+      {/* Ohne aria-live: jede Mausbewegung würde sonst vorgelesen. Wer mit
+          Tastatur und Bildschirmleser unterwegs ist, hört die Zelle selbst. */}
+      <div className="day-peek">
+        {peekDay ? (
+          <>
+            <strong className="day-peek__date">{formatDateLong(peekDay.date)}</strong>
+            <span>
+              {peekDay.work.workMinutes > 0
+                ? `${formatDuration(peekDay.work.workMinutes)} h gearbeitet`
+                : peekDay.absence
+                  ? describeAbsence(peekDay.absence)
+                  : peekDay.holidays.find((entry) => entry.statutory)?.name ?? 'Nichts erfasst'}
+            </span>
+            {peekDay.work.breakMinutes > 0 && (
+              <span className="muted">{formatDuration(peekDay.work.breakMinutes)} h Pause</span>
+            )}
+            {peekDay.account && peekDay.account.targetMinutes > 0 && (
+              <span className="muted">Soll {formatDuration(peekDay.account.targetMinutes)} h</span>
+            )}
+            {peekDay.account && peekDay.account.balanceMinutes !== 0 && (
+              <span
+                className={
+                  peekDay.account.balanceMinutes > 0 ? 'num--positive' : 'num--negative'
+                }
+              >
+                Saldo {formatDuration(peekDay.account.balanceMinutes, { sign: true })} h
+              </span>
+            )}
+            {(peekDay.evaluation?.findings ?? []).length > 0 && (
+              <span className="day-peek__finding">
+                {peekDay.evaluation!.findings[0]!.message}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="muted">
+            Fahren Sie über einen Tag für Details, ein Klick öffnet ihn zum Bearbeiten. Ein Punkt
+            oben rechts steht für einen Befund: bernsteinfarben für einen Hinweis, rot für einen
+            Verstoß.
+          </span>
+        )}
+      </div>
 
       {editingDay && employeeId && (
         <DayEditor day={editingDay} employeeId={employeeId} onClose={() => setEditing(null)} />
@@ -194,31 +251,31 @@ export function Monat() {
           <div>
             <dt className="meta">Gearbeitet</dt>
             <dd>
-              <Duration minutes={worked} zeroAs="0:00" />
+              <Duration minutes={worked} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Soll bis heute</dt>
             <dd>
-              <Duration minutes={targetToDate} muted zeroAs="0:00" />
+              <Duration minutes={targetToDate} muted zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Monatssoll</dt>
             <dd>
-              <Duration minutes={targetMonth} muted zeroAs="0:00" />
+              <Duration minutes={targetMonth} muted zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Saldo</dt>
             <dd>
-              <Duration minutes={balance} sign />
+              <Duration minutes={balance} sign animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Feiertagsarbeit</dt>
             <dd>
-              <Duration minutes={holidayWork} zeroAs="0:00" />
+              <Duration minutes={holidayWork} zeroAs="0:00" animate />
             </dd>
           </div>
         </dl>

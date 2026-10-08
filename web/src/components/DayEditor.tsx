@@ -16,6 +16,7 @@ import {
   useSaveSegment,
 } from '../lib/queries';
 import type { TimesheetDay } from '../lib/timesheet';
+import { useToast } from './Toast';
 
 const SEGMENT_KINDS = [
   { value: 'work', label: 'Arbeitszeit' },
@@ -50,6 +51,7 @@ export function DayEditor({
   employeeId: string;
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [drafts, setDrafts] = useState<DraftSegment[]>(() =>
     day.work.intervals.map((interval) => ({
       id: interval.id,
@@ -110,6 +112,7 @@ export function DayEditor({
           kind: draft.kind,
         });
       }
+      toast.show('success', 'Tag gespeichert');
       onClose();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Speichern fehlgeschlagen.');

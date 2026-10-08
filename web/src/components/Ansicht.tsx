@@ -10,10 +10,10 @@ import { NavLink } from 'react-router';
 export function Ansicht() {
   return (
     <nav className="segmented" aria-label="Ansicht">
-      <NavLink to="/" end>
+      <NavLink to="/" end viewTransition>
         Heute
       </NavLink>
-      <NavLink to="/monat">Monat</NavLink>
+      <NavLink to="/monat" viewTransition>Monat</NavLink>
     </nav>
   );
 }

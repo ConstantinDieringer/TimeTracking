@@ -14,6 +14,7 @@ import './styles/base.css';
 import './styles/pages.css';
 
 import { App } from './App';
+import { ToastProvider } from './components/Toast';
 import { SessionProvider } from './lib/session';
 
 const queryClient = new QueryClient({
@@ -34,7 +35,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <BrowserRouter>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </BrowserRouter>
       </SessionProvider>
     </QueryClientProvider>

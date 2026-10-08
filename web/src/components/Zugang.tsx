@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSession } from '../lib/session';
 import { supabase } from '../lib/supabase';
+import { useToast } from './Toast';
 
 /**
  * Rolle und Inhaberschaft einer Person.
@@ -14,6 +15,7 @@ import { supabase } from '../lib/supabase';
 export function Zugang({ employeeId, displayName }: { employeeId: string; displayName: string }) {
   const { profile, organization, isOwner, refresh } = useSession();
   const client = useQueryClient();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -59,7 +61,15 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
       .eq('id', employeeId);
     setBusy(false);
     if (updateError) setError(updateError.message);
-    else await afterChange();
+    else {
+      toast.show(
+        'success',
+        role === 'admin'
+          ? `${displayName} gehört jetzt zur Verwaltung`
+          : `${displayName} ist jetzt Mitarbeiter`,
+      );
+      await afterChange();
+    }
   }
 
   async function transferOwnership() {
@@ -77,7 +87,10 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
     });
     setBusy(false);
     if (rpcError) setError(rpcError.message);
-    else await afterChange();
+    else {
+      toast.show('success', 'Inhaberschaft übertragen', `${displayName} ist jetzt Inhaber.`);
+      await afterChange();
+    }
   }
 
   if (!access.data) return null;

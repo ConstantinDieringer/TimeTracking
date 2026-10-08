@@ -6,12 +6,13 @@ import {
   localMinutesOfDay,
   minutesBetween,
 } from '@zeiterfassung/legal';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Ansicht } from '../components/Ansicht';
 import { Findings } from '../components/Findings';
 import { Icon } from '../components/Icon';
 import { Duration } from '../components/Num';
 import { Tageslinie } from '../components/Tageslinie';
+import { useToast } from '../components/Toast';
 import { useOpenEntry, useStamp, useStopStamp, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 
@@ -46,6 +47,47 @@ export function Heute() {
 
   const state = running ? (running.kind === 'break' ? 'break' : 'running') : worked > 0 ? 'done' : 'idle';
   const firstName = profile?.display_name.split(/\s+/)[0] ?? '';
+
+  const toast = useToast();
+  const clockNow = () => formatClock(localMinutesOfDay(new Date()));
+
+  function startSegment(kind: 'work' | 'break') {
+    if (!employeeId) return;
+    const wasBreak = running?.kind === 'break';
+    stamp.mutate(
+      { employeeId, kind },
+      {
+        onSuccess: () =>
+          kind === 'break'
+            ? toast.show('info', `Pause ab ${clockNow()}`, 'Gönn dir was — die Uhr läuft mit.')
+            : wasBreak
+              ? toast.show('success', `Weiter um ${clockNow()}`, 'Pause beendet.')
+              : toast.show('success', `Eingestempelt um ${clockNow()}`, 'Einen guten Arbeitstag!'),
+        onError: (error) => toast.show('error', 'Stempeln fehlgeschlagen', error.message),
+      },
+    );
+  }
+
+  function stopSegment(id: string) {
+    stop.mutate(id, {
+      onSuccess: () =>
+        toast.show('success', `Ausgestempelt um ${clockNow()}`, 'Schönen Feierabend!'),
+      onError: (error) => toast.show('error', 'Ausstempeln fehlgeschlagen', error.message),
+    });
+  }
+
+  // Einmal am Tag, wenn das Tagessoll während der laufenden Arbeit erreicht wird.
+  const announced = useRef<string | null>(null);
+  useEffect(() => {
+    if (!running || target <= 0 || remaining > 0 || announced.current === today) return;
+    if (worked - target > 1) {
+      // Schon vor dem Laden erreicht — keine Meldung beim Öffnen der Seite.
+      announced.current = today;
+      return;
+    }
+    announced.current = today;
+    toast.show('success', 'Tagessoll erreicht', `${formatDuration(target)} h sind geschafft.`);
+  }, [running, target, remaining, worked, today, toast]);
 
   return (
     <main className="page">
@@ -82,7 +124,7 @@ export function Heute() {
 
       <section className={`stamp stamp--${state}`}>
         <div className="stamp__state" aria-live="polite">
-          <span className={`stamp__status stamp__status--${state}`}>
+          <span key={state} className={`stamp__status stamp__status--${state}`}>
             {state === 'running'
               ? 'Arbeitszeit läuft'
               : state === 'break'
@@ -109,7 +151,7 @@ export function Heute() {
               className="button button--primary button--large"
               type="button"
               disabled={busy || !employeeId}
-              onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
+              onClick={() => startSegment('work')}
             >
               <Icon name="play" />
               Kommen
@@ -122,7 +164,7 @@ export function Heute() {
                 className="button button--large"
                 type="button"
                 disabled={busy}
-                onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'break' })}
+                onClick={() => startSegment('break')}
               >
                 <Icon name="coffee" />
                 Pause beginnen
@@ -131,7 +173,7 @@ export function Heute() {
                 className="button button--primary button--large"
                 type="button"
                 disabled={busy}
-                onClick={() => stop.mutate(running.id)}
+                onClick={() => stopSegment(running.id)}
               >
                 <Icon name="stop" />
                 Gehen
@@ -145,7 +187,7 @@ export function Heute() {
                 className="button button--primary button--large"
                 type="button"
                 disabled={busy}
-                onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
+                onClick={() => startSegment('work')}
               >
                 <Icon name="play" />
                 Pause beenden
@@ -154,7 +196,7 @@ export function Heute() {
                 className="button button--large"
                 type="button"
                 disabled={busy}
-                onClick={() => stop.mutate(running.id)}
+                onClick={() => stopSegment(running.id)}
               >
                 <Icon name="stop" />
                 Feierabend
@@ -196,28 +238,28 @@ export function Heute() {
           <div>
             <dt className="meta">Gearbeitet</dt>
             <dd>
-              <Duration minutes={worked} zeroAs="0:00" />
+              <Duration minutes={worked} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Pause</dt>
             <dd>
-              <Duration minutes={day?.work.breakMinutes ?? 0} zeroAs="0:00" />
+              <Duration minutes={day?.work.breakMinutes ?? 0} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">Tagessoll</dt>
             <dd>
-              <Duration minutes={target} zeroAs="0:00" />
+              <Duration minutes={target} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
             <dt className="meta">{remaining > 0 ? 'Noch offen' : 'Saldo heute'}</dt>
             <dd>
               {remaining > 0 ? (
-                <Duration minutes={remaining} />
+                <Duration minutes={remaining} animate />
               ) : (
-                <Duration minutes={day?.account?.balanceMinutes ?? 0} sign />
+                <Duration minutes={day?.account?.balanceMinutes ?? 0} sign animate />
               )}
             </dd>
           </div>

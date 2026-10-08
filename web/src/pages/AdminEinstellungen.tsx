@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { GleitzeitFelder, pruefeGleitzeit } from '../components/GleitzeitFelder';
 import { Loading } from '../components/Loading';
 import { Normalarbeitszeit } from '../components/Normalarbeitszeit';
+import { useToast } from '../components/Toast';
 import {
   FALLBACK_DEFAULTS,
   useContractDefaults,
@@ -21,6 +22,7 @@ import {
 export function AdminEinstellungen() {
   const gespeichert = useContractDefaults();
   const speichern = useSaveContractDefaults();
+  const toast = useToast();
 
   const [draft, setDraft] = useState<ContractDefaults>(FALLBACK_DEFAULTS);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function AdminEinstellungen() {
     try {
       await speichern.mutateAsync(draft);
       setSaved(true);
+      toast.show('success', 'Betriebsstandard gespeichert', 'Gilt für neu angelegte Verträge.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Speichern fehlgeschlagen.');
     }
