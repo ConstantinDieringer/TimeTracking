@@ -333,9 +333,12 @@ export type Database = {
           left_on: string | null
           organization_id: string | null
           personnel_number: string | null
+          prior_service_months: number
           role: Database["public"]["Enums"]["app_role"]
           state: Database["public"]["Enums"]["austrian_state"]
           updated_at: string
+          vacation_opening_date: string | null
+          vacation_opening_days: number
         }
         Insert: {
           active?: boolean
@@ -347,9 +350,12 @@ export type Database = {
           left_on?: string | null
           organization_id?: string | null
           personnel_number?: string | null
+          prior_service_months?: number
           role?: Database["public"]["Enums"]["app_role"]
           state?: Database["public"]["Enums"]["austrian_state"]
           updated_at?: string
+          vacation_opening_date?: string | null
+          vacation_opening_days?: number
         }
         Update: {
           active?: boolean
@@ -361,9 +367,12 @@ export type Database = {
           left_on?: string | null
           organization_id?: string | null
           personnel_number?: string | null
+          prior_service_months?: number
           role?: Database["public"]["Enums"]["app_role"]
           state?: Database["public"]["Enums"]["austrian_state"]
           updated_at?: string
+          vacation_opening_date?: string | null
+          vacation_opening_days?: number
         }
         Relationships: [
           {

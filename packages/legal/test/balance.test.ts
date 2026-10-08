@@ -7,6 +7,7 @@ import {
   checkPersonalHoliday,
   consumedVacationDays,
   vacationAccount,
+  vacationLedger,
   vacationYearFor,
   type VacationYearMode,
 } from '../src/balance.js';
@@ -275,6 +276,94 @@ describe('§ 2 UrlG — Urlaubskonto', () => {
 
   it('rechnet den Resturlaub des Vorjahres hinzu', () => {
     expect(konto(erwachsene, '2026-09-01', 'arbeitsjahr', 5, 3).remainingDays).toBe(23);
+  });
+
+  it('rechnet Vordienstzeiten für die 30 Tage an (§ 3 UrlG)', () => {
+    // 20 Jahre hier, 5 Jahre anderswo: zusammen 25 — also 30 Tage.
+    const mitVordienst = { ...erwachsene, hiredOn: '2006-03-01', priorServiceMonths: 60 };
+    expect(annualVacationDays(mitVordienst, vollzeit, '2026-03-01')).toBe(30);
+    expect(annualVacationDays({ ...mitVordienst, priorServiceMonths: 0 }, vollzeit, '2026-03-01')).toBe(25);
+  });
+});
+
+describe('§ 4 Abs 5 und § 10 UrlG — Urlaubskonto über mehrere Jahre', () => {
+  const urlaub = (date: string, halfDay = false): Absence => ({ date, kind: 'urlaub', halfDay });
+  const ledger = (employee: typeof erwachsene, asOf: string, absences: Absence[] = []) =>
+    vacationLedger({
+      employee,
+      contractAt: () => vollzeit,
+      absences,
+      asOf,
+      mode: 'kalenderjahr',
+    })!;
+
+  // Eintritt 2023, Konto seit Eintritt geführt.
+  const seit2023 = { ...erwachsene, hiredOn: '2023-01-01', trackedSince: '2023-01-01' };
+
+  it('überträgt nicht verbrauchten Urlaub ins nächste Jahr', () => {
+    // 2025: 20 von 25 genommen → 5 Rest nach 2026.
+    const genommen = Array.from({ length: 20 }, (_, i) => urlaub(`2025-03-${String(i + 1).padStart(2, '0')}`));
+    const alle2023und2024 = [
+      ...Array.from({ length: 25 }, (_, i) => urlaub(`2023-0${1 + Math.floor(i / 20)}-${String((i % 20) + 1).padStart(2, '0')}`)),
+      ...Array.from({ length: 25 }, (_, i) => urlaub(`2024-0${1 + Math.floor(i / 20)}-${String((i % 20) + 1).padStart(2, '0')}`)),
+    ];
+    const k = ledger(seit2023, '2026-02-01', [...alle2023und2024, ...genommen]);
+    expect(k.carriedOverDays).toBe(5);
+    expect(k.remainingDays).toBe(30);
+  });
+
+  it('lässt Urlaub zwei Jahre nach Ende seines Urlaubsjahres verjähren', () => {
+    // 2023 nichts genommen: der Anspruch aus 2023 verjährt Ende 2025.
+    const imJahr2026 = ledger(seit2023, '2026-02-01');
+    expect(imJahr2026.expiredDays).toBe(25);
+    // Übrig: 2024 und 2025 (je 25) plus 2026 = 75; 25 davon (aus 2024) verjähren Ende 2026.
+    expect(imJahr2026.remainingDays).toBe(75);
+    expect(imJahr2026.expiringDays).toBe(25);
+  });
+
+  it('rechnet Verbrauch auf den ältesten offenen Anspruch an', () => {
+    // 2025 zehn Tage genommen — sie gehen vom Anspruch aus 2023 ab, der Ende
+    // 2025 sonst verjährt wäre.
+    const zehn = Array.from({ length: 10 }, (_, i) => urlaub(`2025-05-${String(i + 1).padStart(2, '0')}`));
+    const k = ledger(seit2023, '2026-02-01', zehn);
+    expect(k.expiredDays).toBe(15);
+    expect(k.remainingDays).toBe(75);
+  });
+
+  it('beginnt ohne Übernahmestand mit dem Jahr, in dem die Person ins System kam', () => {
+    const uebernommen = { ...erwachsene, hiredOn: '2015-01-01', trackedSince: '2026-10-08' };
+    const k = ledger(uebernommen, '2026-10-08', [urlaub('2026-09-16')]);
+    expect(k.carriedOverDays).toBe(0);
+    expect(k.expiredDays).toBe(0);
+    expect(k.remainingDays).toBe(24);
+  });
+
+  it('übernimmt einen hinterlegten Resturlaub', () => {
+    const uebernommen = {
+      ...erwachsene,
+      hiredOn: '2015-01-01',
+      vacationOpening: { date: '2026-06-01', days: 18 },
+    };
+    // Vor dem Stichtag genommener Urlaub steckt schon im Stand.
+    const k = ledger(uebernommen, '2026-10-08', [urlaub('2026-03-02'), urlaub('2026-07-01')]);
+    expect(k.remainingDays).toBe(17);
+  });
+
+  it('weist bei Austritt die Urlaubsersatzleistung in Tagen aus', () => {
+    const scheidend = { ...seit2023, hiredOn: '2023-01-01', leftOn: '2026-03-31' };
+    const genommen = [
+      ...Array.from({ length: 25 }, (_, i) => urlaub(`2023-0${1 + Math.floor(i / 20)}-${String((i % 20) + 1).padStart(2, '0')}`)),
+      ...Array.from({ length: 25 }, (_, i) => urlaub(`2024-0${1 + Math.floor(i / 20)}-${String((i % 20) + 1).padStart(2, '0')}`)),
+      ...Array.from({ length: 25 }, (_, i) => urlaub(`2025-0${1 + Math.floor(i / 20)}-${String((i % 20) + 1).padStart(2, '0')}`)),
+      urlaub('2026-02-02'),
+    ];
+    const k = ledger(scheidend, '2026-03-31', genommen);
+    // 2026 anteilig bis 31. März: 25 × 90/365 ≈ 6,16, davon 1 genommen.
+    expect(k.compensationDays).toBeCloseTo(5.16, 1);
+  });
+
+  it('weist ohne Austritt keine Urlaubsersatzleistung aus', () => {
+    expect(ledger(seit2023, '2026-02-01').compensationDays).toBeNull();
   });
 
   it('zählt nur die Abwesenheiten, die Urlaub verbrauchen', () => {

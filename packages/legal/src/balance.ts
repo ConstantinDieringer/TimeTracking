@@ -246,8 +246,11 @@ export function annualVacationDays(
   contract: Contract,
   periodStart: IsoDate,
 ): number {
+  // Vordienstzeiten (§ 3 UrlG) verschieben nur die 25-Jahres-Grenze, nicht das
+  // Urlaubsjahr selbst — das hängt weiter am tatsächlichen Eintritt.
+  const creditedStart = addMonths(employee.hiredOn, -(employee.priorServiceMonths ?? 0));
   const statutory =
-    completedServiceYears(employee.hiredOn, periodStart) >= 25
+    completedServiceYears(creditedStart, periodStart) >= 25
       ? VACATION_DAYS_AFTER_25_YEARS
       : VACATION_DAYS_STANDARD;
   return Math.max(statutory, contract.vacationDaysPerYear);
@@ -312,6 +315,175 @@ export function vacationAccount(input: {
     accruing,
     fullFrom: accruing ? fullFrom : null,
   };
+}
+
+/** Ein Urlaubsjahr im Verlauf des Kontos. */
+export interface VacationYearEntry {
+  periodStart: IsoDate;
+  periodEnd: IsoDate;
+  /** Neu entstandener Anspruch in diesem Urlaubsjahr. */
+  entitlementDays: number;
+  /** In diesem Urlaubsjahr genommen, gleich aus welchem Jahr er stammte. */
+  consumedDays: number;
+  /** Zum Ende dieses Urlaubsjahres ungenutzt verjährt. */
+  expiredDays: number;
+}
+
+export interface VacationLedger extends VacationAccount {
+  /** Rest aus früheren Urlaubsjahren, der am Ende des laufenden verjährt. */
+  expiringDays: number;
+  /** In früheren Urlaubsjahren bereits verjährt. */
+  expiredDays: number;
+  /**
+   * Urlaubsersatzleistung nach § 10 UrlG in Tagen, wenn das Dienstverhältnis
+   * im laufenden Urlaubsjahr endet: anteiliger Anspruch des laufenden Jahres
+   * plus offener Rest aus früheren, abzüglich Verbrauch. Negativ heißt: mehr
+   * genommen als entstanden.
+   */
+  compensationDays: number | null;
+  history: VacationYearEntry[];
+}
+
+/**
+ * Das Urlaubskonto über alle Urlaubsjahre bis zum Stichtag.
+ *
+ * - **Übertrag:** nicht verbrauchter Urlaub geht ins nächste Urlaubsjahr mit.
+ * - **Verjährung** (§ 4 Abs 5 UrlG): zwei Jahre nach Ende des Urlaubsjahres,
+ *   in dem er entstanden ist. Ein Anspruch aus 2024 ist also bis Ende 2026
+ *   zu verbrauchen.
+ * - **Verbrauch** wird stets auf den ältesten offenen Anspruch angerechnet —
+ *   so verjährt so wenig wie möglich.
+ * - **Übernahme ins System:** ist ein offener Urlaub zu einem Stichtag
+ *   hinterlegt, ersetzt er alles davor; er verjährt wie ein Anspruch aus dem
+ *   Urlaubsjahr dieses Stichtags. Ohne Angabe beginnt das Konto mit dem
+ *   Urlaubsjahr, in dem die Person ins System kam — frühere Jahre wären sonst
+ *   ohne Verbrauch und erschienen als voller Rest.
+ *
+ * Ob Urlaub tatsächlich verjährt, hängt nach der Rechtsprechung auch davon
+ * ab, ob der Arbeitgeber rechtzeitig auf den drohenden Verfall hingewiesen
+ * hat. Die Anzeige ist deshalb ein Hinweis, keine Entscheidung.
+ */
+export function vacationLedger(input: {
+  employee: Employee;
+  contractAt: (date: IsoDate) => Contract | null;
+  absences: readonly Absence[];
+  asOf: IsoDate;
+  mode: VacationYearMode;
+}): VacationLedger | null {
+  const { employee, contractAt, absences, asOf, mode } = input;
+  const current = vacationYearFor(employee.hiredOn, asOf, mode);
+
+  const opening = employee.vacationOpening ?? null;
+  const since = opening?.date ?? maxDate(employee.hiredOn, employee.trackedSince ?? employee.hiredOn);
+  const first = vacationYearFor(employee.hiredOn, maxDate(since, employee.hiredOn), mode);
+
+  interface Pot {
+    days: number;
+    expiresAfter: IsoDate; // letztes Datum, an dem er noch verbraucht werden kann
+  }
+  const pots: Pot[] = [];
+  const history: VacationYearEntry[] = [];
+  const expiryFor = (periodEnd: IsoDate) => addDays(addMonths(addDays(periodEnd, 1), 24), -1);
+
+  // Mit Übernahmestand zählt der Verbrauch erst ab dessen Stichtag (davor ist
+  // er im Stand enthalten), sonst ab Beginn des ersten Urlaubsjahres.
+  const countFrom = opening ? opening.date : first.start;
+  const usable = absences
+    .filter((absence) => ABSENCE_CONSUMES_VACATION[absence.kind])
+    .filter((absence) => absence.date >= countFrom && absence.date <= asOf)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  let expiredTotal = 0;
+  let currentAccount: VacationAccount | null = null;
+  let carriedIntoCurrent = 0;
+
+  for (let period = first; period.start <= current.start; ) {
+    const contract = contractAt(minDate(maxDate(period.start, since), asOf)) ?? contractAt(asOf);
+    if (!contract) return null;
+
+    const isCurrent = period.start === current.start;
+    const account = vacationAccount({
+      employee,
+      contract,
+      asOf: isCurrent ? asOf : period.end,
+      mode,
+      consumedDays: 0,
+    });
+
+    if (isCurrent) carriedIntoCurrent = pots.reduce((sum, pot) => sum + pot.days, 0);
+
+    // Im Jahr der Übernahme ersetzt der hinterlegte Stand den Anspruch.
+    const isOpeningYear = opening !== null && period.start === first.start;
+    const entitlement = isOpeningYear ? opening.days : account.entitlementDays;
+    pots.push({ days: entitlement, expiresAfter: expiryFor(period.end) });
+
+    let consumed = 0;
+    for (const absence of usable) {
+      if (absence.date < period.start || absence.date > period.end) continue;
+      let amount = absence.halfDay ? 0.5 : 1;
+      consumed += amount;
+      for (const pot of pots) {
+        if (amount <= 0) break;
+        if (pot.days <= 0 || pot.expiresAfter < absence.date) continue;
+        const taken = Math.min(pot.days, amount);
+        pot.days -= taken;
+        amount -= taken;
+      }
+      // Mehr genommen als vorhanden: im jüngsten Topf ins Minus.
+      if (amount > 0) pots[pots.length - 1]!.days -= amount;
+    }
+
+    // Verjährung zum Ende dieses Urlaubsjahres.
+    let expired = 0;
+    if (!isCurrent) {
+      for (const pot of pots) {
+        if (pot.expiresAfter <= period.end && pot.days > 0) {
+          expired += pot.days;
+          pot.days = 0;
+        }
+      }
+      expiredTotal += expired;
+    }
+
+    history.push({
+      periodStart: period.start,
+      periodEnd: period.end,
+      entitlementDays: round2(entitlement),
+      consumedDays: consumed,
+      expiredDays: round2(expired),
+    });
+
+    if (isCurrent) {
+      currentAccount = { ...account, entitlementDays: round2(entitlement) };
+      break;
+    }
+    period = vacationYearFor(employee.hiredOn, addDays(period.end, 1), mode);
+  }
+
+  if (!currentAccount) return null;
+
+  const remaining = pots.reduce((sum, pot) => sum + pot.days, 0);
+  const expiring = pots
+    .filter((pot) => pot.expiresAfter <= current.end && pot.days > 0)
+    .reduce((sum, pot) => sum + pot.days, 0);
+  const consumedNow = history[history.length - 1]!.consumedDays;
+  const endsThisYear =
+    employee.leftOn !== null && employee.leftOn >= current.start && employee.leftOn <= current.end;
+
+  return {
+    ...currentAccount,
+    carriedOverDays: round2(carriedIntoCurrent),
+    consumedDays: consumedNow,
+    remainingDays: round2(remaining),
+    expiringDays: round2(expiring),
+    expiredDays: round2(expiredTotal),
+    compensationDays: endsThisYear ? round2(remaining) : null,
+    history,
+  };
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 /** Zählt die Abwesenheiten, die den Urlaubsanspruch verbrauchen. */

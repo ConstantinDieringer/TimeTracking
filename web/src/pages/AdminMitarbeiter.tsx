@@ -20,6 +20,7 @@ import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { Pager } from '../components/Pager';
 import { VertragsForm } from '../components/VertragsForm';
+import { Urlaubskonto } from '../components/Urlaubskonto';
 import { Zugang } from '../components/Zugang';
 import { contractOn } from '../lib/mapping';
 import { useAuditLog, useContracts, useEmployee, useTimesheet } from '../lib/queries';
@@ -64,6 +65,7 @@ export function AdminMitarbeiter() {
     if (!error) {
       void client.invalidateQueries({ queryKey: ['employee', employeeId] });
       void client.invalidateQueries({ queryKey: ['overview'] });
+      void client.invalidateQueries({ queryKey: ['absences'] });
     }
   }
 
@@ -173,6 +175,53 @@ export function AdminMitarbeiter() {
             </select>
           </div>
         </div>
+        <div className="form-grid stammdaten__urlaub">
+          <div>
+            <label htmlFor="s-vordienst">Vordienstzeiten in Monaten</label>
+            <input
+              id="s-vordienst"
+              type="number"
+              min={0}
+              max={600}
+              step={1}
+              defaultValue={employee.data.priorServiceMonths ?? 0}
+              onBlur={(event) =>
+                void patchProfile({ prior_service_months: Number(event.target.value) || 0 })
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="s-uebernahme-tage">Offener Urlaub bei Übernahme (Tage)</label>
+            <input
+              id="s-uebernahme-tage"
+              type="number"
+              step={0.5}
+              defaultValue={employee.data.vacationOpening?.days ?? ''}
+              onBlur={(event) =>
+                void patchProfile({ vacation_opening_days: Number(event.target.value) || 0 })
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="s-uebernahme-datum">Stand vom</label>
+            <input
+              id="s-uebernahme-datum"
+              type="date"
+              defaultValue={employee.data.vacationOpening?.date ?? ''}
+              onBlur={(event) =>
+                void patchProfile({ vacation_opening_date: event.target.value || null })
+              }
+            />
+          </div>
+        </div>
+        <p className="muted editor__note">
+          <strong>Vordienstzeiten</strong> bei anderen Arbeitgebern zählen für die 30 Urlaubstage
+          nach 25 Dienstjahren mit — welche Zeiten in welchem Umfang anzurechnen sind, regelt § 3
+          UrlG; hier steht das Ergebnis in Monaten. <strong>Offener Urlaub bei Übernahme</strong>{' '}
+          ist nur nötig, wenn jemand schon vor dieser Software bei Ihnen gearbeitet hat: der
+          gesamte offene Urlaub zum Stichtag, einschließlich des laufenden Urlaubsjahres. Ohne
+          Stichtag beginnt das Konto mit dem Urlaubsjahr, in dem die Person angelegt wurde.
+        </p>
         <p className="muted editor__note">
           Das Geburtsdatum ist kein Beiwerk: es entscheidet tagesgenau, ob das KJBG oder das AZG
           gilt. Fehlt es, wird die Person wie eine erwachsene behandelt. Das Bundesland steuert nur
@@ -181,6 +230,8 @@ export function AdminMitarbeiter() {
       </section>
 
       <Zugang employeeId={employeeId} displayName={employee.data.displayName} />
+
+      <Urlaubskonto employeeId={employeeId} />
 
       <section className="section">
         <div className="section__head">
@@ -361,6 +412,7 @@ const TABLE_LABEL: Record<string, string> = {
   absences: 'Abwesenheit',
   employment_contracts: 'Vertrag',
   profiles: 'Stammdaten',
+  organizations: 'Unternehmen',
 };
 
 const OPERATION_LABEL: Record<string, string> = {
@@ -406,6 +458,9 @@ const FIELD_LABEL: Record<string, string> = {
   role: 'Rolle',
   active: 'Aktiv',
   organization_id: 'Unternehmen',
+  prior_service_months: 'Vordienstzeiten (Monate)',
+  vacation_opening_days: 'Offener Urlaub bei Übernahme',
+  vacation_opening_date: 'Übernahme-Stichtag',
 };
 
 function format(value: unknown): string {

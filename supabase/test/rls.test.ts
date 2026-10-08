@@ -862,6 +862,8 @@ describe('Mitarbeiter ändern am eigenen Profil nur den Namen', () => {
       { left_on: '2026-12-31' },
       { state: 'T' as const },
       { active: false },
+      { prior_service_months: 120 },
+      { vacation_opening_days: 99, vacation_opening_date: '2026-01-01' },
     ]) {
       const { data } = await anna.from('profiles').update(patch).eq('id', ANNA).select();
       expect(data ?? [], JSON.stringify(patch)).toEqual([]);

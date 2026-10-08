@@ -1,7 +1,6 @@
 import {
   addDays,
   checkGeringfuegigkeit,
-  consumedVacationDays,
   endOfIsoWeek,
   flexPeriodFor,
   formatDateShort,
@@ -9,8 +8,6 @@ import {
   localDateOf,
   startOfIsoWeek,
   sumClassifications,
-  vacationAccount,
-  vacationYearFor,
   checkSeventeenWeekAverage,
   AVERAGE_WINDOW_WEEKS,
   type RuleResult,
@@ -18,12 +15,12 @@ import {
 import { useMemo } from 'react';
 import { Findings } from '../components/Findings';
 import { Duration } from '../components/Num';
-import { useContractDefaults } from '../lib/defaults';
-import { useAbsences, useContracts, useEmployee, useTimesheet } from '../lib/queries';
+import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 import { contractOn } from '../lib/mapping';
 import { collectFindings } from '../lib/timesheet';
 import { Loading } from '../components/Loading';
+import { Urlaubskonto } from '../components/Urlaubskonto';
 
 export function Auswertung() {
   const { session } = useSession();
@@ -40,16 +37,7 @@ export function Auswertung() {
 
   const employee = useEmployee(employeeId);
   const contracts = useContracts(employeeId);
-  const defaults = useContractDefaults();
   const { timesheet, isLoading } = useTimesheet({ employeeId, from, to: endOfIsoWeek(today) });
-
-  // Verbraucht wird im Urlaubsjahr, nicht im Kalenderjahr — beim Arbeitsjahr
-  // läuft es vom Eintrittstag bis zum Vortag des nächsten Jahrestags.
-  const vacationMode = defaults.data?.vacationYear ?? 'arbeitsjahr';
-  const vacationPeriod = employee.data
-    ? vacationYearFor(employee.data.hiredOn, today, vacationMode)
-    : { start: yearStart, end: `${year}-12-31` };
-  const absences = useAbsences(employeeId, vacationPeriod.start, vacationPeriod.end);
 
   const contract = contracts.data ? contractOn(contracts.data, today) : null;
 
@@ -92,22 +80,6 @@ export function Auswertung() {
     ? checkSeventeenWeekAverage(timesheet.weeklyTotals, startOfIsoWeek(today))
     : null;
 
-  const vacation =
-    employee.data && contract
-      ? vacationAccount({
-          employee: employee.data,
-          contract,
-          asOf: today,
-          mode: vacationMode,
-          consumedDays: consumedVacationDays(
-            (absences.data ?? []).map((row) => ({
-              date: row.absence_date,
-              kind: row.kind as never,
-              halfDay: row.half_day,
-            })),
-          ),
-        })
-      : null;
 
   const flexPeriod = contract?.flexTime ? flexPeriodFor(contract.flexTime, today) : null;
   const flexBalance = flexPeriod
@@ -259,75 +231,7 @@ export function Auswertung() {
         )}
       </section>
 
-      {vacation && (
-        <section className="section">
-          <div className="section__head">
-            <h2>Urlaubskonto</h2>
-            <span className="meta">
-              Urlaubsjahr {formatDateShort(vacation.periodStart)} –{' '}
-              {formatDateShort(vacation.periodEnd)}
-            </span>
-          </div>
-          <dl className="figures">
-            <div>
-              <dt className="meta">{vacation.accruing ? 'Bisher erworben' : 'Anspruch'}</dt>
-              <dd className="num">{vacation.entitlementDays.toLocaleString('de-AT')}</dd>
-            </div>
-            <div>
-              <dt className="meta">Aus Vorjahr</dt>
-              <dd className="num">{vacation.carriedOverDays.toLocaleString('de-AT')}</dd>
-            </div>
-            <div>
-              <dt className="meta">Verbraucht</dt>
-              <dd className="num">{vacation.consumedDays.toLocaleString('de-AT')}</dd>
-            </div>
-            <div>
-              <dt className="meta">Rest</dt>
-              <dd className="num">{vacation.remainingDays.toLocaleString('de-AT')}</dd>
-            </div>
-          </dl>
-          {(() => {
-            const total = vacation.entitlementDays + vacation.carriedOverDays;
-            const used = total > 0 ? Math.min(vacation.consumedDays / total, 1) : 0;
-            return (
-              <div className="progress-block progress-block--spaced">
-                <div className="progress-block__labels">
-                  <span>
-                    <strong>{vacation.consumedDays.toLocaleString('de-AT')}</strong> von{' '}
-                    {total.toLocaleString('de-AT')} Tagen genommen
-                  </span>
-                  <span className="muted">
-                    {vacation.remainingDays.toLocaleString('de-AT')} übrig
-                  </span>
-                </div>
-                <div
-                  className="progress"
-                  role="progressbar"
-                  aria-label="Verbrauchter Urlaub"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(used * 100)}
-                >
-                  <div className="progress__bar" style={{ width: `${used * 100}%` }} />
-                </div>
-              </div>
-            );
-          })()}
-          {vacation.accruing && vacation.fullFrom && (
-            <p className="muted figures__note">
-              In den ersten sechs Monaten entsteht der Urlaub schrittweise, im Verhältnis zur
-              zurückgelegten Dienstzeit. Ab {formatDateShort(vacation.fullFrom)} stehen die vollen{' '}
-              {vacation.fullEntitlementDays.toLocaleString('de-AT')} Arbeitstage zu (§ 2 Abs 2 UrlG).
-            </p>
-          )}
-          {!vacation.accruing && vacation.aliquot && (
-            <p className="muted figures__note">
-              Der Anspruch ist wegen Ein- oder Austritt im Urlaubsjahr anteilig gekürzt. Voller
-              Jahresanspruch: {vacation.fullEntitlementDays.toLocaleString('de-AT')} Arbeitstage.
-            </p>
-          )}
-        </section>
-      )}
+      {employeeId && <Urlaubskonto employeeId={employeeId} />}
 
       <section className="section">
         <div className="section__head">

@@ -232,6 +232,16 @@ export interface Employee {
   leftOn: IsoDate | null;
   /** Bundesland, nur für die Anzeige der Landesfeiertage. */
   state: AustrianState;
+  /** Anrechenbare Vordienstzeiten nach § 3 UrlG in Monaten. */
+  priorServiceMonths?: number;
+  /**
+   * Offener Urlaub bei Übernahme ins System, einschließlich des laufenden
+   * Urlaubsjahres. Ohne Angabe beginnt das Konto mit dem Urlaubsjahr, in dem
+   * die Person angelegt wurde.
+   */
+  vacationOpening?: { date: IsoDate; days: number } | null;
+  /** Ab wann Abwesenheiten in diesem System erfasst sind. */
+  trackedSince?: IsoDate | null;
 }
 
 export type AustrianState =

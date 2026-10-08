@@ -28,6 +28,12 @@ export function toEmployee(row: ProfileRow): Employee {
     hiredOn: row.hired_on,
     leftOn: row.left_on,
     state: row.state as AustrianState,
+    priorServiceMonths: row.prior_service_months,
+    vacationOpening: row.vacation_opening_date
+      ? { date: row.vacation_opening_date, days: Number(row.vacation_opening_days) }
+      : null,
+    // Ab der Anlage im System gibt es Abwesenheiten; davor nicht.
+    trackedSince: row.created_at.slice(0, 10),
   };
 }
 

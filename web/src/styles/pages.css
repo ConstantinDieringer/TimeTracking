@@ -701,3 +701,13 @@ textarea {
   background-image: radial-gradient(circle, rgb(4 120 87 / 0.14) 1px, transparent 1.6px);
   background-size: 22px 22px;
 }
+/* Urlaubsfelder in den Stammdaten: eigene Zeile unter den Personendaten. */
+.stammdaten__urlaub {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--border);
+}
+
+.vacation__note {
+  margin-top: var(--space-4);
+}
