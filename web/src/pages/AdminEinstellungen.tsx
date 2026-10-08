@@ -2,6 +2,7 @@ import { STATE_LABEL, type AustrianState } from '@zeiterfassung/legal';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { GleitzeitFelder, pruefeGleitzeit } from '../components/GleitzeitFelder';
+import { Loading } from '../components/Loading';
 import { Normalarbeitszeit } from '../components/Normalarbeitszeit';
 import {
   FALLBACK_DEFAULTS,
@@ -80,7 +81,7 @@ export function AdminEinstellungen() {
         </div>
       </div>
 
-      {gespeichert.isLoading && <p className="muted">Wird geladen …</p>}
+      {gespeichert.isLoading && <Loading />}
 
       <form onSubmit={handleSubmit}>
         <fieldset>

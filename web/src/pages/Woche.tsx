@@ -16,7 +16,9 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { DayEditor } from '../components/DayEditor';
 import { Findings } from '../components/Findings';
+import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
+import { Pager } from '../components/Pager';
 import { useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 
@@ -50,28 +52,17 @@ export function Woche() {
             {formatDateShort(from)} bis {formatDateShort(to)}
           </p>
         </div>
-        <div className="row">
-          <button
-            className="button"
-            type="button"
-            onClick={() => navigate(`/woche/${addDays(from, -7)}`)}
-          >
-            Vorige
-          </button>
-          <button className="button" type="button" onClick={() => navigate('/woche')}>
-            Aktuelle
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={() => navigate(`/woche/${addDays(from, 7)}`)}
-          >
-            Nächste
-          </button>
-        </div>
+        <Pager
+          unit="Woche"
+          currentLabel="Diese Woche"
+          isCurrent={from === startOfIsoWeek(today)}
+          onPrevious={() => navigate(`/woche/${addDays(from, -7)}`)}
+          onCurrent={() => navigate('/woche')}
+          onNext={() => navigate(`/woche/${addDays(from, 7)}`)}
+        />
       </div>
 
-      {isLoading && <p className="muted">Wird geladen …</p>}
+      {isLoading && <Loading />}
 
       <div className="table-scroll">
         <table className="ledger">

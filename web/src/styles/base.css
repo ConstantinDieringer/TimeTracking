@@ -64,6 +64,7 @@ button {
   color: inherit;
 }
 
+input:not([type]),
 input[type='text'],
 input[type='email'],
 input[type='password'],
@@ -74,9 +75,20 @@ select,
 textarea {
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
-  border: var(--border);
+  /* Die kräftigere Linie: ein Feld muss als Feld erkennbar sein, auch auf
+   * einem blassen Bürobildschirm. */
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   width: 100%;
+  min-height: var(--control-height);
+  font-size: var(--text-base);
+  transition: border-color var(--transition);
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--ink-muted);
 }
 
 input[type='time'],
@@ -130,16 +142,66 @@ legend {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  min-height: var(--control-height);
   padding: var(--space-2) var(--space-4);
   background: var(--surface);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  color: var(--ink);
   cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition);
 }
 
 .button:hover:not(:disabled) {
   border-color: var(--ink-muted);
+  background: var(--surface-sunken);
+}
+
+.button:active:not(:disabled) {
+  background: var(--hairline);
+}
+
+/* Die Hauptaktion einer Seite — Kommen, Gehen. Groß genug, um sie auf dem
+ * Telefon im Vorbeigehen zu treffen. */
+.button--large {
+  min-height: 3rem;
+  min-width: 9rem;
+  padding-inline: var(--space-5);
+  font-size: var(--text-base);
+}
+
+/* Zurück, Heute, Weiter als eine zusammenhängende Gruppe: drei gleichrangige
+ * Einzelknöpfe lesen sich wie drei verschiedene Aktionen. */
+.pager {
+  display: inline-flex;
+}
+
+.pager .button {
+  border-radius: 0;
+}
+
+.pager .button + .button {
+  margin-left: -1px;
+}
+
+.pager .button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.pager .button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.pager .button:hover:not(:disabled) {
+  position: relative;
 }
 
 .button:disabled {
@@ -158,6 +220,16 @@ legend {
   border-color: var(--accent-hover);
 }
 
+.button--primary:active:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.button--primary:disabled {
+  background: var(--hairline-strong);
+  border-color: var(--hairline-strong);
+  color: var(--surface);
+}
+
 .button--quiet {
   border-color: transparent;
   background: transparent;
@@ -168,6 +240,7 @@ legend {
 .button--quiet:hover:not(:disabled) {
   color: var(--ink);
   border-color: var(--hairline);
+  background: transparent;
 }
 
 .button--danger {
@@ -180,21 +253,28 @@ legend {
 .app {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr;
+  /* minmax(0, …) statt 1fr: sonst darf eine breite Tabelle die ganze Seite
+   * aufziehen, und auf dem Telefon scrollt alles seitwärts. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
 }
 
 .masthead {
   border-bottom: var(--border);
   background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .masthead__inner {
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: var(--space-3) var(--space-5);
+  padding: 0 var(--space-5);
   display: flex;
-  align-items: baseline;
-  gap: var(--space-5);
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 3.5rem;
 }
 
 .masthead__title {
@@ -203,29 +283,53 @@ legend {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
-  margin-right: auto;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.masthead__account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  min-width: 0;
 }
 
 .masthead__user {
   font-size: var(--text-sm);
   color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-1);
+  align-self: stretch;
 }
 
 .nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
   font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--ink-muted);
   text-decoration: none;
-  padding-bottom: 2px;
+  white-space: nowrap;
+  /* Die Markierung sitzt auf der Unterkante der Kopfzeile, nicht unter dem
+   * Wort — so wirkt sie wie ein Reiter und nicht wie ein Unterstrich. */
   border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 
 .nav a:hover {
   color: var(--ink);
+  border-bottom-color: var(--hairline-strong);
 }
 
 .nav a[aria-current='page'] {
@@ -238,6 +342,67 @@ legend {
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-8);
   width: 100%;
+  min-width: 0;
+}
+
+.app__content {
+  min-width: 0;
+}
+
+/* Für Tastaturbedienung: erst beim Fokus sichtbar, springt an der
+ * Navigation vorbei direkt zum Inhalt. */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-2);
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.footer {
+  border-top: var(--border);
+}
+
+.footer__inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.footer a {
+  color: var(--ink-muted);
+}
+
+.footer a:hover {
+  color: var(--ink);
+}
+
+/* Ladehinweis erst nach kurzer Verzögerung: was in 300 ms da ist, soll nicht
+ * erst „Wird geladen“ aufblitzen lassen. */
+.loading {
+  color: var(--ink-muted);
+  animation: loading-appear 0s 300ms both;
+}
+
+@keyframes loading-appear {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
 }
 
 /*
@@ -272,10 +437,24 @@ legend {
   margin-bottom: var(--space-3);
 }
 
+/* Überschrift eines Abschnitts mit der Steuerung, die nur ihn betrifft. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
 /* --- Tabellen ------------------------------------------------------------ */
 
 .table-scroll {
   overflow-x: auto;
+  /* Ohne eigenen Positionierungskontext entkommen absolut positionierte
+   * Kinder — etwa die unsichtbaren Spaltenköpfe für Bildschirmleser — dem
+   * Scrollbereich und ziehen die ganze Seite in die Breite. */
+  position: relative;
 }
 
 table {
@@ -328,6 +507,21 @@ tfoot td {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   white-space: nowrap;
+}
+
+/* Spaltenköpfe bleiben in der Grundschrift, auch über Zahlenspalten — sonst
+ * steht „TAG DATUM“ in Plex Sans neben „PAUSE IST“ in Plex Mono. */
+th.num {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+}
+
+tbody tr {
+  transition: background-color var(--transition);
+}
+
+tbody tr:hover td {
+  background-color: var(--surface-sunken);
 }
 
 .num--muted {
@@ -455,19 +649,74 @@ tr.is-today td {
   border: 0;
 }
 
+/* Touchgeräte: 44 px Mindesthöhe für alles, was man antippt. */
+@media (pointer: coarse) {
+  :root {
+    --control-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+  }
+}
+
+/* Schmale Fenster: Titel und Konto in der ersten Zeile, die Navigation
+ * darunter als waagrecht wischbare Leiste. Sie läuft nie über den Rand der
+ * Seite hinaus, sondern scrollt in sich. */
+@media (max-width: 52rem) {
+  .masthead__inner {
+    flex-wrap: wrap;
+    gap: 0 var(--space-3);
+    padding-top: var(--space-2);
+  }
+
+  .masthead__title {
+    order: 1;
+  }
+
+  .masthead__account {
+    order: 2;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--space-3));
+    min-height: var(--control-height);
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (max-width: 40rem) {
   .masthead__inner,
-  .page {
+  .page,
+  .footer__inner {
     padding-inline: var(--space-4);
   }
 
-  .masthead__inner {
-    flex-wrap: wrap;
-    gap: var(--space-3);
+  .page {
+    padding-top: var(--space-5);
   }
 
   .page__head {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .page__head .row {
+    justify-content: space-between;
+  }
+
+  .masthead__user {
+    max-width: 10rem;
   }
 }

@@ -21,6 +21,7 @@ import { useAbsences, useContracts, useEmployee, useTimesheet } from '../lib/que
 import { useSession } from '../lib/session';
 import { contractOn } from '../lib/mapping';
 import { collectFindings } from '../lib/timesheet';
+import { Loading } from '../components/Loading';
 
 export function Auswertung() {
   const { session } = useSession();
@@ -129,7 +130,7 @@ export function Auswertung() {
         <span className="meta">Stand {formatDateShort(today)}</span>
       </div>
 
-      {isLoading && <p className="muted">Wird geladen …</p>}
+      {isLoading && <Loading />}
 
       <section className="section">
         <div className="section__head">

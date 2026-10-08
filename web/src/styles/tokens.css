@@ -24,8 +24,10 @@
   --surface-sunken: #f4f2ed;
 
   --ink: #1a1a18;
-  --ink-muted: #6e6b64;
-  --ink-faint: #97938a;
+  /* Beide Grautöne erreichen auf Weiß mindestens 4,5:1 (WCAG AA). Das
+   * frühere #97938a lag bei 3:1 und war für Text zu blass. */
+  --ink-muted: #64615a;
+  --ink-faint: #77736a;
 
   --hairline: #e3e0d8;
   --hairline-strong: #cdc9be;
@@ -38,7 +40,8 @@
 
   /* Ampelfarben entsättigt. Ein grelles Rot neben einer Stundenzahl liest
    * sich wie ein Alarm; hier geht es meist um Hinweise. */
-  --warn: #a6741b;
+  /* Ocker, dunkel genug für Text: 5,6:1 auf Weiß, 5:1 auf --warn-soft. */
+  --warn: #8a5f12;
   --warn-soft: #f7f0e0;
   --violation: #9b2c24;
   --violation-soft: #f8eae8;
@@ -52,11 +55,14 @@
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --text-xs: 0.6875rem;  /* 11px — Spaltenköpfe, Fundstellen */
-  --text-sm: 0.8125rem;  /* 13px — Fließtext in Tabellen */
-  --text-base: 0.9375rem;/* 15px */
-  --text-lg: 1.125rem;
-  --text-xl: 1.5rem;
+  /* Untergrenze 12 px: darunter wird Versalschrift mit Sperrung auf
+   * Bürobildschirmen und Telefonen mühsam. Eingabefelder haben 16 px, sonst
+   * zoomt Safari auf dem iPhone bei jedem Antippen in die Seite. */
+  --text-xs: 0.75rem;    /* 12px — Spaltenköpfe, Fundstellen */
+  --text-sm: 0.875rem;   /* 14px — Fließtext in Tabellen */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.1875rem;  /* 19px */
+  --text-xl: 1.625rem;   /* 26px */
   --text-2xl: 2rem;
 
   --leading-tight: 1.25;
@@ -80,6 +86,14 @@
   --radius-sm: 1px;
 
   --border: 1px solid var(--hairline);
+
+  /* Bedienelemente: 40 px mit Maus, 44 px auf Touchgeräten (siehe base.css).
+   * Kleinere Ziele treffen Finger und ältere Augen schlecht. */
+  --control-height: 2.5rem;
+
+  /* Kurz genug, um nicht zu bremsen; lang genug, dass ein Zustandswechsel
+   * als solcher wahrgenommen wird. */
+  --transition: 120ms ease-out;
 
   /* Bewusst kein Schatten-Token. Getrennt wird mit Haarlinien; Schatten und
    * abgerundete Karten sind genau die Optik, die vermieden werden soll. */

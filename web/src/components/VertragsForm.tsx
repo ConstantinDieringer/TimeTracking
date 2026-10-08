@@ -6,6 +6,7 @@ import { useContractTypes } from '../lib/queries';
 import { supabase, type ContractTypeRow } from '../lib/supabase';
 import { GleitzeitFelder, pruefeGleitzeit, type GleitzeitWerte } from './GleitzeitFelder';
 import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
+import { Loading } from './Loading';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -139,7 +140,7 @@ export function VertragsForm({
   if (!draft) {
     return (
       <div className="editor">
-        <p className="muted">Wird geladen …</p>
+        <Loading />
       </div>
     );
   }

@@ -8,8 +8,10 @@ import {
 } from '@zeiterfassung/legal';
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { NeuerZugang } from '../components/NeuerZugang';
+import { Pager } from '../components/Pager';
 import { useOverview } from '../lib/overview';
 import { useSession } from '../lib/session';
 
@@ -39,27 +41,6 @@ export function Admin() {
           </p>
         </div>
         <div className="row">
-          <button
-            className="button"
-            type="button"
-            onClick={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
-          >
-            Voriger
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={() => setMonth(startOfMonth(today).slice(0, 7))}
-          >
-            Aktueller
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
-          >
-            Nächster
-          </button>
           <Link className="button" to="/admin/einstellungen">
             Betriebsstandard
           </Link>
@@ -82,7 +63,23 @@ export function Admin() {
         />
       )}
 
-      {overview.isLoading && <p className="muted">Wird geladen …</p>}
+      {/* Der Zeitraum steuert nur die Tabelle darunter — deshalb steht er bei
+          ihr und nicht zwischen den Seitenaktionen. */}
+      <div className="toolbar">
+        <h2>
+          {monthName(monthNumber)} {year}
+        </h2>
+        <Pager
+          unit="Monat"
+          currentLabel="Dieser Monat"
+          isCurrent={month === startOfMonth(today).slice(0, 7)}
+          onPrevious={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
+          onCurrent={() => setMonth(startOfMonth(today).slice(0, 7))}
+          onNext={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
+        />
+      </div>
+
+      {overview.isLoading && <Loading />}
       {overview.error instanceof Error && (
         <p className="error-text">{overview.error.message}</p>
       )}

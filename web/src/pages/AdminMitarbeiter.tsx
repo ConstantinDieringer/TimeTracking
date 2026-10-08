@@ -16,7 +16,9 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
+import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
+import { Pager } from '../components/Pager';
 import { VertragsForm } from '../components/VertragsForm';
 import { Zugang } from '../components/Zugang';
 import { contractOn } from '../lib/mapping';
@@ -68,7 +70,7 @@ export function AdminMitarbeiter() {
   if (!employee.data) {
     return (
       <main className="page">
-        <p className="muted">Wird geladen …</p>
+        <Loading />
       </main>
     );
   }
@@ -88,23 +90,17 @@ export function AdminMitarbeiter() {
           </p>
         </div>
         <div className="row">
-          <button
-            className="button"
-            type="button"
-            onClick={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
-          >
-            Voriger
-          </button>
           <span className="meta">
             {monthName(monthNumber)} {year}
           </span>
-          <button
-            className="button"
-            type="button"
-            onClick={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
-          >
-            Nächster
-          </button>
+          <Pager
+            unit="Monat"
+            currentLabel="Dieser Monat"
+            isCurrent={month === startOfMonth(today).slice(0, 7)}
+            onPrevious={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
+            onCurrent={() => setMonth(startOfMonth(today).slice(0, 7))}
+            onNext={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
+          />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { privacyNoticeTemplate, usePrivacyNotice, useSavePrivacyNotice } from '../lib/privacy';
 import { useSession } from '../lib/session';
+import { Loading } from '../components/Loading';
 
 /**
  * Datenschutzinformation nach Art. 13 DSGVO — für alle lesbar, für die
@@ -46,7 +47,7 @@ export function Datenschutz() {
         )}
       </div>
 
-      {notice.isLoading && <p className="muted">Wird geladen …</p>}
+      {notice.isLoading && <Loading />}
 
       {!editing && notice.data !== undefined && (
         <section className="section">

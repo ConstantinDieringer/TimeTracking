@@ -1,4 +1,6 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router';
+import { useEffect } from 'react';
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router';
+import { Loading } from './components/Loading';
 import { useSession } from './lib/session';
 import { Login } from './pages/Login';
 import { Heute } from './pages/Heute';
@@ -12,11 +14,20 @@ import { Datenschutz } from './pages/Datenschutz';
 
 export function App() {
   const { session, profile, loading, isAdmin, signOut } = useSession();
+  const location = useLocation();
+
+  // Auf dem Telefon ist die Navigation eine wischbare Leiste. Der aktive
+  // Punkt soll darin immer sichtbar sein, nicht halb abgeschnitten am Rand.
+  useEffect(() => {
+    document
+      .querySelector('.nav [aria-current="page"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [location.pathname, loading]);
 
   if (loading) {
     return (
       <main className="page">
-        <p className="muted">Wird geladen …</p>
+        <Loading />
       </main>
     );
   }
@@ -57,37 +68,54 @@ export function App() {
 
   return (
     <div className="app">
+      <a className="skip-link" href="#inhalt">
+        Zum Inhalt springen
+      </a>
       <header className="masthead">
         <div className="masthead__inner">
-          <span className="masthead__title">Zeiterfassung</span>
-          <nav className="nav">
+          <Link className="masthead__title" to="/">
+            Zeiterfassung
+          </Link>
+          <nav className="nav" aria-label="Hauptnavigation">
             <NavLink to="/">Heute</NavLink>
             <NavLink to="/woche">Woche</NavLink>
             <NavLink to="/monat">Monat</NavLink>
             <NavLink to="/auswertung">Auswertung</NavLink>
             {isAdmin && <NavLink to="/admin">Verwaltung</NavLink>}
-            <NavLink to="/datenschutz">Datenschutz</NavLink>
           </nav>
-          <span className="masthead__user">{profile.display_name}</span>
-          <button className="button button--quiet" type="button" onClick={signOut}>
-            Abmelden
-          </button>
+          <div className="masthead__account">
+            <span className="masthead__user" title={profile.display_name}>
+              {profile.display_name}
+            </span>
+            <button className="button button--quiet" type="button" onClick={signOut}>
+              Abmelden
+            </button>
+          </div>
         </div>
       </header>
 
-      <Routes>
-        <Route path="/" element={<Heute />} />
-        <Route path="/woche" element={<Woche />} />
-        <Route path="/woche/:date" element={<Woche />} />
-        <Route path="/monat" element={<Monat />} />
-        <Route path="/monat/:month" element={<Monat />} />
-        <Route path="/auswertung" element={<Auswertung />} />
-        <Route path="/datenschutz" element={<Datenschutz />} />
-        {isAdmin && <Route path="/admin" element={<Admin />} />}
-        {isAdmin && <Route path="/admin/einstellungen" element={<AdminEinstellungen />} />}
-        {isAdmin && <Route path="/admin/:employeeId" element={<AdminMitarbeiter />} />}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div id="inhalt" className="app__content">
+        <Routes>
+          <Route path="/" element={<Heute />} />
+          <Route path="/woche" element={<Woche />} />
+          <Route path="/woche/:date" element={<Woche />} />
+          <Route path="/monat" element={<Monat />} />
+          <Route path="/monat/:month" element={<Monat />} />
+          <Route path="/auswertung" element={<Auswertung />} />
+          <Route path="/datenschutz" element={<Datenschutz />} />
+          {isAdmin && <Route path="/admin" element={<Admin />} />}
+          {isAdmin && <Route path="/admin/einstellungen" element={<AdminEinstellungen />} />}
+          {isAdmin && <Route path="/admin/:employeeId" element={<AdminMitarbeiter />} />}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+
+      <footer className="footer">
+        <div className="footer__inner">
+          <Link to="/datenschutz">Datenschutz</Link>
+          <span>Aufzeichnung nach § 26 AZG · Daten in der EU</span>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -17,7 +17,9 @@ import { useNavigate, useParams } from 'react-router';
 import { DayEditor } from '../components/DayEditor';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
+import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
+import { Pager } from '../components/Pager';
 import { contractOn } from '../lib/mapping';
 import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
@@ -78,28 +80,17 @@ export function Monat() {
             {formatDuration(targetMonth)} h
           </p>
         </div>
-        <div className="row">
-          <button
-            className="button"
-            type="button"
-            onClick={() => navigate(`/monat/${addMonths(from, -1).slice(0, 7)}`)}
-          >
-            Voriger
-          </button>
-          <button className="button" type="button" onClick={() => navigate('/monat')}>
-            Aktueller
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={() => navigate(`/monat/${addMonths(from, 1).slice(0, 7)}`)}
-          >
-            Nächster
-          </button>
-        </div>
+        <Pager
+          unit="Monat"
+          currentLabel="Dieser Monat"
+          isCurrent={from === startOfMonth(today)}
+          onPrevious={() => navigate(`/monat/${addMonths(from, -1).slice(0, 7)}`)}
+          onCurrent={() => navigate('/monat')}
+          onNext={() => navigate(`/monat/${addMonths(from, 1).slice(0, 7)}`)}
+        />
       </div>
 
-      {isLoading && <p className="muted">Wird geladen …</p>}
+      {isLoading && <Loading />}
 
       <div className="calendar" role="grid" aria-label={`${monthName(month)} ${year}`}>
         {WEEKDAY_HEADS.map((head) => (
@@ -248,7 +239,7 @@ export function Monat() {
             timesheet={timesheet}
           />
         ) : (
-          <p className="muted">Wird geladen …</p>
+          <Loading />
         )}
       </section>
     </main>

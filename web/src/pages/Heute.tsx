@@ -68,7 +68,7 @@ export function Heute() {
       ))}
 
       <section className="stamp">
-        <div className="stamp__state">
+        <div className="stamp__state" aria-live="polite">
           <span className="meta">
             {running
               ? running.kind === 'break'
@@ -93,7 +93,7 @@ export function Heute() {
         <div className="stamp__actions">
           {!running && (
             <button
-              className="button button--primary"
+              className="button button--primary button--large"
               type="button"
               disabled={busy || !employeeId}
               onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
@@ -105,7 +105,7 @@ export function Heute() {
           {running?.kind === 'work' && (
             <>
               <button
-                className="button"
+                className="button button--large"
                 type="button"
                 disabled={busy}
                 onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'break' })}
@@ -113,7 +113,7 @@ export function Heute() {
                 Pause beginnen
               </button>
               <button
-                className="button button--primary"
+                className="button button--primary button--large"
                 type="button"
                 disabled={busy}
                 onClick={() => stop.mutate(running.id)}
@@ -126,7 +126,7 @@ export function Heute() {
           {running?.kind === 'break' && (
             <>
               <button
-                className="button button--primary"
+                className="button button--primary button--large"
                 type="button"
                 disabled={busy}
                 onClick={() => stamp.mutate({ employeeId: employeeId!, kind: 'work' })}
@@ -134,7 +134,7 @@ export function Heute() {
                 Pause beenden
               </button>
               <button
-                className="button"
+                className="button button--large"
                 type="button"
                 disabled={busy}
                 onClick={() => stop.mutate(running.id)}
