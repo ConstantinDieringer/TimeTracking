@@ -39,9 +39,20 @@ const HEADERS = [
   'Befunde',
 ];
 
-function cell(value: string | number): string {
-  const text = typeof value === 'number' ? String(value).replace('.', ',') : value;
-  return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+/**
+ * Zeichen, mit denen Excel und LibreOffice eine Zelle als Formel lesen —
+ * auch in der vollbreiten Schreibweise. Eine Zelle `=HYPERLINK(...)` aus
+ * einer Anmerkung würde beim Öffnen der Datei ausgeführt (CSV-Injection).
+ */
+const FORMULA_START = /^[=+\-@\t\r＝＋－＠]/;
+
+export function cell(value: string | number): string {
+  // Zahlen bleiben Zahlen: ein negativer Saldo soll in Excel rechenbar sein.
+  if (typeof value === 'number') return String(value).replace('.', ',');
+  // Text, der wie eine Formel beginnt, bekommt ein Apostroph davor — dann
+  // zeigt das Tabellenprogramm ihn als Text an, statt ihn auszuführen.
+  const text = FORMULA_START.test(value.trimStart()) ? `'${value}` : value;
+  return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function buildDayCsv(days: readonly TimesheetDay[]): string {

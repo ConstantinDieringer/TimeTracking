@@ -24,7 +24,13 @@ export function Login() {
     if (signInError) {
       // Bewusst ohne Unterscheidung, ob die Adresse existiert: sonst ließe
       // sich über die Anmeldemaske herausfinden, wer hier beschäftigt ist.
-      setError('E-Mail-Adresse oder Passwort stimmen nicht.');
+      // Nur die Sperre nach zu vielen Versuchen wird genannt — sie gilt für
+      // jede Adresse gleich und verrät daher nichts.
+      setError(
+        signInError.status === 429
+          ? 'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.'
+          : 'E-Mail-Adresse oder Passwort stimmen nicht.',
+      );
       setBusy(false);
     }
   }

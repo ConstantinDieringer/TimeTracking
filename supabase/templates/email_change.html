@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Confirm your new email address</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f7f9;-webkit-text-size-adjust:100%;">
+  <!-- Vorschautext im Posteingang, im Inhalt unsichtbar -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">Confirm the change of the email address on your account.&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#f6f7f9" style="background-color:#f6f7f9;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;">
+          <!-- Kopf -->
+          <tr>
+            <td style="padding:0 0 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="36" height="36" align="center" valign="middle" bgcolor="#047857" style="width:36px;height:36px;border-radius:9px;">
+                    <div style="width:16px;height:16px;border:2.5px solid #ffffff;border-radius:50%;line-height:0;font-size:0;">&nbsp;</div>
+                  </td>
+                  <td style="padding-left:12px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:18px;font-weight:600;color:#111827;">Zeiterfassung</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Karte -->
+          <tr>
+            <td bgcolor="#ffffff" style="padding:32px 28px 28px;border:1px solid #e6e9ee;border-radius:12px;">
+              <h1 style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:22px;line-height:30px;font-weight:600;color:#111827;">Confirm your new email address</h1>
+<p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:15px;line-height:24px;color:#111827;">A request was made to change the email address of your Zeiterfassung account from <strong>{{ .Email }}</strong> to <strong>{{ .NewEmail }}</strong>.</p>
+<p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:15px;line-height:24px;color:#111827;">For your security, the change only takes effect once it has been confirmed from both addresses.</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">
+  <tr>
+    <td align="center" bgcolor="#047857" style="border-radius:8px;">
+      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:13px 26px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:15px;font-weight:600;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;">Confirm change</a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:13px;line-height:20px;color:#5b6474;">Button not working? Copy and paste this link into your browser:</p>
+<p style="margin:0 0 24px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:13px;line-height:20px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#047857;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:8px 0 0;">
+  <tr>
+    <td bgcolor="#fffbeb" style="padding:14px 16px;border:1px solid #fcd34d;border-radius:8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:13px;line-height:20px;color:#92400e;">Didn't request this change? Do not click the button. Change your password and inform your administrator right away &mdash; someone else may have access to your account.</td>
+  </tr>
+</table>
+            </td>
+          </tr>
+          <!-- Fußzeile -->
+          <tr>
+            <td style="padding:24px 8px 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+              Zeiterfassung &middot; Working-time records under &sect;&nbsp;26 AZG &middot; Data stored in the EU<br>
+              This is an automated message. Please do not reply to this email.<br>
+              We will never ask for your password by email.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -10,7 +10,7 @@
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54421';
 // Der anon key der lokalen Instanz ist bei allen Supabase-Projekten derselbe
@@ -40,11 +40,18 @@ function anonClient(): SupabaseClient {
   });
 }
 
-async function signIn(email: string): Promise<SupabaseClient> {
+/**
+ * Passwort für Benutzer, die ein Test neu anlegt. Die Cloud verlangt mindestens
+ * 12 Zeichen mit Buchstaben und Ziffern; die Testzugänge aus seed.sql stammen
+ * von davor und behalten `zeiterfassung`.
+ */
+const NEUES_PASSWORT = 'zeiterfassung-2026';
+
+async function signIn(email: string, password = 'zeiterfassung'): Promise<SupabaseClient> {
   const client = anonClient();
   const { error } = await client.auth.signInWithPassword({
     email,
-    password: 'zeiterfassung',
+    password,
   });
   if (error) throw new Error(`Anmeldung als ${email} fehlgeschlagen: ${error.message}`);
   return client;
@@ -443,7 +450,7 @@ describe('Die Registrierung vergibt keine Rechte', () => {
     // Angreifer bei der Registrierung frei befüllen kann.
     const { data: created, error: createError } = await service.auth.admin.createUser({
       email,
-      password: 'zeiterfassung',
+      password: NEUES_PASSWORT,
       email_confirm: true,
       user_metadata: {
         display_name: 'Angreifer',
@@ -455,7 +462,7 @@ describe('Die Registrierung vergibt keine Rechte', () => {
     expect(createError).toBeNull();
 
     try {
-      const angreifer = await signIn(email);
+      const angreifer = await signIn(email, NEUES_PASSWORT);
 
       const { data: eigenes } = await angreifer
         .from('profiles')
@@ -724,7 +731,7 @@ describe('Löschung nach Ablauf der Aufbewahrungsfrist', () => {
 
     const { data: created, error: createError } = await svc.auth.admin.createUser({
       email: `ausgeschieden-${Date.now()}@example.com`,
-      password: 'zeiterfassung',
+      password: NEUES_PASSWORT,
       email_confirm: true,
       user_metadata: { display_name: 'Ausgeschieden' },
     });
@@ -895,14 +902,14 @@ describe('Deaktiviert heißt sofort ohne Zugriff', () => {
     const email = `deaktiviert-${Date.now()}@example.com`;
     const { data: created } = await service.auth.admin.createUser({
       email,
-      password: 'zeiterfassung',
+      password: NEUES_PASSWORT,
       email_confirm: true,
     });
     const id = created!.user!.id;
 
     try {
       await service.from('profiles').update({ organization_id: firma!.id }).eq('id', id);
-      const person = await signIn(email);
+      const person = await signIn(email, NEUES_PASSWORT);
 
       // Deaktivieren, während die Anmeldung noch gilt.
       await service.from('profiles').update({ active: false }).eq('id', id);
@@ -926,7 +933,15 @@ describe('Deaktiviert heißt sofort ohne Zugriff', () => {
 describe('Ohne Anmeldung geht nichts', () => {
   it('lässt anonym keine Datenbankfunktion aufrufen', async () => {
     const gast = anonClient();
-    for (const funktion of ['is_admin', 'current_organization_id', 'is_owner', 'handle_new_user']) {
+    for (const funktion of [
+      'is_admin',
+      'current_organization_id',
+      'is_owner',
+      'handle_new_user',
+      'lock_month',
+      'unlock_month',
+      'end_sessions',
+    ]) {
       const { error } = await gast.rpc(funktion);
       expect(error, funktion).not.toBeNull();
     }
@@ -1007,5 +1022,328 @@ describe('Die Datenbank hält die Erfassung konsistent', () => {
     });
     expect(error).not.toBeNull();
     expect(error!.message.toLowerCase()).toContain('employment_contracts_no_overlap');
+  });
+});
+
+/**
+ * Ein abgerechneter Monat bleibt, wie er ist — für Mitarbeiter wie für die
+ * Verwaltung. Nur der Inhaber öffnet ihn wieder, mit Begründung.
+ */
+describe('Monatsabschluss', () => {
+  const AUGUST = '2026-08-01';
+  let eintragImAugust: string | undefined;
+  let eintragImSeptember: string | undefined;
+
+  beforeAll(async () => {
+    const { data, error } = await anna
+      .from('time_entries')
+      .insert({
+        employee_id: ANNA,
+        work_date: '2026-08-03',
+        started_at: '2026-08-03T08:00:00+02:00',
+        ended_at: '2026-08-03T12:00:00+02:00',
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    eintragImAugust = data.id;
+
+    const { data: september, error: septemberError } = await anna
+      .from('time_entries')
+      .insert({
+        employee_id: ANNA,
+        work_date: '2026-09-28',
+        started_at: '2026-09-28T08:00:00+02:00',
+        ended_at: '2026-09-28T09:00:00+02:00',
+      })
+      .select('id')
+      .single();
+    if (septemberError) throw septemberError;
+    eintragImSeptember = september.id;
+
+    const { error: lockError } = await markus.rpc('lock_month', { p_month: AUGUST });
+    if (lockError) throw lockError;
+  });
+
+  afterAll(async () => {
+    await admin.rpc('unlock_month', {
+      p_month: AUGUST,
+      p_reason: 'Aufräumen nach dem automatischen Test',
+    });
+    const ids = [eintragImAugust, eintragImSeptember].filter((id): id is string => Boolean(id));
+    await anna.from('time_entries').delete().in('id', ids);
+  });
+
+  it('lässt Mitarbeiter keinen Monat abschließen', async () => {
+    const { error } = await anna.rpc('lock_month', { p_month: '2026-07-01' });
+    expect(error).not.toBeNull();
+  });
+
+  it('schließt nur vergangene Monate ab', async () => {
+    const heute = new Date().toISOString().slice(0, 10);
+    const { error } = await markus.rpc('lock_month', { p_month: heute });
+    expect(error).not.toBeNull();
+  });
+
+  it('sperrt Ändern, Löschen und Anlegen im abgeschlossenen Monat', async () => {
+    const aendern = await anna
+      .from('time_entries')
+      .update({ note: 'nachträglich' })
+      .eq('id', eintragImAugust!);
+    expect(aendern.error?.message).toContain('abgeschlossen');
+
+    const loeschen = await anna.from('time_entries').delete().eq('id', eintragImAugust!);
+    expect(loeschen.error).not.toBeNull();
+
+    const anlegen = await anna.from('time_entries').insert({
+      employee_id: ANNA,
+      work_date: '2026-08-04',
+      started_at: '2026-08-04T08:00:00+02:00',
+      ended_at: '2026-08-04T12:00:00+02:00',
+    });
+    expect(anlegen.error).not.toBeNull();
+
+    const abwesenheit = await anna.from('absences').insert({
+      employee_id: ANNA,
+      absence_date: '2026-08-05',
+      kind: 'krankenstand',
+    });
+    expect(abwesenheit.error).not.toBeNull();
+  });
+
+  it('sperrt auch die Verwaltung', async () => {
+    const { error } = await admin
+      .from('time_entries')
+      .update({ ended_at: '2026-08-03T10:00:00+02:00' })
+      .eq('id', eintragImAugust!);
+    expect(error).not.toBeNull();
+  });
+
+  it('lässt keinen Eintrag in den abgeschlossenen Monat verschieben', async () => {
+    const { error } = await anna
+      .from('time_entries')
+      .update({
+        work_date: '2026-08-06',
+        started_at: '2026-08-06T08:00:00+02:00',
+        ended_at: '2026-08-06T09:00:00+02:00',
+      })
+      .eq('id', eintragImSeptember!);
+    expect(error).not.toBeNull();
+  });
+
+  it('bleibt für andere Unternehmen unsichtbar', async () => {
+    const { data } = await fremderAdmin.from('period_locks').select('month');
+    expect((data ?? []).map((row) => row.month)).not.toContain(AUGUST);
+
+    const { data: eigene } = await anna.from('period_locks').select('month');
+    expect(eigene!.map((row) => row.month)).toContain(AUGUST);
+  });
+
+  it('lässt nur den Inhaber wieder öffnen, und nur mit Begründung', async () => {
+    const durchAdmin = await markus.rpc('unlock_month', {
+      p_month: AUGUST,
+      p_reason: 'Korrektur für Anna',
+    });
+    expect(durchAdmin.error).not.toBeNull();
+
+    const ohneGrund = await admin.rpc('unlock_month', { p_month: AUGUST, p_reason: 'kurz' });
+    expect(ohneGrund.error).not.toBeNull();
+
+    const { error } = await admin.rpc('unlock_month', {
+      p_month: AUGUST,
+      p_reason: 'Krankenstand von Anna war falsch erfasst',
+    });
+    expect(error).toBeNull();
+
+    const { data: protokoll } = await admin
+      .from('audit_log')
+      .select('operation, new_data')
+      .eq('table_name', 'period_locks')
+      .order('changed_at', { ascending: false })
+      .limit(1)
+      .single();
+    expect(protokoll!.operation).toBe('DELETE');
+    expect(protokoll!.new_data).toEqual({ begruendung: 'Krankenstand von Anna war falsch erfasst' });
+
+    // Danach ist der Monat wieder offen.
+    const { error: aendern } = await anna
+      .from('time_entries')
+      .update({ note: 'nach dem Öffnen' })
+      .eq('id', eintragImAugust!);
+    expect(aendern).toBeNull();
+  });
+});
+
+describe('Das Protokoll ist auch für den Betreiberschlüssel unveränderlich', () => {
+  it('weist Ändern und Löschen mit dem service_role-Schlüssel ab', async () => {
+    const svc = createClient(URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: zeile } = await svc.from('audit_log').select('id').limit(1).single();
+
+    const aendern = await svc.from('audit_log').update({ operation: 'DELETE' }).eq('id', zeile!.id);
+    expect(aendern.error?.message).toContain('Änderungsprotokoll');
+
+    const loeschen = await svc.from('audit_log').delete().eq('id', zeile!.id);
+    expect(loeschen.error).not.toBeNull();
+
+    const { data: noch } = await svc.from('audit_log').select('id').eq('id', zeile!.id);
+    expect(noch).toHaveLength(1);
+  });
+});
+
+describe('Die Datenbank prüft die Plausibilität', () => {
+  it('weist Zeiten in der Zukunft ab', async () => {
+    const beginn = new Date(Date.now() + 3_600_000);
+    const { error } = await anna.from('time_entries').insert({
+      employee_id: ANNA,
+      work_date: beginn.toISOString().slice(0, 10),
+      started_at: beginn.toISOString(),
+      ended_at: new Date(beginn.getTime() + 3_600_000).toISOString(),
+    });
+    expect(error?.message).toContain('Zukunft');
+  });
+
+  it('weist einen Arbeitstag ab, der nicht zum Beginn passt', async () => {
+    const { error } = await anna.from('time_entries').insert({
+      employee_id: ANNA,
+      work_date: '2026-09-01',
+      started_at: '2026-09-21T08:00:00+02:00',
+      ended_at: '2026-09-21T09:00:00+02:00',
+    });
+    expect(error?.message).toContain('Arbeitstag');
+  });
+
+  it('begrenzt die Länge von Anmerkungen', async () => {
+    const { error } = await anna.from('time_entries').insert({
+      employee_id: ANNA,
+      work_date: '2026-09-27',
+      started_at: '2026-09-27T08:00:00+02:00',
+      ended_at: '2026-09-27T09:00:00+02:00',
+      note: 'x'.repeat(2001),
+    });
+    expect(error).not.toBeNull();
+  });
+});
+
+describe('Schnittstellen ohne Zweck sind geschlossen', () => {
+  it('beendet Anmeldungen nur auf Anweisung des Servers', async () => {
+    const { error } = await admin.rpc('end_sessions', { p_user: ANNA });
+    expect(error).not.toBeNull();
+  });
+
+  it('bietet keine GraphQL-Schnittstelle', async () => {
+    const response = await fetch(`${URL}/graphql/v1`, {
+      method: 'POST',
+      headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: '{ __schema { queryType { name } } }' }),
+    });
+    const body = (await response.json()) as { data?: unknown };
+    expect(body.data).toBeUndefined();
+  });
+});
+
+/**
+ * Die Edge Function arbeitet mit dem service_role-Schlüssel und muss deshalb
+ * selbst prüfen, was sonst RLS prüft.
+ */
+describe('Benutzerverwaltung über die Edge Function', () => {
+  const invoke = (client: SupabaseClient, body: object) =>
+    client.functions.invoke('admin-users', { body });
+
+  async function meldung(result: Awaited<ReturnType<typeof invoke>>): Promise<string> {
+    const context = (result.error as { context?: Response } | null)?.context;
+    if (!context) return '';
+    return ((await context.json()) as { error?: string }).error ?? '';
+  }
+
+  it('weist Mitarbeiter ab', async () => {
+    const result = await invoke(anna, {
+      action: 'set-password',
+      userId: SOFIA,
+      password: 'ein-sehr-langes-passwort-2026',
+    });
+    expect(await meldung(result)).toContain('Administratoren');
+  });
+
+  it('weist fehlerhafte Aufrufe ab, ohne Interna zu nennen', async () => {
+    for (const body of [
+      { action: 'set-password', userId: 'keine-kennung', password: 'ein-sehr-langes-passwort-2026' },
+      { action: 'set-active', userId: SOFIA, active: 'ja' },
+      { action: 'create', email: 'x', password: 'kurz', displayName: 'X' },
+      { action: 'drop-table' },
+    ]) {
+      const result = await invoke(admin, body);
+      expect(result.error, JSON.stringify(body)).not.toBeNull();
+      const text = await meldung(result);
+      expect(text, JSON.stringify(body)).not.toBe('');
+      expect(text, JSON.stringify(body)).not.toMatch(/relation|column|constraint|postgres/i);
+    }
+  });
+
+  it('verlangt Passwörter mit mindestens 12 Zeichen', async () => {
+    const result = await invoke(admin, {
+      action: 'set-password',
+      userId: SOFIA,
+      password: 'elf-zeichen',
+    });
+    expect(await meldung(result)).toContain('12');
+  });
+
+  it('setzt kein Passwort in einem fremden Unternehmen', async () => {
+    const result = await invoke(fremderAdmin, {
+      action: 'set-password',
+      userId: SOFIA,
+      password: 'ein-sehr-langes-passwort-2026',
+    });
+    expect(await meldung(result)).toContain('nicht zu Ihrem Unternehmen');
+  });
+
+  it('lässt nur den Inhaber das Passwort eines Administrators setzen', async () => {
+    const service = createClient(URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: firma } = await admin.from('organizations').select('id').single();
+    const { data: created, error: createError } = await service.auth.admin.createUser({
+      email: `zweiter-admin-${Date.now()}@example.com`,
+      password: NEUES_PASSWORT,
+      email_confirm: true,
+    });
+    if (createError) throw createError;
+    const id = created.user.id;
+
+    try {
+      await service
+        .from('profiles')
+        .update({ organization_id: firma!.id, role: 'admin' })
+        .eq('id', id);
+
+      const durchAdmin = await invoke(markus, {
+        action: 'set-password',
+        userId: id,
+        password: 'neues-passwort-2026',
+      });
+      expect(await meldung(durchAdmin)).toContain('Inhaber');
+
+      const durchInhaber = await invoke(admin, {
+        action: 'set-password',
+        userId: id,
+        password: 'neues-passwort-2026',
+      });
+      expect(durchInhaber.error).toBeNull();
+
+      // Steht im Protokoll — mit der Inhaberin als Urheberin.
+      const { data: protokoll } = await admin
+        .from('audit_log')
+        .select('changed_by, new_data')
+        .eq('record_id', id)
+        .eq('table_name', 'auth.users');
+      expect(protokoll).toEqual([{ changed_by: MARLENE, new_data: { aktion: 'passwort_gesetzt' } }]);
+    } finally {
+      // Auch das Löschen der Person muss trotz unveränderlichem Protokoll
+      // gehen: ihr Verweis darin wird nur leer.
+      const { error } = await service.auth.admin.deleteUser(id);
+      expect(error).toBeNull();
+    }
   });
 });

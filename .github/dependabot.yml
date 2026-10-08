@@ -1,0 +1,21 @@
+# Updates gesammelt und mit Verzögerung: eine frisch veröffentlichte Version
+# ist in den ersten Tagen das größte Risiko — kompromittierte Pakete werden
+# meist binnen Stunden entdeckt und zurückgezogen.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      abhaengigkeiten:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

@@ -12,18 +12,57 @@ import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { NeuerZugang } from '../components/NeuerZugang';
 import { Pager } from '../components/Pager';
+import { useToast } from '../components/Toast';
 import { useOverview } from '../lib/overview';
+import { usePeriodLocks, useLockMonth, useUnlockMonth } from '../lib/queries';
 import { useSession } from '../lib/session';
 
 export function Admin() {
-  const { organization } = useSession();
+  const { organization, isOwner } = useSession();
   const navigate = useNavigate();
+  const toast = useToast();
   const today = localDateOf(new Date());
   const [month, setMonth] = useState(startOfMonth(today).slice(0, 7));
   const [addingUser, setAddingUser] = useState(false);
 
   const overview = useOverview(true, month);
   const { year, month: monthNumber } = parseIsoDate(`${month}-01`);
+
+  const locks = usePeriodLocks();
+  const lockMonth = useLockMonth();
+  const unlockMonth = useUnlockMonth();
+  const monthLabel = `${monthName(monthNumber)} ${year}`;
+  const locked = locks.data?.has(month) ?? false;
+  const isPast = month < startOfMonth(today).slice(0, 7);
+
+  async function handleLock() {
+    if (
+      !window.confirm(
+        `${monthLabel} abschließen? Danach kann niemand mehr Zeiten oder Abwesenheiten dieses Monats ändern — auch die Verwaltung nicht. Wieder öffnen kann nur der Inhaber.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await lockMonth.mutateAsync(month);
+      toast.show('success', `${monthLabel} abgeschlossen`);
+    } catch (caught) {
+      toast.show('error', 'Abschluss fehlgeschlagen', caught instanceof Error ? caught.message : undefined);
+    }
+  }
+
+  async function handleUnlock() {
+    const reason = window.prompt(
+      `Warum wird ${monthLabel} wieder geöffnet? Die Begründung steht danach im Änderungsprotokoll.`,
+    );
+    if (reason === null) return;
+    try {
+      await unlockMonth.mutateAsync({ month, reason });
+      toast.show('success', `${monthLabel} wieder geöffnet`);
+    } catch (caught) {
+      toast.show('error', 'Öffnen fehlgeschlagen', caught instanceof Error ? caught.message : undefined);
+    }
+  }
 
   const rows = overview.data?.rows ?? [];
   const aktive = rows.filter((row) => row.active);
@@ -68,16 +107,46 @@ export function Admin() {
           ihr und nicht zwischen den Seitenaktionen. */}
       <div className="toolbar">
         <h2>
-          {monthName(monthNumber)} {year}
+          {monthLabel}
+          {locked && (
+            <>
+              {' '}
+              <span className="tag tag--muted">Abgeschlossen</span>
+            </>
+          )}
         </h2>
-        <Pager
-          unit="Monat"
-          currentLabel="Dieser Monat"
-          isCurrent={month === startOfMonth(today).slice(0, 7)}
-          onPrevious={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
-          onCurrent={() => setMonth(startOfMonth(today).slice(0, 7))}
-          onNext={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
-        />
+        <div className="row">
+          {/* Abschluss: vergangene Monate sperren, damit die abgerechneten
+              Zeiten nachträglich niemand mehr ändert. */}
+          {locked && isOwner && (
+            <button
+              className="button button--quiet"
+              type="button"
+              disabled={unlockMonth.isPending}
+              onClick={() => void handleUnlock()}
+            >
+              Wieder öffnen
+            </button>
+          )}
+          {!locked && isPast && (
+            <button
+              className="button"
+              type="button"
+              disabled={lockMonth.isPending}
+              onClick={() => void handleLock()}
+            >
+              Monat abschließen
+            </button>
+          )}
+          <Pager
+            unit="Monat"
+            currentLabel="Dieser Monat"
+            isCurrent={month === startOfMonth(today).slice(0, 7)}
+            onPrevious={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}
+            onCurrent={() => setMonth(startOfMonth(today).slice(0, 7))}
+            onNext={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}
+          />
+        </div>
       </div>
 
       {overview.isLoading && <Loading />}

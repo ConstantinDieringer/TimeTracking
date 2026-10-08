@@ -322,6 +322,45 @@ export type Database = {
           },
         ]
       }
+      period_locks: {
+        Row: {
+          id: string
+          locked_at: string
+          locked_by: string | null
+          month: string
+          organization_id: string
+        }
+        Insert: {
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          month: string
+          organization_id: string
+        }
+        Update: {
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          month?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_locks_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_locks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -547,8 +586,10 @@ export type Database = {
       }
       current_employee_id: { Args: never; Returns: string }
       current_organization_id: { Args: never; Returns: string }
+      end_sessions: { Args: { p_user: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
+      lock_month: { Args: { p_month: string }; Returns: undefined }
       purge_employee: { Args: { p_employee: string }; Returns: undefined }
       retention_overview: {
         Args: never
@@ -564,6 +605,10 @@ export type Database = {
       save_contract_defaults: { Args: { p_value: Json }; Returns: undefined }
       save_privacy_notice: { Args: { p_text: string }; Returns: undefined }
       transfer_ownership: { Args: { p_new_owner: string }; Returns: undefined }
+      unlock_month: {
+        Args: { p_month: string; p_reason: string }
+        Returns: undefined
+      }
     }
     Enums: {
       absence_kind:

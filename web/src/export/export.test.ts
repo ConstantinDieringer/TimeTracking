@@ -22,7 +22,7 @@ import {
 } from '@zeiterfassung/legal';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import { buildDayCsv } from './csv';
+import { buildDayCsv, cell } from './csv';
 import { buildMonthJournal, fitText } from './pdf';
 import { forPdf } from './text';
 import type { Timesheet, TimesheetDay } from '../lib/timesheet';
@@ -226,5 +226,23 @@ describe('CSV für die Lohnverrechnung', () => {
     // Befundtexte enthalten Semikolons und dürfen die Spalten nicht sprengen.
     const befund = lines[3]!.split(';');
     expect(befund).toHaveLength(13);
+  });
+});
+
+describe('CSV ist gegen Formel-Injection geschützt', () => {
+  it('entschärft Text, den Excel als Formel läse', () => {
+    for (const payload of ['=HYPERLINK("https://evil.example")', '+1+1', '-2+3', '@SUM(A1)', '\t=1', ' =1', '＝1']) {
+      expect(cell(payload).replace(/^"/, ''), payload).toMatch(/^'/);
+    }
+  });
+
+  it('lässt gewöhnlichen Text und negative Zahlen unverändert', () => {
+    expect(cell('Nachgetragen')).toBe('Nachgetragen');
+    expect(cell(-1.5)).toBe('-1,5');
+  });
+
+  it('hält Trennzeichen und Anführungszeichen in einer Zelle', () => {
+    expect(cell('a;b')).toBe('"a;b"');
+    expect(cell('=a;"b"')).toBe(`"'=a;""b"""`);
   });
 });

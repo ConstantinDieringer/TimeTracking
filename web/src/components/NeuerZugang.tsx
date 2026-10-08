@@ -237,7 +237,8 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
               id="neu-passwort"
               type="text"
               required
-              minLength={10}
+              minLength={12}
+              maxLength={72}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -255,7 +256,7 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
           </div>
         </div>
         <p className="muted editor__note">
-          Das Erstpasswort steht im Klartext, damit es persönlich übergeben werden kann. Eine Rolle
+          Das Erstpasswort braucht mindestens 12 Zeichen mit Buchstaben und Ziffern. Es steht im Klartext, damit es persönlich übergeben werden kann. Eine Rolle
           in der Verwaltung sieht die Zeiten aller Mitarbeiter.
         </p>
       </fieldset>

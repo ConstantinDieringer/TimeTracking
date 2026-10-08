@@ -1,0 +1,39 @@
+# Läuft bei jedem Push und Pull Request. Bricht ab, wenn
+#   * ein Geheimnis im Repository oder seiner Historie steht (gitleaks),
+#   * eine Abhängigkeit eine bekannte hohe Schwachstelle hat (npm audit),
+#   * ein Test fehlschlägt,
+#   * im gebauten Browser-Bündel ein geheimer Schlüssel landet.
+# Die RLS-Tests gegen die Cloud laufen bewusst nicht hier: sie brauchen den
+# service_role-Schlüssel, und der gehört nicht in die CI eines Repos.
+name: Sicherheit
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Ohne Installationsskripte: genau darüber kamen die npm-Würmer von 2025
+      # (Shai-Hulud) an Tokens und Schlüssel.
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - run: npm run build

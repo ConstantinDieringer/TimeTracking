@@ -365,6 +365,58 @@ export function useDeleteAbsence() {
   });
 }
 
+// --- Monatsabschluss --------------------------------------------------------
+
+/**
+ * Abgeschlossene Monate des eigenen Unternehmens. Gesperrt wird in der
+ * Datenbank; die Oberfläche fragt nur nach, um die Bearbeitung gar nicht erst
+ * anzubieten.
+ */
+export function usePeriodLocks() {
+  return useQuery({
+    queryKey: ['period-locks'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('period_locks')
+        .select('month, locked_at')
+        .order('month', { ascending: false });
+      if (error) throw error;
+      return new Set(data.map((row) => row.month.slice(0, 7)));
+    },
+  });
+}
+
+/** Liegt der Tag in einem abgeschlossenen Monat? */
+export function isLockedDay(locks: Set<string> | undefined, date: IsoDate): boolean {
+  return locks?.has(date.slice(0, 7)) ?? false;
+}
+
+export function useLockMonth() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (month: string) => {
+      const { error } = await supabase.rpc('lock_month', { p_month: `${month}-01` });
+      if (error) throw error;
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['period-locks'] }),
+  });
+}
+
+export function useUnlockMonth() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ month, reason }: { month: string; reason: string }) => {
+      const { error } = await supabase.rpc('unlock_month', {
+        p_month: `${month}-01`,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['period-locks'] }),
+  });
+}
+
 // --- Änderungsprotokoll -----------------------------------------------------
 
 export function useAuditLog(employeeId: string | undefined, limit = 100) {

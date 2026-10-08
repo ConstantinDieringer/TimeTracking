@@ -413,6 +413,13 @@ const TABLE_LABEL: Record<string, string> = {
   employment_contracts: 'Vertrag',
   profiles: 'Stammdaten',
   organizations: 'Unternehmen',
+  'auth.users': 'Zugang',
+};
+
+/** Vorgänge in Supabase Auth, die die Edge Function selbst protokolliert. */
+const ACTION_LABEL: Record<string, string> = {
+  zugang_angelegt: 'Zugang angelegt',
+  passwort_gesetzt: 'Passwort von der Verwaltung neu gesetzt',
 };
 
 const OPERATION_LABEL: Record<string, string> = {
@@ -426,6 +433,8 @@ function describeChange(oldData: unknown, newData: unknown): string {
   const before = (oldData ?? {}) as Record<string, unknown>;
   const after = (newData ?? {}) as Record<string, unknown>;
 
+  const action = typeof after.aktion === 'string' ? ACTION_LABEL[after.aktion] : undefined;
+  if (action) return action;
   if (!oldData) return 'neu angelegt';
   if (!newData) return 'entfernt';
 

@@ -23,7 +23,13 @@ import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { Pager } from '../components/Pager';
 import { contractOn } from '../lib/mapping';
-import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
+import {
+  isLockedDay,
+  useContracts,
+  useEmployee,
+  usePeriodLocks,
+  useTimesheet,
+} from '../lib/queries';
 import { useSession } from '../lib/session';
 import { collectFindings, sumBalance } from '../lib/timesheet';
 
@@ -51,6 +57,7 @@ export function Monat() {
   const { timesheet, isLoading } = useTimesheet({ employeeId, from: gridStart, to });
   const employee = useEmployee(employeeId);
   const contracts = useContracts(employeeId);
+  const locks = usePeriodLocks();
 
   const monthDays = timesheet?.days.filter((day) => day.date >= from && day.date <= to) ?? [];
   const gridDays = timesheet?.days.filter((day) => day.date >= gridStart && day.date <= to) ?? [];
@@ -84,6 +91,12 @@ export function Monat() {
             {formatDuration(worked)} von {formatDuration(targetToDate)} h bis heute · Saldo{' '}
             {formatDuration(balance, { sign: true })} h · Monatssoll{' '}
             {formatDuration(targetMonth)} h
+            {isLockedDay(locks.data, from) && (
+              <>
+                {' '}
+                <span className="tag tag--muted">Abgeschlossen</span>
+              </>
+            )}
           </p>
         </div>
         <Pager

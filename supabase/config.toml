@@ -6,7 +6,8 @@ project_id = "zeiterfassung"
 [api]
 enabled = true
 port = 54421
-schemas = ["public", "graphql_public"]
+# Nur REST; GraphQL ist abgeschaltet (Migration angriffsschutz).
+schemas = ["public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
@@ -42,6 +43,10 @@ refresh_token_reuse_interval = 10
 # DISABLE_SIGNUP. Mitarbeiter legt ausschließlich der Admin an.
 enable_signup = false
 enable_anonymous_sign_ins = false
+# Lieber lang als kompliziert: 12 Zeichen, Buchstaben und Ziffern. In der
+# Cloud unter Authentication → Policies gleich einstellen.
+minimum_password_length = 12
+password_requirements = "letters_digits"
 
 [auth.email]
 enabled = true
@@ -56,8 +61,78 @@ double_confirm_changes = true
 enable_confirmations = false
 secure_password_change = true
 
+# Ein Einmal-Link gilt eine Stunde. Die Texte der Vorlagen nennen diese Dauer;
+# wer den Wert ändert, passt sie in scripts/email-templates.mjs an.
+otp_expiry = 3600
+# Frühestens alle 60 Sekunden eine neue Mail an dieselbe Adresse — sonst ließe
+# sich jemandes Postfach über „Passwort vergessen“ zuschütten.
+max_frequency = "60s"
+
+# ---------------------------------------------------------------------------
+# E-Mail-Vorlagen (englisch). Erzeugt von `npm run emails` aus
+# scripts/email-templates.mjs — dort ändern, nicht in den HTML-Dateien.
+#
+# In der Cloud lassen sie sich im Gratis-Plan erst setzen, wenn ein eigener
+# SMTP-Zugang eingerichtet ist (Supabase lehnt sie sonst ab).
+# ---------------------------------------------------------------------------
+
 [auth.email.template.invite]
-subject = "Zugang zur Zeiterfassung"
+subject = "You've been invited to Zeiterfassung"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Zeiterfassung password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email address"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.magic_link]
+subject = "Your Zeiterfassung sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.reauthentication]
+subject = "Your Zeiterfassung verification code"
+content_path = "./supabase/templates/reauthentication.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Your Zeiterfassung password was changed"
+content_path = "./supabase/templates/password_changed_notification.html"
+
+[auth.email.notification.email_changed]
+enabled = true
+subject = "The email address of your Zeiterfassung account was changed"
+content_path = "./supabase/templates/email_changed_notification.html"
+
+[auth.email.notification.mfa_factor_enrolled]
+enabled = true
+subject = "Two-factor authentication was turned on"
+content_path = "./supabase/templates/mfa_factor_enrolled_notification.html"
+
+[auth.email.notification.mfa_factor_unenrolled]
+enabled = true
+subject = "Two-factor authentication was removed"
+content_path = "./supabase/templates/mfa_factor_unenrolled_notification.html"
+
+[auth.email.notification.identity_linked]
+enabled = true
+subject = "A new sign-in method was linked to your Zeiterfassung account"
+content_path = "./supabase/templates/identity_linked_notification.html"
+
+[auth.email.notification.identity_unlinked]
+enabled = true
+subject = "A sign-in method was removed from your Zeiterfassung account"
+content_path = "./supabase/templates/identity_unlinked_notification.html"
+
+# Benachrichtigung bei geänderter Telefonnummer: die Anwendung kennt keine.
+[auth.email.notification.phone_changed]
+enabled = false
 
 [analytics]
 enabled = false
@@ -66,3 +141,27 @@ port = 54427
 [edge_runtime]
 enabled = true
 policy = "oneshot"
+
+# ---------------------------------------------------------------------------
+# Werte für das Cloud-Projekt
+#
+# Alles oben gilt für die lokale Entwicklung. Für das verknüpfte Projekt
+# überschreibt dieser Block, was dort anders sein muss. Vor jedem Übertragen
+# `npx supabase config diff` ansehen — `config push` schreibt ohne Rückfrage,
+# wenn es nicht interaktiv läuft.
+# ---------------------------------------------------------------------------
+
+[remotes.cloud]
+project_id = "hqgqroyuxiaxtpflcetv"
+
+[remotes.cloud.auth]
+# Bis die Anwendung online ist, die lokale Adresse; danach die echte.
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+[remotes.cloud.auth.email]
+enable_confirmations = true
+
+# Direkte Datenbankverbindungen nur verschlüsselt.
+[remotes.cloud.db.ssl_enforcement]
+enabled = true

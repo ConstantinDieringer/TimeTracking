@@ -31,7 +31,7 @@ die Daten ist jeweils das Kundenunternehmen.
 - [ ] **Testdaten aus der Cloud entfernen** (Testfirmen mit Passwort
       `zeiterfassung`), bevor echte Kunden die Plattform nutzen.
 - [ ] Dashboard → *Authentication*: Selbstregistrierung aus, Mindestlänge für
-      Passwörter auf mindestens 10 Zeichen, Schutz vor bekannten geleakten
+      Passwörter auf mindestens 12 Zeichen, Schutz vor bekannten geleakten
       Passwörtern einschalten, falls im Plan verfügbar.
 - [ ] Beim Verkauf: **Impressum** (§ 5 ECG, § 25 MedienG),
       **Datenschutzerklärung** der Website, **AGB** mit Haftungsregelung — die

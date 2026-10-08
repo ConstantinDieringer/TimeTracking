@@ -57,12 +57,14 @@ Melde dich einmal mit jedem der beiden Inhaber an: die Mitarbeiterlisten
 | Befehl | Wirkung |
 |---|---|
 | `npm run dev` | Entwicklungsserver |
-| `npm run build` | Produktionsbündel nach `web/dist` |
+| `npm run build` | Produktionsbündel nach `web/dist`; bricht ab, wenn ein geheimer Schlüssel darin steht |
+| `npm run security` | `npm audit` und Build mit Bündelprüfung — vor jedem Online-Stellen |
 | `npm test` | Unit-Tests der Rechtslogik und der Exporte |
 | `npm run test:rls` | Prüfung der Zugriffstrennung gegen das verknüpfte Cloud-Projekt |
 | `npm run db:push` | neue Migrationen in die Cloud übertragen |
 | `npm run db:types` | Datenbanktypen für das Frontend aus der Cloud neu erzeugen |
 | `npm run functions:deploy` | Edge Function `admin-users` deployen |
+| `npm run emails` | E-Mail-Vorlagen unter `supabase/templates/` aus `scripts/email-templates.mjs` neu erzeugen |
 
 `test:rls` holt Projekt und Schlüssel aus der Supabase CLI und meldet sich nur
 mit den Testzugängen an; es setzt also die Testdaten voraus.

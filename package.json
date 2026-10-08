@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=web",
-    "build": "npm run build --workspace=web",
+    "build": "npm run build --workspace=web && node scripts/check-bundle.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "security": "npm audit --audit-level=high && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "node scripts/test-rls-cloud.mjs",
@@ -18,6 +20,7 @@
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked --schema public > web/src/lib/database.types.ts",
     "functions:deploy": "supabase functions deploy admin-users --use-api",
+    "emails": "node scripts/email-templates.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset"

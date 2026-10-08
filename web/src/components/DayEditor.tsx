@@ -10,8 +10,10 @@ import {
 } from '@zeiterfassung/legal';
 import { useState } from 'react';
 import {
+  isLockedDay,
   useDeleteAbsence,
   useDeleteSegment,
+  usePeriodLocks,
   useSaveAbsence,
   useSaveSegment,
 } from '../lib/queries';
@@ -66,6 +68,8 @@ export function DayEditor({
   const deleteSegment = useDeleteSegment();
   const saveAbsence = useSaveAbsence();
   const deleteAbsence = useDeleteAbsence();
+  const locks = usePeriodLocks();
+  const locked = isLockedDay(locks.data, day.date);
 
   const busy =
     saveSegment.isPending ||
@@ -89,6 +93,12 @@ export function DayEditor({
       }
       if (parseHm(draft.to) <= parseHm(draft.from)) {
         setError(`Der Abschnitt ${draft.from}–${draft.to} endet nicht nach seinem Beginn.`);
+        return;
+      }
+      // Die Datenbank weist Zeiten in der Zukunft ab. Hier vorab, damit nicht
+      // ein Teil der Abschnitte gespeichert ist und der Rest scheitert.
+      if (atLocalTime(day.date, parseHm(draft.to)).getTime() > Date.now() + 5 * 60_000) {
+        setError(`Der Abschnitt ${draft.from}–${draft.to} liegt in der Zukunft.`);
         return;
       }
     }
@@ -217,7 +227,7 @@ export function DayEditor({
           <select
             id="absence"
             value={day.absence?.kind ?? ''}
-            disabled={busy}
+            disabled={busy || locked}
             onChange={(event) => void handleAbsence(event.target.value)}
           >
             <option value="">Keine</option>
@@ -237,6 +247,13 @@ export function DayEditor({
         </div>
       </div>
 
+      {locked && (
+        <p className="muted editor__note">
+          Dieser Monat ist abgeschlossen. Änderungen sind erst möglich, wenn der Inhaber ihn wieder
+          öffnet.
+        </p>
+      )}
+
       {error && (
         <p className="error-text" role="alert">
           {error}
@@ -244,7 +261,12 @@ export function DayEditor({
       )}
 
       <div className="editor__actions">
-        <button className="button button--primary" type="button" disabled={busy} onClick={handleSave}>
+        <button
+          className="button button--primary"
+          type="button"
+          disabled={busy || locked}
+          onClick={handleSave}
+        >
           {busy ? 'Wird gespeichert …' : 'Speichern'}
         </button>
         <span className="muted editor__hint">
