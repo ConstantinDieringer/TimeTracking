@@ -10,6 +10,7 @@ import {
   startOfIsoWeek,
   sumClassifications,
   vacationAccount,
+  vacationYearFor,
   checkSeventeenWeekAverage,
   AVERAGE_WINDOW_WEEKS,
   type RuleResult,
@@ -17,6 +18,7 @@ import {
 import { useMemo } from 'react';
 import { Findings } from '../components/Findings';
 import { Duration } from '../components/Num';
+import { useContractDefaults } from '../lib/defaults';
 import { useAbsences, useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
 import { contractOn } from '../lib/mapping';
@@ -38,8 +40,16 @@ export function Auswertung() {
 
   const employee = useEmployee(employeeId);
   const contracts = useContracts(employeeId);
+  const defaults = useContractDefaults();
   const { timesheet, isLoading } = useTimesheet({ employeeId, from, to: endOfIsoWeek(today) });
-  const absences = useAbsences(employeeId, yearStart, `${year}-12-31`);
+
+  // Verbraucht wird im Urlaubsjahr, nicht im Kalenderjahr — beim Arbeitsjahr
+  // läuft es vom Eintrittstag bis zum Vortag des nächsten Jahrestags.
+  const vacationMode = defaults.data?.vacationYear ?? 'arbeitsjahr';
+  const vacationPeriod = employee.data
+    ? vacationYearFor(employee.data.hiredOn, today, vacationMode)
+    : { start: yearStart, end: `${year}-12-31` };
+  const absences = useAbsences(employeeId, vacationPeriod.start, vacationPeriod.end);
 
   const contract = contracts.data ? contractOn(contracts.data, today) : null;
 
@@ -84,16 +94,19 @@ export function Auswertung() {
 
   const vacation =
     employee.data && contract
-      ? vacationAccount(
-          employee.data,
+      ? vacationAccount({
+          employee: employee.data,
           contract,
-          year,
-          consumedVacationDays((absences.data ?? []).map((row) => ({
-            date: row.absence_date,
-            kind: row.kind as never,
-            halfDay: row.half_day,
-          }))),
-        )
+          asOf: today,
+          mode: vacationMode,
+          consumedDays: consumedVacationDays(
+            (absences.data ?? []).map((row) => ({
+              date: row.absence_date,
+              kind: row.kind as never,
+              halfDay: row.half_day,
+            })),
+          ),
+        })
       : null;
 
   const flexPeriod = contract?.flexTime ? flexPeriodFor(contract.flexTime, today) : null;
@@ -250,11 +263,14 @@ export function Auswertung() {
         <section className="section">
           <div className="section__head">
             <h2>Urlaubskonto</h2>
-            <span className="meta">§ 2 UrlG</span>
+            <span className="meta">
+              Urlaubsjahr {formatDateShort(vacation.periodStart)} –{' '}
+              {formatDateShort(vacation.periodEnd)}
+            </span>
           </div>
           <dl className="figures">
             <div>
-              <dt className="meta">Anspruch {year}</dt>
+              <dt className="meta">{vacation.accruing ? 'Bisher erworben' : 'Anspruch'}</dt>
               <dd className="num">{vacation.entitlementDays.toLocaleString('de-AT')}</dd>
             </div>
             <div>
@@ -297,11 +313,17 @@ export function Auswertung() {
               </div>
             );
           })()}
-          {vacation.aliquot && (
+          {vacation.accruing && vacation.fullFrom && (
             <p className="muted figures__note">
-              Der Anspruch ist wegen Ein- oder Austritt im laufenden Jahr aliquotiert
-              (§ 2 Abs 2 UrlG). Voller Jahresanspruch:{' '}
-              {vacation.fullEntitlementDays.toLocaleString('de-AT')} Arbeitstage.
+              In den ersten sechs Monaten entsteht der Urlaub schrittweise, im Verhältnis zur
+              zurückgelegten Dienstzeit. Ab {formatDateShort(vacation.fullFrom)} stehen die vollen{' '}
+              {vacation.fullEntitlementDays.toLocaleString('de-AT')} Arbeitstage zu (§ 2 Abs 2 UrlG).
+            </p>
+          )}
+          {!vacation.accruing && vacation.aliquot && (
+            <p className="muted figures__note">
+              Der Anspruch ist wegen Ein- oder Austritt im Urlaubsjahr anteilig gekürzt. Voller
+              Jahresanspruch: {vacation.fullEntitlementDays.toLocaleString('de-AT')} Arbeitstage.
             </p>
           )}
         </section>

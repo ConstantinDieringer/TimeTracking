@@ -124,6 +124,31 @@ export function AdminEinstellungen() {
             vertraglicher Anspruch ist möglich, ein niedrigerer nicht — das Tool rechnet immer mit
             dem für die Person günstigeren Wert.
           </p>
+
+          <div className="form-grid">
+            <div>
+              <label htmlFor="std-urlaubsjahr">Urlaubsjahr</label>
+              <select
+                id="std-urlaubsjahr"
+                value={draft.vacationYear}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    vacationYear: event.target.value as ContractDefaults['vacationYear'],
+                  })
+                }
+              >
+                <option value="arbeitsjahr">Arbeitsjahr ab Eintritt (gesetzlicher Regelfall)</option>
+                <option value="kalenderjahr">Kalenderjahr (nur mit KV oder Betriebsvereinbarung)</option>
+              </select>
+            </div>
+          </div>
+          <p className="muted editor__note">
+            Neue Mitarbeiter erwerben ihren Urlaub in den ersten sechs Monaten schrittweise, im
+            Verhältnis zur zurückgelegten Dienstzeit; danach steht der volle Jahresanspruch zu
+            (§ 2 Abs 2 UrlG). Das Kalenderjahr als Urlaubsjahr ist nur zulässig, wenn Ihr
+            Kollektivvertrag oder eine Betriebsvereinbarung es vorsieht (§ 2 Abs 4 UrlG).
+          </p>
         </fieldset>
 
         <fieldset>

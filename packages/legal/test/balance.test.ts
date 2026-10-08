@@ -7,6 +7,8 @@ import {
   checkPersonalHoliday,
   consumedVacationDays,
   vacationAccount,
+  vacationYearFor,
+  type VacationYearMode,
 } from '../src/balance.js';
 import { day, erwachsene, free, teilzeit20, vollzeit } from './fixtures.js';
 import type { Absence } from '../src/types.js';
@@ -187,45 +189,92 @@ describe('Zeitraumsaldo', () => {
 });
 
 describe('§ 2 UrlG — Urlaubskonto', () => {
+  const konto = (
+    employee: typeof erwachsene,
+    asOf: string,
+    mode: VacationYearMode = 'arbeitsjahr',
+    consumedDays = 0,
+    carriedOverDays = 0,
+  ) => vacationAccount({ employee, contract: vollzeit, asOf, mode, consumedDays, carriedOverDays });
+
   it('gewährt 25 Arbeitstage', () => {
-    expect(annualVacationDays(erwachsene, vollzeit, 2026)).toBe(25);
+    expect(annualVacationDays(erwachsene, vollzeit, '2026-01-01')).toBe(25);
   });
 
-  it('gewährt nach 25 Dienstjahren 30 Arbeitstage', () => {
+  it('gewährt nach 25 vollendeten Dienstjahren 30 Arbeitstage', () => {
     const langgedient = { ...erwachsene, hiredOn: '1998-03-01' };
-    expect(annualVacationDays(langgedient, vollzeit, 2026)).toBe(30);
+    expect(annualVacationDays(langgedient, vollzeit, '2026-03-01')).toBe(30);
+    // Ein Tag vor dem 25. Jahrestag sind es noch 25.
+    const fast = { ...erwachsene, hiredOn: '2001-03-02' };
+    expect(annualVacationDays(fast, vollzeit, '2026-03-01')).toBe(25);
   });
 
   it('übernimmt einen höheren vertraglichen Anspruch', () => {
-    expect(annualVacationDays(erwachsene, { ...vollzeit, vacationDaysPerYear: 30 }, 2026)).toBe(30);
+    expect(
+      annualVacationDays(erwachsene, { ...vollzeit, vacationDaysPerYear: 30 }, '2026-01-01'),
+    ).toBe(30);
   });
 
-  it('rechnet den vollen Anspruch bei ganzjähriger Beschäftigung', () => {
-    const konto = vacationAccount(erwachsene, vollzeit, 2026, 8);
-    expect(konto.aliquot).toBe(false);
-    expect(konto.entitlementDays).toBe(25);
-    expect(konto.remainingDays).toBe(17);
+  it('legt das Urlaubsjahr gesetzlich auf das Arbeitsjahr', () => {
+    const neu = { ...erwachsene, hiredOn: '2024-07-15' };
+    expect(vacationYearFor(neu.hiredOn, '2026-03-10', 'arbeitsjahr')).toEqual({
+      start: '2025-07-15',
+      end: '2026-07-14',
+    });
+    expect(vacationYearFor(neu.hiredOn, '2026-03-10', 'kalenderjahr')).toEqual({
+      start: '2026-01-01',
+      end: '2026-12-31',
+    });
   });
 
-  it('aliquotiert im Eintrittsjahr', () => {
-    // Eintritt am 1. Juli: rund die Hälfte des Jahres.
+  it('rechnet den vollen Anspruch ab dem zweiten Arbeitsjahr', () => {
+    const k = konto(erwachsene, '2026-09-01', 'arbeitsjahr', 8);
+    expect(k.aliquot).toBe(false);
+    expect(k.accruing).toBe(false);
+    expect(k.entitlementDays).toBe(25);
+    expect(k.remainingDays).toBe(17);
+  });
+
+  it('lässt den Anspruch in den ersten sechs Monaten anteilig wachsen', () => {
+    // Eintritt 1. Juli: am ersten Tag praktisch nichts, nach drei Monaten ein
+    // Viertel, nach sechs Monaten alles.
     const neu = { ...erwachsene, hiredOn: '2026-07-01' };
-    const konto = vacationAccount(neu, vollzeit, 2026, 0);
-    expect(konto.aliquot).toBe(true);
-    expect(konto.entitlementDays).toBeGreaterThan(12);
-    expect(konto.entitlementDays).toBeLessThan(13);
+
+    const ersterTag = konto(neu, '2026-07-01');
+    expect(ersterTag.accruing).toBe(true);
+    expect(ersterTag.entitlementDays).toBeLessThan(0.1);
+    expect(ersterTag.fullFrom).toBe('2027-01-01');
+
+    const dreiMonate = konto(neu, '2026-09-30');
+    expect(dreiMonate.entitlementDays).toBeCloseTo(6.3, 1);
+
+    const sechsMonate = konto(neu, '2027-01-01');
+    expect(sechsMonate.accruing).toBe(false);
+    expect(sechsMonate.entitlementDays).toBe(25);
+    expect(sechsMonate.periodStart).toBe('2026-07-01');
+    expect(sechsMonate.periodEnd).toBe('2027-06-30');
   });
 
-  it('aliquotiert im Austrittsjahr', () => {
-    const scheidend = { ...erwachsene, leftOn: '2026-03-31' };
-    const konto = vacationAccount(scheidend, vollzeit, 2026, 0);
-    expect(konto.aliquot).toBe(true);
-    expect(konto.entitlementDays).toBeCloseTo(6, 0);
+  it('gewährt beim Kalenderjahr im Eintrittsjahr nur den Anteil', () => {
+    const neu = { ...erwachsene, hiredOn: '2026-07-01' };
+    // Am Jahresende: ein halbes Jahr beschäftigt, also rund die Hälfte.
+    const k = konto(neu, '2026-12-31', 'kalenderjahr');
+    expect(k.aliquot).toBe(true);
+    expect(k.entitlementDays).toBeGreaterThan(12);
+    expect(k.entitlementDays).toBeLessThan(13);
+    // Im Folgejahr voll.
+    expect(konto(neu, '2027-02-01', 'kalenderjahr').entitlementDays).toBe(25);
+  });
+
+  it('kürzt im Urlaubsjahr des Austritts anteilig', () => {
+    const scheidend = { ...erwachsene, hiredOn: '2020-01-01', leftOn: '2026-03-31' };
+    const k = konto(scheidend, '2026-03-31');
+    expect(k.aliquot).toBe(true);
+    expect(k.entitlementDays).toBeCloseTo(6.2, 1);
   });
 
   it('rechnet den Resturlaub des Vorjahres hinzu', () => {
-    const konto = vacationAccount(erwachsene, vollzeit, 2026, 5, 3);
-    expect(konto.remainingDays).toBe(23);
+    expect(konto(erwachsene, '2026-09-01', 'arbeitsjahr', 5, 3).remainingDays).toBe(23);
   });
 
   it('zählt nur die Abwesenheiten, die Urlaub verbrauchen', () => {

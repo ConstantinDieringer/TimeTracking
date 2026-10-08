@@ -15,7 +15,16 @@ import {
   VACATION_DAYS_AFTER_25_YEARS,
   VACATION_DAYS_STANDARD,
 } from './settings.js';
-import { daysBetween, formatDuration, maxDate, minDate, parseIsoDate, weekdayOf } from './time.js';
+import {
+  addDays,
+  addMonths,
+  daysBetween,
+  formatDuration,
+  maxDate,
+  minDate,
+  parseIsoDate,
+  weekdayOf,
+} from './time.js';
 import type { DayWork } from './work.js';
 import {
   ABSENCE_IS_PAID,
@@ -172,57 +181,136 @@ export interface VacationAccount {
   year: number;
   /** Voller Jahresanspruch laut Vertrag. */
   fullEntitlementDays: number;
-  /** Anspruch für dieses Jahr, im Ein- oder Austrittsjahr aliquotiert. */
+  /** Anspruch im laufenden Urlaubsjahr, so weit er bis zum Stichtag entstanden ist. */
   entitlementDays: number;
   carriedOverDays: number;
   consumedDays: number;
   remainingDays: number;
-  /** `true`, wenn wegen Ein- oder Austritt gekürzt wurde. */
+  /** `true`, wenn wegen Ein- oder Austritt im Urlaubsjahr gekürzt wurde. */
   aliquot: boolean;
+  /** Erstes und letztes Datum des Urlaubsjahres. */
+  periodStart: IsoDate;
+  periodEnd: IsoDate;
+  /**
+   * `true` in den ersten sechs Monaten: der Anspruch wächst noch mit jedem
+   * Tag (§ 2 Abs 2 UrlG). Ab `fullFrom` steht er in voller Höhe zu.
+   */
+  accruing: boolean;
+  fullFrom: IsoDate | null;
+}
+
+/**
+ * Was als Urlaubsjahr gilt.
+ *
+ * Gesetzlicher Regelfall ist das **Arbeitsjahr**: es beginnt mit dem Tag des
+ * Eintritts und an jedem Jahrestag neu (§ 2 Abs 1 UrlG). Auf das
+ * **Kalenderjahr** umstellen darf nur ein Kollektivvertrag oder eine
+ * Betriebsvereinbarung (§ 2 Abs 4 UrlG) — deshalb ist das eine Einstellung
+ * des Betriebs und kein stillschweigender Standard.
+ */
+export type VacationYearMode = 'arbeitsjahr' | 'kalenderjahr';
+
+/** Volle Dienstjahre am Stichtag. */
+export function completedServiceYears(hiredOn: IsoDate, date: IsoDate): number {
+  const hired = parseIsoDate(hiredOn);
+  const now = parseIsoDate(date);
+  let years = now.year - hired.year;
+  if (now.month < hired.month || (now.month === hired.month && now.day < hired.day)) years -= 1;
+  return Math.max(0, years);
+}
+
+/** Das Urlaubsjahr, in das der Stichtag fällt. */
+export function vacationYearFor(
+  hiredOn: IsoDate,
+  date: IsoDate,
+  mode: VacationYearMode,
+): { start: IsoDate; end: IsoDate } {
+  if (mode === 'kalenderjahr') {
+    const { year } = parseIsoDate(date);
+    return { start: `${year}-01-01`, end: `${year}-12-31` };
+  }
+  // Über Monate statt Jahre addiert, damit ein Eintritt am 29. Februar in
+  // Nicht-Schaltjahren sauber auf den 28. fällt.
+  const years = date < hiredOn ? 0 : completedServiceYears(hiredOn, date);
+  const start = addMonths(hiredOn, 12 * years);
+  return { start, end: addDays(addMonths(hiredOn, 12 * (years + 1)), -1) };
 }
 
 /**
  * § 2 Abs 1 UrlG — 25 Arbeitstage, nach Vollendung des 25. Dienstjahres 30.
+ * Maßgeblich sind die vollendeten Dienstjahre zu Beginn des Urlaubsjahres.
  * Der Vertrag kann mehr vorsehen; dann gilt der höhere Wert.
  */
-export function annualVacationDays(employee: Employee, contract: Contract, year: number): number {
-  const serviceYears = year - parseIsoDate(employee.hiredOn).year;
-  const statutory = serviceYears >= 25 ? VACATION_DAYS_AFTER_25_YEARS : VACATION_DAYS_STANDARD;
+export function annualVacationDays(
+  employee: Employee,
+  contract: Contract,
+  periodStart: IsoDate,
+): number {
+  const statutory =
+    completedServiceYears(employee.hiredOn, periodStart) >= 25
+      ? VACATION_DAYS_AFTER_25_YEARS
+      : VACATION_DAYS_STANDARD;
   return Math.max(statutory, contract.vacationDaysPerYear);
 }
 
 /**
- * § 2 Abs 2 UrlG — im Ein- und Austrittsjahr entsteht der Anspruch anteilig.
- * Gerechnet wird nach Kalendertagen des Beschäftigungsverhältnisses im Jahr.
+ * Das Urlaubskonto zum Stichtag.
+ *
+ * - **Erste sechs Monate** (§ 2 Abs 2 UrlG): der Anspruch entsteht im
+ *   Verhältnis zur zurückgelegten Dienstzeit. Wer seit drei Monaten da ist,
+ *   hat ein Viertel des Jahresanspruchs, nicht den ganzen.
+ * - **Danach** steht der Anspruch für das Urlaubsjahr in voller Höhe zu, ab
+ *   dem zweiten Arbeitsjahr gleich mit dessen Beginn.
+ * - **Kalenderjahr als Urlaubsjahr:** im Eintrittsjahr anteilig nach den
+ *   Tagen der Beschäftigung in diesem Jahr; in den ersten sechs Monaten
+ *   zusätzlich nur, was bis zum Stichtag entstanden ist.
+ * - **Austritt im Urlaubsjahr:** anteilig bis zum Austritt — das ist die
+ *   Grundlage der Urlaubsersatzleistung nach § 10 UrlG.
+ *
+ * Auf zwei Nachkommastellen gerundet; was davon tatsächlich gewährt wird,
+ * regeln Kollektivvertrag und Betrieb.
  */
-export function vacationAccount(
-  employee: Employee,
-  contract: Contract,
-  year: number,
-  consumedDays: number,
-  carriedOverDays = 0,
-): VacationAccount {
-  const full = annualVacationDays(employee, contract, year);
-  const yearStart: IsoDate = `${year}-01-01`;
-  const yearEnd: IsoDate = `${year}-12-31`;
+export function vacationAccount(input: {
+  employee: Employee;
+  contract: Contract;
+  asOf: IsoDate;
+  mode: VacationYearMode;
+  consumedDays: number;
+  carriedOverDays?: number;
+}): VacationAccount {
+  const { employee, contract, asOf, mode, consumedDays, carriedOverDays = 0 } = input;
+  const period = vacationYearFor(employee.hiredOn, asOf, mode);
+  const full = annualVacationDays(employee, contract, period.start);
+  const periodDays = daysBetween(period.start, period.end) + 1;
 
-  const from = maxDate(yearStart, employee.hiredOn);
-  const to = employee.leftOn ? minDate(yearEnd, employee.leftOn) : yearEnd;
+  const from = maxDate(period.start, employee.hiredOn);
+  const to = employee.leftOn ? minDate(period.end, employee.leftOn) : period.end;
+  const employedDays = Math.max(0, daysBetween(from, to) + 1);
+  const aliquot = employedDays < periodDays;
+  let entitlement = (full * employedDays) / periodDays;
 
-  const daysInYear = daysBetween(yearStart, yearEnd) + 1;
-  const daysEmployed = Math.max(0, daysBetween(from, to) + 1);
-  const aliquot = daysEmployed < daysInYear;
+  // § 2 Abs 2: in den ersten sechs Monaten nur, was bis heute entstanden ist.
+  const fullFrom = addMonths(employee.hiredOn, 6);
+  const accruing = asOf >= employee.hiredOn && asOf < fullFrom && from === employee.hiredOn;
+  if (accruing) {
+    const served = daysBetween(employee.hiredOn, minDate(asOf, to)) + 1;
+    entitlement = Math.min(entitlement, (full * served) / periodDays);
+  }
 
-  const entitlement = aliquot ? Math.round((full * daysEmployed) / daysInYear * 2) / 2 : full;
+  const rounded = Math.round(entitlement * 100) / 100;
 
   return {
-    year,
+    year: parseIsoDate(period.start).year,
     fullEntitlementDays: full,
-    entitlementDays: entitlement,
+    entitlementDays: rounded,
     carriedOverDays,
     consumedDays,
-    remainingDays: entitlement + carriedOverDays - consumedDays,
+    remainingDays: Math.round((rounded + carriedOverDays - consumedDays) * 100) / 100,
     aliquot,
+    periodStart: period.start,
+    periodEnd: period.end,
+    accruing,
+    fullFrom: accruing ? fullFrom : null,
   };
 }
 

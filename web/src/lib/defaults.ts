@@ -7,7 +7,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AustrianState } from '@zeiterfassung/legal';
+import type { AustrianState, VacationYearMode } from '@zeiterfassung/legal';
 import type { Json } from './database.types';
 import { supabase } from './supabase';
 
@@ -17,6 +17,11 @@ export interface ContractDefaults {
   /** `''` heißt: noch nicht festgelegt. Muss vom Arbeitgeber gesetzt werden. */
   state: AustrianState | '';
   vacationDaysPerYear: number;
+  /**
+   * Urlaubsjahr: gesetzlich das Arbeitsjahr ab Eintritt. Kalenderjahr nur,
+   * wenn Kollektivvertrag oder Betriebsvereinbarung es vorsehen (§ 2 Abs 4 UrlG).
+   */
+  vacationYear: VacationYearMode;
 
   flexEnabled: boolean;
   flexPeriodMonths: number;
@@ -37,6 +42,7 @@ export const FALLBACK_DEFAULTS: ContractDefaults = {
   collectiveAgreement: '',
   state: '',
   vacationDaysPerYear: 25,
+  vacationYear: 'arbeitsjahr',
   flexEnabled: false,
   flexPeriodMonths: 1,
   flexAllowsFullDayCompensation: null,
@@ -64,6 +70,7 @@ function fromStored(value: Stored | null): ContractDefaults {
     collectiveAgreement: pick('collective_agreement', ''),
     state: pick('state', '') as AustrianState | '',
     vacationDaysPerYear: Number(pick('vacation_days_per_year', 25)),
+    vacationYear: pick('vacation_year', 'arbeitsjahr') as VacationYearMode,
     flexEnabled: pick('flex_enabled', false),
     flexPeriodMonths: Number(pick('flex_period_months', 1)),
     // Hier absichtlich ohne Fallback auf false: null bleibt null.
@@ -84,6 +91,7 @@ function toStored(defaults: ContractDefaults): Stored {
     collective_agreement: defaults.collectiveAgreement,
     state: defaults.state,
     vacation_days_per_year: defaults.vacationDaysPerYear,
+    vacation_year: defaults.vacationYear,
     flex_enabled: defaults.flexEnabled,
     flex_period_months: defaults.flexPeriodMonths,
     flex_allows_full_day_compensation: defaults.flexAllowsFullDayCompensation,

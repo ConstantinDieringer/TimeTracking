@@ -244,7 +244,7 @@ Betriebsvereinbarung — steht in [docs/rechtliche-checkliste.md](docs/rechtlich
 | Gleitzeit | § 4b: Periode, Rahmen, Übertrag, 10-h- gegen 12-h-Grenze |
 | Mehrarbeit / Überstunde | 25 % nach § 19d gegen 50 % nach § 10 AZG |
 | Jugendliche | KJBG, tagesgenau nach Geburtsdatum statt nach Kennzeichen |
-| Urlaub | 25 bzw. 30 Arbeitstage, im Ein- und Austrittsjahr aliquot (§ 2 UrlG) |
+| Urlaub | 25 bzw. 30 Arbeitstage; Urlaubsjahr = Arbeitsjahr, Kalenderjahr wählbar (§ 2 Abs 4 UrlG); in den ersten sechs Monaten anteilig erworben (§ 2 Abs 2 UrlG); im Austrittsjahr aliquot |
 | Geringfügigkeit | Warnung an der Grenze von 551,10 € (Wert 2026) |
 
 Drei Stellen verdienen besondere Erwähnung, weil sie in der Praxis am
