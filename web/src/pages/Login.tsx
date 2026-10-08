@@ -1,5 +1,6 @@
 import { formatClock, formatDateLong, localDateOf, localMinutesOfDay } from '@zeiterfassung/legal';
 import { useEffect, useState, type FormEvent } from 'react';
+import { LogoMark } from '../components/LogoMark';
 import { supabase } from '../lib/supabase';
 
 export function Login() {
@@ -31,7 +32,10 @@ export function Login() {
   return (
     <main className="login">
       <form className="login__form" onSubmit={handleSubmit}>
-        <h1 className="login__title">Zeiterfassung</h1>
+        <h1 className="login__title">
+          <LogoMark size={40} />
+          Zeiterfassung
+        </h1>
         <p className="login__hint">
           Zugänge legt die Personalverwaltung an. Bei Problemen dort melden.
         </p>

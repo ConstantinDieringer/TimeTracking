@@ -3,13 +3,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 
-// Nur die Latin-Teilmengen: die Anwendung ist durchgehend deutsch, kyrillische
-// und griechische Schnitte wären reines Gewicht.
-import '@fontsource/ibm-plex-sans/latin-400.css';
-import '@fontsource/ibm-plex-sans/latin-500.css';
-import '@fontsource/ibm-plex-sans/latin-600.css';
-import '@fontsource/ibm-plex-mono/latin-400.css';
-import '@fontsource/ibm-plex-mono/latin-500.css';
+// Geist als variable Schrift: eine Datei für alle Stärken. Die übrigen
+// Schriftsysteme sind per unicode-range eingebunden und werden nur geladen,
+// wenn eine Seite sie tatsächlich braucht.
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 
 import './styles/tokens.css';
 import './styles/base.css';

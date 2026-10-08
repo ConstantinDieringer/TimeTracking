@@ -12,15 +12,16 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
-  /* Tabellenziffern durchgehend: nur so stehen Stundenspalten untereinander
-   * wirklich bündig, und darum geht es hier die ganze Zeit. */
-  font-variant-numeric: tabular-nums lining-nums;
+  /* Tabellenziffern durchgehend: so stehen Stundenspalten untereinander
+   * bündig, ohne dass Zahlen in eine andere Schrift wechseln. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -29,7 +30,7 @@ h3 {
   margin: 0;
   font-weight: 600;
   line-height: var(--leading-tight);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 h1 {
@@ -38,6 +39,7 @@ h1 {
 
 h2 {
   font-size: var(--text-lg);
+  letter-spacing: -0.01em;
 }
 
 h3 {
@@ -50,7 +52,16 @@ p {
 
 a {
   color: var(--accent);
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+::selection {
+  background: var(--accent-soft-strong);
 }
 
 /* --- Formularelemente ---------------------------------------------------- */
@@ -75,64 +86,76 @@ select,
 textarea {
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
-  /* Die kräftigere Linie: ein Feld muss als Feld erkennbar sein, auch auf
-   * einem blassen Bürobildschirm. */
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
   width: 100%;
   min-height: var(--control-height);
   font-size: var(--text-base);
-  transition: border-color var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 input:hover:not(:disabled),
 select:hover:not(:disabled),
 textarea:hover:not(:disabled) {
-  border-color: var(--ink-muted);
+  border-color: #b8c0cb;
 }
 
-input[type='time'],
-input[type='number'] {
-  font-family: var(--font-mono);
-}
-
+/* Fokus als weicher Ring statt harter Kontur — deutlich sichtbar, aber ohne
+ * das Layout zu verschieben. */
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
 button:focus-visible,
 a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 input:disabled,
 select:disabled,
 textarea:disabled {
-  background: var(--surface-sunken);
+  background: var(--surface-muted);
   color: var(--ink-faint);
+  box-shadow: none;
 }
 
 label {
   display: block;
-  font-size: var(--text-xs);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
   margin-bottom: var(--space-1);
 }
 
 fieldset {
   margin: 0 0 var(--space-5);
-  padding: 0;
-  border: 0;
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 legend {
+  float: left;
+  width: 100%;
   padding: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 600;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+legend + * {
+  clear: both;
 }
 
 /* --- Schaltflächen ------------------------------------------------------- */
@@ -147,6 +170,7 @@ legend {
   background: var(--surface);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1.2;
@@ -157,55 +181,24 @@ legend {
   transition:
     background-color var(--transition),
     border-color var(--transition),
-    color var(--transition);
+    color var(--transition),
+    box-shadow var(--transition);
 }
 
 .button:hover:not(:disabled) {
-  border-color: var(--ink-muted);
-  background: var(--surface-sunken);
+  background: var(--surface-hover);
+  color: var(--ink);
 }
 
 .button:active:not(:disabled) {
   background: var(--hairline);
-}
-
-/* Die Hauptaktion einer Seite — Kommen, Gehen. Groß genug, um sie auf dem
- * Telefon im Vorbeigehen zu treffen. */
-.button--large {
-  min-height: 3rem;
-  min-width: 9rem;
-  padding-inline: var(--space-5);
-  font-size: var(--text-base);
-}
-
-/* Zurück, Heute, Weiter als eine zusammenhängende Gruppe: drei gleichrangige
- * Einzelknöpfe lesen sich wie drei verschiedene Aktionen. */
-.pager {
-  display: inline-flex;
-}
-
-.pager .button {
-  border-radius: 0;
-}
-
-.pager .button + .button {
-  margin-left: -1px;
-}
-
-.pager .button:first-child {
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.pager .button:last-child {
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
-
-.pager .button:hover:not(:disabled) {
-  position: relative;
+  box-shadow: none;
 }
 
 .button:disabled {
   color: var(--ink-faint);
+  background: var(--surface-muted);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -213,11 +206,13 @@ legend {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 
 .button--primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+  color: #fff;
 }
 
 .button--primary:active:not(:disabled) {
@@ -227,25 +222,64 @@ legend {
 .button--primary:disabled {
   background: var(--hairline-strong);
   border-color: var(--hairline-strong);
-  color: var(--surface);
+  color: #fff;
 }
 
 .button--quiet {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
   color: var(--ink-muted);
-  padding-inline: var(--space-2);
+  padding-inline: var(--space-3);
 }
 
 .button--quiet:hover:not(:disabled) {
+  background: var(--surface-hover);
   color: var(--ink);
-  border-color: var(--hairline);
-  background: transparent;
 }
 
 .button--danger {
   color: var(--violation);
-  border-color: var(--hairline-strong);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: var(--violation-soft);
+  color: var(--violation);
+}
+
+/* Die Hauptaktion einer Seite — Kommen, Gehen. */
+.button--large {
+  min-height: 3rem;
+  min-width: 9rem;
+  padding-inline: var(--space-5);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+/* Zurück, aktueller Zeitraum, Weiter als eine Gruppe. */
+.pager {
+  display: inline-flex;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.pager .button {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pager .button + .button {
+  border-left: 1px solid var(--hairline);
+}
+
+.pager .button:disabled {
+  background: var(--surface);
+  color: var(--ink-faint);
 }
 
 /* --- Layout -------------------------------------------------------------- */
@@ -259,9 +293,13 @@ legend {
   grid-template-rows: auto 1fr auto;
 }
 
+.app__content {
+  min-width: 0;
+}
+
 .masthead {
-  border-bottom: var(--border);
   background: var(--surface);
+  border-bottom: var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -274,17 +312,34 @@ legend {
   display: flex;
   align-items: center;
   gap: var(--space-6);
-  min-height: 3.5rem;
+  min-height: 4rem;
 }
 
 .masthead__title {
-  font-size: var(--text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.masthead__title:hover {
+  color: var(--ink);
+}
+
+.logo-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .masthead__account {
@@ -295,46 +350,60 @@ legend {
   min-width: 0;
 }
 
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft-strong);
+  color: var(--accent-hover);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .masthead__user {
   font-size: var(--text-sm);
-  color: var(--ink-muted);
+  font-weight: 500;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Navigation als Pillen: der aktive Punkt ist eine getönte Fläche, kein
+ * Unterstrich. */
 .nav {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
-  align-self: stretch;
 }
 
 .nav a {
   display: inline-flex;
   align-items: center;
+  min-height: 2.25rem;
   padding: 0 var(--space-3);
+  border-radius: var(--radius);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--ink-muted);
   text-decoration: none;
   white-space: nowrap;
-  /* Die Markierung sitzt auf der Unterkante der Kopfzeile, nicht unter dem
-   * Wort — so wirkt sie wie ein Reiter und nicht wie ein Unterstrich. */
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
   transition:
     color var(--transition),
-    border-color var(--transition);
+    background-color var(--transition);
 }
 
 .nav a:hover {
   color: var(--ink);
-  border-bottom-color: var(--hairline-strong);
+  background: var(--surface-hover);
 }
 
 .nav a[aria-current='page'] {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
+  color: var(--accent-hover);
+  background: var(--accent-soft);
 }
 
 .page {
@@ -345,29 +414,56 @@ legend {
   min-width: 0;
 }
 
-.app__content {
-  min-width: 0;
+.page__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
-/* Für Tastaturbedienung: erst beim Fokus sichtbar, springt an der
- * Navigation vorbei direkt zum Inhalt. */
-.skip-link {
-  position: absolute;
-  left: var(--space-4);
-  top: var(--space-2);
-  z-index: 20;
-  padding: var(--space-2) var(--space-3);
+.page__subtitle {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* Abschnitte sind Karten: weiße Fläche auf dem grauen Grund, mit feinem
+ * Rand und Schatten. So ist auf einen Blick klar, was zusammengehört. */
+.section {
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
   background: var(--surface);
-  border: 1px solid var(--accent);
-  transform: translateY(-200%);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.skip-link:focus {
-  transform: none;
+.section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.section > :last-child {
+  margin-bottom: 0;
+}
+
+/* Überschrift eines Bereichs mit der Steuerung, die nur ihn betrifft. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .footer {
   border-top: var(--border);
+  background: var(--surface);
 }
 
 .footer__inner {
@@ -389,8 +485,25 @@ legend {
   color: var(--ink);
 }
 
-/* Ladehinweis erst nach kurzer Verzögerung: was in 300 ms da ist, soll nicht
- * erst „Wird geladen“ aufblitzen lassen. */
+/* Für Tastaturbedienung: erst beim Fokus sichtbar. */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-2);
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Ladehinweis erst nach kurzer Verzögerung, damit schnelle Antworten nicht
+ * aufblitzen. */
 .loading {
   color: var(--ink-muted);
   animation: loading-appear 0s 300ms both;
@@ -405,56 +518,27 @@ legend {
   }
 }
 
-/*
- * Der Seitenkopf ist links ausgerichtet und asymmetrisch: Titel links,
- * Steuerung rechts. Keine zentrierte Hero-Sektion.
- */
-.page__head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--hairline-strong);
-  margin-bottom: var(--space-5);
-}
-
-.page__subtitle {
-  font-size: var(--text-sm);
-  color: var(--ink-muted);
-  margin: var(--space-1) 0 0;
-}
-
-.section {
-  margin-bottom: var(--space-6);
-}
-
-.section__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-3);
-}
-
-/* Überschrift eines Abschnitts mit der Steuerung, die nur ihn betrifft. */
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
 /* --- Tabellen ------------------------------------------------------------ */
 
 .table-scroll {
   overflow-x: auto;
   /* Ohne eigenen Positionierungskontext entkommen absolut positionierte
-   * Kinder — etwa die unsichtbaren Spaltenköpfe für Bildschirmleser — dem
-   * Scrollbereich und ziehen die ganze Seite in die Breite. */
+   * Kinder dem Scrollbereich und ziehen die ganze Seite in die Breite. */
   position: relative;
+}
+
+/* Eine Tabelle direkt auf der Seite bekommt dieselbe Karte wie ein
+ * Abschnitt. In einem Abschnitt läuft sie bis an dessen Ränder. */
+.page > .table-scroll {
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-5);
+}
+
+.section > .table-scroll {
+  margin-inline: calc(-1 * var(--space-5));
 }
 
 table {
@@ -467,53 +551,22 @@ thead th {
   text-align: left;
   font-size: var(--text-xs);
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--ink-muted);
-  padding: 0 var(--space-3) var(--space-2);
-  border-bottom: 1px solid var(--hairline-strong);
+  background: var(--surface-muted);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border);
   white-space: nowrap;
 }
 
 tbody td {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-bottom: var(--border);
-  vertical-align: baseline;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
-/*
- * Spalten sollen auf Inhaltsbreite schrumpfen, damit Zahlen dicht beieinander
- * stehen und sich vergleichen lassen. Ohne das verteilt die Tabelle die Breite
- * gleichmäßig, und zwischen „Von" und „Bis" klafft eine Lücke.
- * Genau eine Spalte je Tabelle bekommt `grow` und nimmt den Rest auf.
- */
-th.grow,
-td.grow {
-  width: 100%;
-  white-space: normal;
-}
-
-tfoot td {
-  padding: var(--space-3);
-  border-top: 1px solid var(--hairline-strong);
-  font-weight: 600;
-}
-
-/* Zahlen rechtsbündig und im Monospace-Schnitt — Stunden vergleicht man
- * senkrecht, nicht waagrecht. */
-.num {
-  text-align: right;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-/* Spaltenköpfe bleiben in der Grundschrift, auch über Zahlenspalten — sonst
- * steht „TAG DATUM“ in Plex Sans neben „PAUSE IST“ in Plex Mono. */
-th.num {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 tbody tr {
@@ -521,7 +574,43 @@ tbody tr {
 }
 
 tbody tr:hover td {
-  background-color: var(--surface-sunken);
+  background-color: #f9fafb;
+}
+
+/* Namen in Tabellen sind Links, aber keine unterstrichenen Fließtext-Links. */
+td a:not(.button) {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+td a:not(.button):hover {
+  text-decoration: underline;
+}
+
+/* Genau eine Spalte je Tabelle bekommt `grow` und nimmt den Rest auf; die
+ * übrigen schrumpfen auf Inhaltsbreite, damit Zahlen beieinander stehen. */
+th.grow,
+td.grow {
+  width: 100%;
+  white-space: normal;
+}
+
+tfoot td {
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border);
+  background: var(--surface-muted);
+  font-weight: 600;
+}
+
+.num {
+  text-align: right;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+th.num {
+  font-size: var(--text-xs);
 }
 
 .num--muted {
@@ -537,16 +626,16 @@ tbody tr:hover td {
 }
 
 tr.is-weekend td {
-  background: var(--surface-sunken);
+  background: #fafbfc;
+  color: var(--ink-muted);
 }
 
 tr.is-holiday td {
   background: var(--accent-soft);
 }
 
-/* Nur an der Zeilenkante, nicht vor jeder einzelnen Zelle. */
 tr.is-today td:first-child {
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent-strong);
 }
 
 tr.is-today td {
@@ -555,40 +644,50 @@ tr.is-today td {
 
 /* --- Befunde ------------------------------------------------------------- */
 
-/*
- * Ein Befund ist eine Zeile mit einem farbigen Strich an der linken Kante,
- * keine Karte und kein buntes Abzeichen. Die Fundstelle steht immer dabei:
- * eine Warnung, die ihre Grundlage nennt, lässt sich nachprüfen.
- */
+/* Ein Befund: getönte Fläche mit farbiger Kante links und der Fundstelle
+ * daneben — eine Warnung, die ihre Grundlage nennt, lässt sich nachprüfen. */
 .finding {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: var(--space-1) var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-left: 2px solid var(--hairline-strong);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-left: 3px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
   font-size: var(--text-sm);
 }
 
 .finding + .finding {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .finding--hinweis {
+  border-color: var(--warn-line);
   border-left-color: var(--warn);
   background: var(--warn-soft);
 }
 
 .finding--verstoss {
+  border-color: var(--violation-line);
   border-left-color: var(--violation);
   background: var(--violation-soft);
 }
 
 .finding__reference {
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
+  font-weight: 600;
   color: var(--ink-muted);
   white-space: nowrap;
-  padding-top: 0.15em;
+}
+
+.finding--hinweis .finding__reference {
+  color: var(--warn);
+}
+
+.finding--verstoss .finding__reference {
+  color: var(--violation);
 }
 
 .finding__message {
@@ -597,10 +696,11 @@ tr.is-today td {
 
 /* --- Kleinteiliges ------------------------------------------------------- */
 
+/* Beschriftung über einer Zahl oder neben einem Titel: klein und ruhig, in
+ * Satzschreibung statt gesperrter Versalien. */
 .meta {
-  font-size: var(--text-xs);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--ink-muted);
 }
 
@@ -626,9 +726,13 @@ tr.is-today td {
 }
 
 .empty {
-  padding: var(--space-5) 0;
+  padding: var(--space-5);
   color: var(--ink-muted);
   font-size: var(--text-sm);
+  text-align: center;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  margin: 0;
 }
 
 .error-text {
@@ -636,7 +740,6 @@ tr.is-today td {
   font-size: var(--text-sm);
 }
 
-/* Bildschirmleser-Text, sichtbar nur bei Fokus. */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -649,10 +752,15 @@ tr.is-today td {
   border: 0;
 }
 
-/* Touchgeräte: 44 px Mindesthöhe für alles, was man antippt. */
+/* --- Anpassungen --------------------------------------------------------- */
+
 @media (pointer: coarse) {
   :root {
     --control-height: 2.75rem;
+  }
+
+  .nav a {
+    min-height: var(--control-height);
   }
 }
 
@@ -661,21 +769,23 @@ tr.is-today td {
   *::before,
   *::after {
     transition-duration: 0s !important;
+    animation-duration: 0s !important;
   }
 }
 
-/* Schmale Fenster: Titel und Konto in der ersten Zeile, die Navigation
- * darunter als waagrecht wischbare Leiste. Sie läuft nie über den Rand der
- * Seite hinaus, sondern scrollt in sich. */
+/* Schmale Fenster: Logo und Konto oben, Navigation darunter als wischbare
+ * Leiste, die in sich scrollt statt über den Rand zu laufen. */
 @media (max-width: 52rem) {
   .masthead__inner {
     flex-wrap: wrap;
     gap: 0 var(--space-3);
     padding-top: var(--space-2);
+    min-height: 0;
   }
 
   .masthead__title {
     order: 1;
+    min-height: 3rem;
   }
 
   .masthead__account {
@@ -687,8 +797,9 @@ tr.is-today td {
     flex-basis: 100%;
     overflow-x: auto;
     scrollbar-width: none;
-    margin-inline: calc(-1 * var(--space-3));
-    min-height: var(--control-height);
+    scroll-padding-inline: var(--space-4);
+    margin-inline: calc(-1 * var(--space-2));
+    padding: 0 var(--space-2) var(--space-2);
   }
 
   .nav::-webkit-scrollbar {
@@ -716,7 +827,19 @@ tr.is-today td {
     justify-content: space-between;
   }
 
+  .section {
+    padding: var(--space-4);
+  }
+
+  .section > .table-scroll {
+    margin-inline: calc(-1 * var(--space-4));
+  }
+
   .masthead__user {
-    max-width: 10rem;
+    display: none;
+  }
+
+  fieldset {
+    padding: var(--space-4);
   }
 }

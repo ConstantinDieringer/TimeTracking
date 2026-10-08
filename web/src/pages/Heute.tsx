@@ -69,7 +69,11 @@ export function Heute() {
 
       <section className="stamp">
         <div className="stamp__state" aria-live="polite">
-          <span className="meta">
+          <span
+            className={`stamp__status ${
+              running ? (running.kind === 'break' ? 'stamp__status--break' : 'stamp__status--running') : ''
+            }`}
+          >
             {running
               ? running.kind === 'break'
                 ? 'Pause läuft'

@@ -164,8 +164,8 @@ export function Monat() {
       </div>
 
       <p className="calendar__legend meta">
-        Eine markierte Ecke steht für einen Befund: ocker für einen Hinweis, ziegelrot für einen
-        Verstoß. Ein Klick öffnet den Tag. Weekday-Spalten beginnen am Montag nach ISO 8601.
+        Ein Punkt oben rechts steht für einen Befund: bernsteinfarben für einen Hinweis, rot für
+        einen Verstoß. Ein Klick öffnet den Tag.
       </p>
 
       {editingDay && employeeId && (

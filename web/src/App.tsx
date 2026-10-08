@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router';
 import { Loading } from './components/Loading';
+import { LogoMark } from './components/LogoMark';
 import { useSession } from './lib/session';
 import { Login } from './pages/Login';
 import { Heute } from './pages/Heute';
@@ -74,6 +75,7 @@ export function App() {
       <header className="masthead">
         <div className="masthead__inner">
           <Link className="masthead__title" to="/">
+            <LogoMark />
             Zeiterfassung
           </Link>
           <nav className="nav" aria-label="Hauptnavigation">
@@ -84,6 +86,9 @@ export function App() {
             {isAdmin && <NavLink to="/admin">Verwaltung</NavLink>}
           </nav>
           <div className="masthead__account">
+            <span className="avatar" aria-hidden="true">
+              {initials(profile.display_name)}
+            </span>
             <span className="masthead__user" title={profile.display_name}>
               {profile.display_name}
             </span>
@@ -118,4 +123,14 @@ export function App() {
       </footer>
     </div>
   );
+}
+
+/** „Marlene Hofer“ → „MH“ — für den Kreis neben dem Namen. */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join('');
 }

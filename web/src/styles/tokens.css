@@ -1,77 +1,77 @@
 /*
  * Gestaltungsgrundlage.
  *
- * Diese Datei ist die Antwort auf die Anforderung, dass die Anwendung nicht
- * nach KI-Generat aussehen soll. Der Fingerabdruck, den generierte Oberflächen
- * fast ausnahmslos tragen, ist erstaunlich einheitlich:
+ * Hell, kühl und klar: Weiß und Schiefergrau als Fläche, ein Smaragdgrün als
+ * einziger Akzent. Keine Neonfarben, keine Verläufe als Dekoration, kein
+ * Glassmorphismus. Modern heißt hier: großzügige Rundungen, feine Schatten
+ * nur zur Ebenentrennung, ruhige Typografie in Satzschreibung statt
+ * gesperrter Versalien.
  *
- *   Inter · Indigo-zu-Violett-Verlauf · drei abgerundete Karten nebeneinander ·
- *   Badge über der Überschrift · Glassmorphismus · 12-px-Radien überall ·
- *   nummerierte 1-2-3-Schritte · zentrierte Hero-Sektion
- *
- * Jede der folgenden Festlegungen weicht bewusst davon ab. Sie sind Vorgaben,
- * keine Vorschläge — wer hier etwas ergänzt, prüft es gegen diese Liste.
+ * Alle Text-Hintergrund-Paare erreichen mindestens 4,5:1 (WCAG AA).
  */
 
 :root {
-  /* --- Farbe -------------------------------------------------------------
-   * Kein Indigo, kein Violett, keine Verläufe. Der Hintergrund ist nicht
-   * reines Weiß, sondern ein warmes Papierweiß — das nimmt dem Bildschirm die
-   * Härte und wirkt wie ein gedrucktes Journal, was zur Sache passt.
+  /* --- Flächen ----------------------------------------------------------- */
+  --bg: #f6f7f9;          /* Seitenhintergrund, kühles Hellgrau */
+  --surface: #ffffff;     /* Karten, Kopfzeile, Eingabefelder */
+  --surface-muted: #f1f3f6; /* Wochenende, Tabellenkopf, ruhige Flächen */
+  --surface-hover: #eef1f4;
+
+  /* Bisherige Namen bleiben als Verweise, damit Komponenten nicht alle
+   * gleichzeitig umgestellt werden müssen. */
+  --paper: var(--bg);
+  --surface-sunken: var(--surface-muted);
+
+  /* --- Text -------------------------------------------------------------- */
+  --ink: #111827;         /* 17:1 auf Weiß */
+  --ink-muted: #5b6474;   /* 6:1 auf Weiß, 5,3:1 auf --surface-muted */
+  --ink-faint: #6b7280;   /* 4,8:1 auf Weiß */
+
+  /* --- Linien ------------------------------------------------------------ */
+  --hairline: #e6e9ee;
+  --hairline-strong: #d4d9e0;
+
+  /* --- Akzent: Smaragdgrün ------------------------------------------------
+   * Klarer und frischer als das frühere Tannengrün, aber gedeckt genug für
+   * eine Arbeitsanwendung. Weiß darauf: 5,5:1.
    */
-  --paper: #fbfaf7;
-  --surface: #ffffff;
-  --surface-sunken: #f4f2ed;
+  --accent: #047857;
+  --accent-hover: #065f46;
+  --accent-strong: #059669; /* nur für Flächen und Linien, nicht für Text */
+  --accent-soft: #ecfdf5;
+  --accent-soft-strong: #d1fae5;
+  --accent-ring: rgb(5 150 105 / 0.22);
 
-  --ink: #1a1a18;
-  /* Beide Grautöne erreichen auf Weiß mindestens 4,5:1 (WCAG AA). Das
-   * frühere #97938a lag bei 3:1 und war für Text zu blass. */
-  --ink-muted: #64615a;
-  --ink-faint: #77736a;
-
-  --hairline: #e3e0d8;
-  --hairline-strong: #cdc9be;
-
-  /* Ein einziger Akzent: gedecktes Tannengrün. Institutionell, ruhig,
-   * und vor allem nicht die statistische Mitte der Trainingsdaten. */
-  --accent: #2f5d50;
-  --accent-soft: #e8efeb;
-  --accent-hover: #24473d;
-
-  /* Ampelfarben entsättigt. Ein grelles Rot neben einer Stundenzahl liest
-   * sich wie ein Alarm; hier geht es meist um Hinweise. */
-  /* Ocker, dunkel genug für Text: 5,6:1 auf Weiß, 5:1 auf --warn-soft. */
-  --warn: #8a5f12;
-  --warn-soft: #f7f0e0;
-  --violation: #9b2c24;
-  --violation-soft: #f8eae8;
-  --positive: #2f5d50;
+  /* --- Zustände -----------------------------------------------------------
+   * Bernstein für Hinweise, Rot für Verstöße — jeweils als dunkler Text auf
+   * hellem Grund, nie als grelle Fläche.
+   */
+  --warn: #b45309;        /* 5:1 auf Weiß */
+  --warn-soft: #fffbeb;
+  --warn-line: #fcd34d;
+  --violation: #b91c1c;   /* 6,5:1 auf Weiß */
+  --violation-soft: #fef2f2;
+  --violation-line: #fca5a5;
+  --positive: #047857;
 
   /* --- Typografie --------------------------------------------------------
-   * IBM Plex statt Inter. Plex hat einen technischen, leicht eigenwilligen
-   * Charakter und — entscheidend für eine Zeiterfassung — echte
-   * Tabellenziffern, damit Stundenspalten wirklich fluchten.
+   * Geist mit Tabellenziffern: Stundenspalten fluchten, ohne dass Zahlen in
+   * eine Monospace-Schrift wechseln müssen. Geist Mono nur für die große Uhr.
    */
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', monospace;
 
-  /* Untergrenze 12 px: darunter wird Versalschrift mit Sperrung auf
-   * Bürobildschirmen und Telefonen mühsam. Eingabefelder haben 16 px, sonst
-   * zoomt Safari auf dem iPhone bei jedem Antippen in die Seite. */
-  --text-xs: 0.75rem;    /* 12px — Spaltenköpfe, Fundstellen */
-  --text-sm: 0.875rem;   /* 14px — Fließtext in Tabellen */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.1875rem;  /* 19px */
-  --text-xl: 1.625rem;   /* 26px */
-  --text-2xl: 2rem;
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.75rem;     /* 28px */
+  --text-2xl: 2.25rem;    /* 36px */
 
-  --leading-tight: 1.25;
-  --leading-normal: 1.5;
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
 
-  /* --- Maße --------------------------------------------------------------
-   * Enges Vertikalraster statt großzügiger Hero-Abstände: eine Zeiterfassung
-   * lebt von Datendichte, nicht von Luft.
-   */
+  /* --- Maße -------------------------------------------------------------- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -80,36 +80,32 @@
   --space-6: 2rem;
   --space-8: 3rem;
 
-  /* Radius 2 px statt 12 px. Der Unterschied ist klein und entscheidet doch
-   * darüber, ob eine Fläche wie ein Formular oder wie eine App-Kachel wirkt. */
-  --radius: 2px;
-  --radius-sm: 1px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
 
   --border: 1px solid var(--hairline);
 
-  /* Bedienelemente: 40 px mit Maus, 44 px auf Touchgeräten (siehe base.css).
-   * Kleinere Ziele treffen Finger und ältere Augen schlecht. */
+  /* Schatten nur zur Ebenentrennung, nie als Effekt. */
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow: 0 1px 3px rgb(16 24 40 / 0.06), 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-lg: 0 8px 24px rgb(16 24 40 / 0.08), 0 2px 6px rgb(16 24 40 / 0.04);
+
+  /* 40 px mit Maus, 44 px auf Touchgeräten (siehe base.css). */
   --control-height: 2.5rem;
+  --transition: 140ms ease-out;
 
-  /* Kurz genug, um nicht zu bremsen; lang genug, dass ein Zustandswechsel
-   * als solcher wahrgenommen wird. */
-  --transition: 120ms ease-out;
-
-  /* Bewusst kein Schatten-Token. Getrennt wird mit Haarlinien; Schatten und
-   * abgerundete Karten sind genau die Optik, die vermieden werden soll. */
-
-  --content-width: 68rem;
+  --content-width: 72rem;
 }
 
 /*
- * Ausdrückliche Gegenliste. Was hier steht, gehört nicht in dieses Projekt:
+ * Bewusst nicht in diesem Projekt:
  *
- *   ✗ font-family: Inter
- *   ✗ linear-gradient(…#6366f1…#8b5cf6…) und Verwandte
+ *   ✗ Neonfarben, gesättigte Verläufe, Indigo-zu-Violett
  *   ✗ backdrop-filter: blur(…) auf halbtransparenten Flächen
- *   ✗ border-radius über 3px
- *   ✗ box-shadow als Trennmittel
- *   ✗ Grid aus drei gleich großen Karten als Seiteneinstieg
- *   ✗ Emoji als Symbol
- *   ✗ Beschriftungen wie „Übersicht auf einen Blick" ohne konkrete Aussage
+ *   ✗ Schatten als Schmuck — nur zur Trennung von Ebenen
+ *   ✗ Emoji als Symbol; Symbole als SVG
+ *   ✗ Versalien mit Sperrung für Beschriftungen
+ *   ✗ Beschriftungen ohne konkrete Aussage („Übersicht auf einen Blick“)
  */

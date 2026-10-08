@@ -269,19 +269,22 @@ Zeitpunkten, nie zwischen Uhrzeiten; die Tests decken beide Umstellungstage ab.
 
 ## Gestaltung
 
-Die Oberfläche soll nicht nach KI-Generat aussehen. Der Fingerabdruck
-generierter Oberflächen ist erstaunlich einheitlich — Inter,
-Indigo-zu-Violett-Verlauf, drei abgerundete Karten nebeneinander, Badge über
-der Überschrift, Glassmorphismus. `web/src/styles/tokens.css` enthält deshalb
-nicht nur die Festlegungen, sondern auch eine ausdrückliche Gegenliste. Kurz:
+Hell, kühl und klar. Alle Festlegungen stehen in `web/src/styles/tokens.css`:
 
-- IBM Plex statt Inter, Zeiten in IBM Plex Mono mit Tabellenziffern
-- ein einziger Akzent in gedecktem Tannengrün, keine Verläufe
-- warmes Papierweiß statt Reinweiß
-- Haarlinien statt Karten und Schatten, Radius 2 px statt 12 px
-- linksbündige Tabellen mit echter Datendichte statt zentrierter Hero-Sektionen
-- kein Tailwind und keine Komponentenbibliothek, deren Defaults genau diese
-  Optik erzeugen
+- **Schrift:** Geist mit Tabellenziffern, Geist Mono nur für die große Uhr;
+  lokal ausgeliefert, kein Abruf bei Google
+- **Farben:** Weiß und kühles Schiefergrau, ein Smaragdgrün (`#047857`) als
+  einziger Akzent; Bernstein für Hinweise, Rot für Verstöße — keine
+  Neonfarben, keine Verläufe
+- **Formen:** Karten mit 12 px Radius und feinem Schatten zur
+  Ebenentrennung, Navigation als Pillen, Kennzahlen als Kacheln, Status als
+  Pillen mit Punkt
+- **Schrift statt Versalien:** Beschriftungen in Satzschreibung
+- **Barrierefreiheit:** jeder Text mindestens 12 px und 4,5:1 Kontrast,
+  Bedienelemente 40 px (Touch 44 px), sichtbarer Fokusring, auf dem Telefon
+  kein seitliches Scrollen
+- kein Tailwind und keine Komponentenbibliothek: das Stylesheet ist klein
+  genug, um es ganz zu überblicken
 
 Jede Warnung nennt ihre Fundstelle im Gesetz. Das ist keine Zierde: eine
 Meldung, die ihre Grundlage angibt, lässt sich nachschlagen und gegebenenfalls
