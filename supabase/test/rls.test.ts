@@ -780,7 +780,156 @@ describe('Löschung nach Ablauf der Aufbewahrungsfrist', () => {
   });
 });
 
+/**
+ * „Gestempelt“ ist nur dann ein Beweis, wenn die Uhrzeit nicht vom Rechner
+ * des Mitarbeiters stammt.
+ */
+describe('Stempelzeiten setzt der Server', () => {
+  const nahAnJetzt = (iso: string) => Math.abs(new Date(iso).getTime() - Date.now()) < 120_000;
+
+  it('ersetzt eine mitgeschickte Stempelzeit durch die Serverzeit', async () => {
+    const { data: eintrag, error } = await anna
+      .from('time_entries')
+      .insert({
+        employee_id: ANNA,
+        work_date: '2026-01-05',
+        started_at: '2026-01-05T06:00:00+01:00',
+        ended_at: null,
+        source: 'stamped',
+      })
+      .select('id, started_at, source')
+      .single();
+    expect(error).toBeNull();
+
+    try {
+      expect(eintrag!.source).toBe('stamped');
+      expect(nahAnJetzt(eintrag!.started_at)).toBe(true);
+
+      // Ausstempeln mit erfundener Endzeit: es zählt die Serverzeit.
+      const { data: aus } = await anna
+        .from('time_entries')
+        .update({ ended_at: new Date(Date.now() + 8 * 3_600_000).toISOString() })
+        .eq('id', eintrag!.id)
+        .select('ended_at, source')
+        .single();
+      expect(aus!.source).toBe('stamped');
+      expect(nahAnJetzt(aus!.ended_at!)).toBe(true);
+
+      // Wer danach die Zeiten verschiebt, korrigiert — und das sieht man.
+      const { data: korrigiert } = await anna
+        .from('time_entries')
+        .update({ started_at: new Date(Date.now() - 3_600_000).toISOString() })
+        .eq('id', eintrag!.id)
+        .select('source')
+        .single();
+      expect(korrigiert!.source).toBe('manual');
+
+      // Und zurück zu „gestempelt“ geht es nicht.
+      const { data: zurueck } = await anna
+        .from('time_entries')
+        .update({ source: 'stamped' })
+        .eq('id', eintrag!.id)
+        .select('source')
+        .single();
+      expect(zurueck!.source).toBe('manual');
+    } finally {
+      await anna.from('time_entries').delete().eq('id', eintrag!.id);
+    }
+  });
+
+  it('kennzeichnet einen abgeschlossenen Abschnitt nie als gestempelt', async () => {
+    const { data, error } = await anna
+      .from('time_entries')
+      .insert({
+        employee_id: ANNA,
+        work_date: '2026-01-06',
+        started_at: '2026-01-06T08:00:00+01:00',
+        ended_at: '2026-01-06T12:00:00+01:00',
+        source: 'stamped',
+      })
+      .select('id, source')
+      .single();
+    expect(error).toBeNull();
+    expect(data!.source).toBe('manual');
+    await anna.from('time_entries').delete().eq('id', data!.id);
+  });
+});
+
+describe('Mitarbeiter ändern am eigenen Profil nur den Namen', () => {
+  it('weist Personalnummer, Austritt und Bundesland ab', async () => {
+    for (const patch of [
+      { personnel_number: 'P-999' },
+      { left_on: '2026-12-31' },
+      { state: 'T' as const },
+      { active: false },
+    ]) {
+      const { data } = await anna.from('profiles').update(patch).eq('id', ANNA).select();
+      expect(data ?? [], JSON.stringify(patch)).toEqual([]);
+    }
+    const { data: danach } = await anna
+      .from('profiles')
+      .select('personnel_number, left_on, state, active')
+      .eq('id', ANNA)
+      .single();
+    expect(danach).toEqual({ personnel_number: 'P-014', left_on: null, state: 'W', active: true });
+  });
+
+  it('erlaubt den eigenen Anzeigenamen', async () => {
+    const { data } = await anna
+      .from('profiles')
+      .update({ display_name: 'Anna Berger' })
+      .eq('id', ANNA)
+      .select('display_name');
+    expect(data).toEqual([{ display_name: 'Anna Berger' }]);
+  });
+});
+
+describe('Deaktiviert heißt sofort ohne Zugriff', () => {
+  it('lässt ein deaktiviertes Konto mit gültiger Anmeldung nichts mehr eintragen', async () => {
+    const service = createClient(URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: firma } = await fremderAdmin.from('organizations').select('id').single();
+    const email = `deaktiviert-${Date.now()}@example.com`;
+    const { data: created } = await service.auth.admin.createUser({
+      email,
+      password: 'zeiterfassung',
+      email_confirm: true,
+    });
+    const id = created!.user!.id;
+
+    try {
+      await service.from('profiles').update({ organization_id: firma!.id }).eq('id', id);
+      const person = await signIn(email);
+
+      // Deaktivieren, während die Anmeldung noch gilt.
+      await service.from('profiles').update({ active: false }).eq('id', id);
+
+      const { error } = await person.from('time_entries').insert({
+        employee_id: id,
+        work_date: '2026-10-01',
+        started_at: '2026-10-01T08:00:00+02:00',
+        ended_at: '2026-10-01T12:00:00+02:00',
+      });
+      expect(error).not.toBeNull();
+
+      const { data: firmen } = await person.from('organizations').select('id');
+      expect(firmen).toEqual([]);
+    } finally {
+      await service.auth.admin.deleteUser(id);
+    }
+  });
+});
+
 describe('Ohne Anmeldung geht nichts', () => {
+  it('lässt anonym keine Datenbankfunktion aufrufen', async () => {
+    const gast = anonClient();
+    for (const funktion of ['is_admin', 'current_organization_id', 'is_owner', 'handle_new_user']) {
+      const { error } = await gast.rpc(funktion);
+      expect(error, funktion).not.toBeNull();
+    }
+  });
+
   it('liefert anonym keine Zeilen', async () => {
     const gast = anonClient();
     for (const tabelle of ['time_entries', 'profiles', 'absences', 'employment_contracts']) {
