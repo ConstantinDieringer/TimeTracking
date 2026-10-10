@@ -89,8 +89,21 @@ function securityPlugin(supabaseUrl: string | undefined): Plugin {
 // einzige Stelle für die Supabase-Zugangsdaten.
 const envDir = fileURLToPath(new URL('..', import.meta.url));
 
-export default defineConfig(({ mode }) => {
-  const supabaseUrl = loadEnv(mode, envDir, 'VITE_').VITE_SUPABASE_URL;
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, envDir, 'VITE_');
+  const supabaseUrl = env.VITE_SUPABASE_URL;
+
+  // Ohne diese Werte bricht die App beim Start ab und zeigt eine leere
+  // Seite. Lieber den Build scheitern lassen: dann bleibt beim Hoster die
+  // letzte funktionierende Version online. Beim Hoster (Cloudflare: Settings
+  // → Builds → Variables and secrets) als Build-Variablen setzen, nicht als
+  // Laufzeitvariablen — Vite schreibt sie beim Bauen ins Bündel.
+  if (command === 'build') {
+    const missing = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'].filter((name) => !env[name]);
+    if (missing.length > 0) {
+      throw new Error(`Build abgebrochen: ${missing.join(' und ')} nicht gesetzt.`);
+    }
+  }
 
   return {
     plugins: [react(), securityPlugin(supabaseUrl)],

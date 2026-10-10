@@ -36,4 +36,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm audit --audit-level=high
       - run: npm test
+      # Platzhalter: der Build verlangt die Supabase-Werte, hier wird aber
+      # nur geprüft, nicht ausgeliefert.
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://ci-platzhalter.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-platzhalter
