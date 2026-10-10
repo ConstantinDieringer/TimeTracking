@@ -15,7 +15,8 @@ import './styles/pages.css';
 
 import { App } from './App';
 import { ToastProvider } from './components/Toast';
-import { SessionProvider } from './lib/session';
+import { LocaleProvider } from './lib/i18n';
+import { LocaleSync, SessionProvider } from './lib/session';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,13 +34,16 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <BrowserRouter>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </BrowserRouter>
-      </SessionProvider>
+      <LocaleProvider>
+        <SessionProvider>
+          <LocaleSync />
+          <BrowserRouter>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </BrowserRouter>
+        </SessionProvider>
+      </LocaleProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

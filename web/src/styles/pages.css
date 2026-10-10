@@ -27,6 +27,11 @@
   margin-bottom: var(--space-2);
 }
 
+.login__language {
+  align-self: flex-start;
+  margin-bottom: var(--space-6);
+}
+
 .login__hint {
   font-size: var(--text-sm);
   color: var(--ink-muted);

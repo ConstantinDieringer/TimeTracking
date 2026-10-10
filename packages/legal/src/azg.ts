@@ -48,6 +48,9 @@ export function checkDailyMaximum(day: DayWork): RuleResult {
     message: over
       ? `Tagesarbeitszeit ${formatDuration(day.workMinutes)} h — über der Höchstgrenze von 12 Stunden.`
       : `Tagesarbeitszeit ${formatDuration(day.workMinutes)} h.`,
+    messageEn: over
+      ? `Daily working time ${formatDuration(day.workMinutes)} h — above the maximum of 12 hours.`
+      : `Daily working time ${formatDuration(day.workMinutes)} h.`,
   };
 }
 
@@ -70,6 +73,7 @@ export function checkBreak(day: DayWork): RuleResult {
       actual: day.breakMinutes,
       limit: 0,
       message: `Arbeitszeit ${formatDuration(day.workMinutes)} h — keine Ruhepause vorgeschrieben.`,
+      messageEn: `Working time ${formatDuration(day.workMinutes)} h — no rest break required.`,
     };
   }
 
@@ -92,6 +96,10 @@ export function checkBreak(day: DayWork): RuleResult {
         total === 0
           ? `Keine Ruhepause bei ${formatDuration(day.workMinutes)} h Arbeitszeit — ab mehr als 6 Stunden sind 30 Minuten vorgeschrieben.`
           : `Ruhepause nur ${total} Minuten bei ${formatDuration(day.workMinutes)} h Arbeitszeit — vorgeschrieben sind 30 Minuten.`,
+      messageEn:
+        total === 0
+          ? `No rest break with ${formatDuration(day.workMinutes)} h of work — more than 6 hours require 30 minutes.`
+          : `Rest break of only ${total} minutes with ${formatDuration(day.workMinutes)} h of work — 30 minutes are required.`,
     };
   }
 
@@ -104,6 +112,7 @@ export function checkBreak(day: DayWork): RuleResult {
       actual: total,
       limit: MIN_BREAK_MINUTES,
       message: `Die Pausen summieren sich auf ${total} Minuten, sind aber unzulässig geteilt — erlaubt sind eine Pause von 30, zwei von je 15 oder drei von je 10 Minuten.`,
+      messageEn: `The breaks add up to ${total} minutes but are split in a way the law does not allow — permitted are one break of 30, two of 15 or three of 10 minutes each.`,
     };
   }
 
@@ -115,6 +124,7 @@ export function checkBreak(day: DayWork): RuleResult {
     actual: total,
     limit: MIN_BREAK_MINUTES,
     message: `Ruhepause ${total} Minuten bei ${formatDuration(day.workMinutes)} h Arbeitszeit.`,
+    messageEn: `Rest break of ${total} minutes with ${formatDuration(day.workMinutes)} h of work.`,
   };
 }
 
@@ -144,6 +154,9 @@ export function checkDailyRest(previousDay: DayWork | null, day: DayWork): RuleR
     message: short
       ? `Ruhezeit ${formatDuration(rest)} h seit ${formatClock(endMinuteOf(previousDay)!)} — unter den vorgeschriebenen 11 Stunden.`
       : `Ruhezeit ${formatDuration(rest)} h.`,
+    messageEn: short
+      ? `Rest period of ${formatDuration(rest)} h since ${formatClock(endMinuteOf(previousDay)!)} — below the required 11 hours.`
+      : `Rest period of ${formatDuration(rest)} h.`,
   };
 }
 
@@ -163,6 +176,7 @@ export function checkNightWork(day: DayWork, contract: Contract): RuleResult | n
     actual: day.nightMinutes,
     limit: 3 * 60,
     message: `${formatDuration(day.nightMinutes)} h zwischen 22:00 und 05:00 — im Vertrag ist keine Nachtarbeit vorgesehen.`,
+    messageEn: `${formatDuration(day.nightMinutes)} h between 22:00 and 05:00 — the contract does not provide for night work.`,
   };
 }
 
@@ -183,6 +197,7 @@ export function checkSpan(day: DayWork): RuleResult | null {
     actual: day.spanMinutes,
     limit: 13 * 60,
     message: `Von ${formatClock(start)} bis ${formatClock(end)} sind ${formatDuration(day.spanMinutes)} h — bei einem Arbeitsbeginn wie gestern bliebe die Ruhezeit knapp.`,
+    messageEn: `${formatClock(start)} to ${formatClock(end)} is ${formatDuration(day.spanMinutes)} h — starting at the same time tomorrow would leave little rest.`,
   };
 }
 
@@ -202,6 +217,9 @@ export function checkWeeklyMaximum(days: readonly DayWork[], weekStart: IsoDate)
     message: over
       ? `Wochenarbeitszeit ${formatDuration(total)} h — über der Höchstgrenze von 60 Stunden.`
       : `Wochenarbeitszeit ${formatDuration(total)} h.`,
+    messageEn: over
+      ? `Weekly working time ${formatDuration(total)} h — above the maximum of 60 hours.`
+      : `Weekly working time ${formatDuration(total)} h.`,
   };
 }
 
@@ -234,6 +252,7 @@ export function checkSeventeenWeekAverage(
   const zeitraum = weeks < AVERAGE_WINDOW_WEEKS
     ? `${weeks} von 17 Wochen`
     : '17 Wochen';
+  const period = weeks < AVERAGE_WINDOW_WEEKS ? `${weeks} of 17 weeks` : '17 weeks';
 
   return {
     code: 'azg.durchrechnung',
@@ -248,5 +267,11 @@ export function checkSeventeenWeekAverage(
         : severity === 'hinweis'
           ? `Ø ${formatDuration(average)} h über ${zeitraum} — die Grenze von 48 Stunden rückt näher.`
           : `Ø ${formatDuration(average)} h über ${zeitraum}.`,
+    messageEn:
+      severity === 'verstoss'
+        ? `Average ${formatDuration(average)} h over ${period} — must not exceed 48 hours.`
+        : severity === 'hinweis'
+          ? `Average ${formatDuration(average)} h over ${period} — approaching the 48-hour limit.`
+          : `Average ${formatDuration(average)} h over ${period}.`,
   };
 }

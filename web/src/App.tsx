@@ -3,6 +3,8 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { Icon } from './components/Icon';
 import { Loading } from './components/Loading';
 import { LogoMark } from './components/LogoMark';
+import { Sprachwahl } from './components/Sprachwahl';
+import { useI18n } from './lib/i18n';
 import { useSession } from './lib/session';
 import { Login } from './pages/Login';
 import { Heute } from './pages/Heute';
@@ -15,6 +17,7 @@ import { Datenschutz } from './pages/Datenschutz';
 
 export function App() {
   const { session, profile, loading, isAdmin, signOut } = useSession();
+  const { t } = useI18n();
   const location = useLocation();
   const isTimes = location.pathname === '/' || location.pathname.startsWith('/monat');
 
@@ -42,14 +45,19 @@ export function App() {
   if (!profile.organization_id) {
     return (
       <main className="page">
-        <h1>Keinem Unternehmen zugeordnet</h1>
+        <h1>{t('Keinem Unternehmen zugeordnet', 'Not assigned to a company')}</h1>
         <p className="muted">
-          Dieser Zugang gehört noch zu keinem Unternehmen. Sobald Sie die Verwaltung Ihres
-          Unternehmens hinzufügt, steht Ihnen die Zeiterfassung hier zur Verfügung.
+          {t(
+            'Dieser Zugang gehört noch zu keinem Unternehmen. Sobald Sie die Verwaltung Ihres Unternehmens hinzufügt, steht Ihnen die Zeiterfassung hier zur Verfügung.',
+            'This account does not belong to a company yet. As soon as your company’s administration adds you, time tracking will be available here.',
+          )}
         </p>
-        <button className="button" type="button" onClick={signOut}>
-          Abmelden
-        </button>
+        <div className="row">
+          <button className="button" type="button" onClick={signOut}>
+            {t('Abmelden', 'Sign out')}
+          </button>
+          <Sprachwahl />
+        </div>
       </main>
     );
   }
@@ -57,13 +65,19 @@ export function App() {
   if (!profile.active) {
     return (
       <main className="page">
-        <h1>Zugang deaktiviert</h1>
+        <h1>{t('Zugang deaktiviert', 'Account deactivated')}</h1>
         <p className="muted">
-          Dieser Zugang ist nicht mehr aktiv. Die Personalverwaltung kann ihn wieder freischalten.
+          {t(
+            'Dieser Zugang ist nicht mehr aktiv. Die Personalverwaltung kann ihn wieder freischalten.',
+            'This account is no longer active. Your HR administration can reactivate it.',
+          )}
         </p>
-        <button className="button" type="button" onClick={signOut}>
-          Abmelden
-        </button>
+        <div className="row">
+          <button className="button" type="button" onClick={signOut}>
+            {t('Abmelden', 'Sign out')}
+          </button>
+          <Sprachwahl />
+        </div>
       </main>
     );
   }
@@ -71,7 +85,7 @@ export function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#inhalt">
-        Zum Inhalt springen
+        {t('Zum Inhalt springen', 'Skip to content')}
       </a>
       <header className="masthead">
         <div className="masthead__inner">
@@ -79,25 +93,26 @@ export function App() {
             <LogoMark />
             Zeiterfassung
           </Link>
-          <nav className="nav" aria-label="Hauptnavigation">
+          <nav className="nav" aria-label={t('Hauptnavigation', 'Main navigation')}>
             {/* Ein Punkt für Tages- und Monatsansicht; zwischen beiden schaltet
                 der Umschalter auf der Seite. */}
             <Link to="/" aria-current={isTimes ? 'page' : undefined} viewTransition>
               <Icon name="clock" />
-              Meine Zeiten
+              {t('Meine Zeiten', 'My time')}
             </Link>
             <NavLink to="/auswertung" viewTransition>
               <Icon name="chart" />
-              Auswertung
+              {t('Auswertung', 'Reports')}
             </NavLink>
             {isAdmin && (
               <NavLink to="/admin" viewTransition>
                 <Icon name="users" />
-                Verwaltung
+                {t('Verwaltung', 'Administration')}
               </NavLink>
             )}
           </nav>
           <div className="masthead__account">
+            <Sprachwahl />
             <span className="avatar" aria-hidden="true">
               {initials(profile.display_name)}
             </span>
@@ -108,10 +123,10 @@ export function App() {
               className="button button--quiet"
               type="button"
               onClick={signOut}
-              title="Abmelden"
+              title={t('Abmelden', 'Sign out')}
             >
               <Icon name="logout" />
-              <span className="masthead__logout-label">Abmelden</span>
+              <span className="masthead__logout-label">{t('Abmelden', 'Sign out')}</span>
             </button>
           </div>
         </div>
@@ -137,9 +152,14 @@ export function App() {
         <div className="footer__inner">
           <Link className="footer__link" to="/datenschutz">
             <Icon name="shield" size={16} />
-            Datenschutz
+            {t('Datenschutz', 'Privacy')}
           </Link>
-          <span>Aufzeichnung nach § 26 AZG · Daten in der EU</span>
+          <span>
+            {t(
+              'Aufzeichnung nach § 26 AZG · Daten in der EU',
+              'Working-time records under § 26 AZG · Data stored in the EU',
+            )}
+          </span>
         </div>
       </footer>
     </div>

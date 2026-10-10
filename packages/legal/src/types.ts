@@ -31,6 +31,9 @@ export const TIMEZONE = 'Europe/Vienna';
  */
 export type Severity = 'ok' | 'hinweis' | 'verstoss';
 
+/** Sprache der Oberfläche. Deutsch ist Standard; die Rechtsbegriffe bleiben österreichisch. */
+export type Locale = 'de' | 'en';
+
 export interface RuleResult {
   /** Stabiler Schlüssel, z. B. `azg.tageshoechstarbeitszeit`. */
   code: string;
@@ -39,6 +42,8 @@ export interface RuleResult {
   reference: string;
   /** Klartext für die Anzeige, deutsch, ohne Ausrufezeichen. */
   message: string;
+  /** Derselbe Klartext auf Englisch, für die englische Oberfläche. */
+  messageEn: string;
   /** Tag, auf den sich der Befund bezieht. Fehlt bei Wochen- oder Periodenregeln. */
   date?: IsoDate;
   /** Gemessener Wert und Grenzwert, für Anzeige und Tests. */
@@ -134,6 +139,21 @@ export const ABSENCE_LABEL: Record<AbsenceKind, string> = {
   unbezahlt: 'Unbezahlt',
 };
 
+export const ABSENCE_LABEL_EN: Record<AbsenceKind, string> = {
+  urlaub: 'Annual leave',
+  krankenstand: 'Sick leave',
+  pflegefreistellung: 'Care leave',
+  zeitausgleich: 'Time off in lieu',
+  persoenlicher_feiertag: 'Personal holiday',
+  sonderurlaub: 'Special leave',
+  dienstfreistellung: 'Paid release from duty',
+  unbezahlt: 'Unpaid leave',
+};
+
+export function absenceLabel(kind: AbsenceKind, locale: Locale = 'de'): string {
+  return (locale === 'en' ? ABSENCE_LABEL_EN : ABSENCE_LABEL)[kind];
+}
+
 // ---------------------------------------------------------------------------
 // Vertrag
 // ---------------------------------------------------------------------------
@@ -162,6 +182,20 @@ export const CONTRACT_CATEGORY_LABEL: Record<ContractCategory, string> = {
   leitend: 'Leitende:r Angestellte:r',
   praktikum: 'Praktikum',
 };
+
+export const CONTRACT_CATEGORY_LABEL_EN: Record<ContractCategory, string> = {
+  vollzeit: 'Full-time',
+  teilzeit: 'Part-time',
+  geringfuegig: 'Marginal employment',
+  lehrling: 'Apprentice',
+  freier_dienstnehmer: 'Freelance employee',
+  leitend: 'Senior executive',
+  praktikum: 'Internship',
+};
+
+export function contractCategoryLabel(category: ContractCategory, locale: Locale = 'de'): string {
+  return (locale === 'en' ? CONTRACT_CATEGORY_LABEL_EN : CONTRACT_CATEGORY_LABEL)[category];
+}
 
 /** Wochentage, Montag = 1 … Sonntag = 7 (ISO 8601). */
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -266,3 +300,19 @@ export const STATE_LABEL: Record<AustrianState, string> = {
   V: 'Vorarlberg',
   B: 'Burgenland',
 };
+
+export const STATE_LABEL_EN: Record<AustrianState, string> = {
+  W: 'Vienna',
+  NO: 'Lower Austria',
+  OO: 'Upper Austria',
+  S: 'Salzburg',
+  ST: 'Styria',
+  K: 'Carinthia',
+  T: 'Tyrol',
+  V: 'Vorarlberg',
+  B: 'Burgenland',
+};
+
+export function stateLabel(state: AustrianState, locale: Locale = 'de'): string {
+  return (locale === 'en' ? STATE_LABEL_EN : STATE_LABEL)[state];
+}

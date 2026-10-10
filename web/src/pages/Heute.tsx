@@ -14,11 +14,13 @@ import { Duration } from '../components/Num';
 import { Tageslinie } from '../components/Tageslinie';
 import { useToast } from '../components/Toast';
 import { useOpenEntry, useStamp, useStopStamp, useTimesheet } from '../lib/queries';
+import { useI18n, type Locale } from '../lib/i18n';
 import { useSession } from '../lib/session';
 
 export function Heute() {
   const { session, profile } = useSession();
   const employeeId = session?.user.id;
+  const { t, locale, intlLocale } = useI18n();
 
   // Sekundentakt, solange gestempelt wird — sonst stünde die laufende Dauer
   // still und man wüsste nicht, ob die Uhr überhaupt läuft.
@@ -59,11 +61,11 @@ export function Heute() {
       {
         onSuccess: () =>
           kind === 'break'
-            ? toast.show('info', `Pause ab ${clockNow()}`, 'Gönn dir was — die Uhr läuft mit.')
+            ? toast.show('info', t(`Pause ab ${clockNow()}`, `Break from ${clockNow()}`), t('Gönn dir was — die Uhr läuft mit.', 'Enjoy it — the clock keeps running.'))
             : wasBreak
-              ? toast.show('success', `Weiter um ${clockNow()}`, 'Pause beendet.')
-              : toast.show('success', `Eingestempelt um ${clockNow()}`, 'Einen guten Arbeitstag!'),
-        onError: (error) => toast.show('error', 'Stempeln fehlgeschlagen', error.message),
+              ? toast.show('success', t(`Weiter um ${clockNow()}`, `Back at ${clockNow()}`), t('Pause beendet.', 'Break ended.'))
+              : toast.show('success', t(`Eingestempelt um ${clockNow()}`, `Clocked in at ${clockNow()}`), t('Einen guten Arbeitstag!', 'Have a good day at work!')),
+        onError: (error) => toast.show('error', t('Stempeln fehlgeschlagen', 'Clocking failed'), error.message),
       },
     );
   }
@@ -71,8 +73,8 @@ export function Heute() {
   function stopSegment(id: string) {
     stop.mutate(id, {
       onSuccess: () =>
-        toast.show('success', `Ausgestempelt um ${clockNow()}`, 'Schönen Feierabend!'),
-      onError: (error) => toast.show('error', 'Ausstempeln fehlgeschlagen', error.message),
+        toast.show('success', t(`Ausgestempelt um ${clockNow()}`, `Clocked out at ${clockNow()}`), t('Schönen Feierabend!', 'Enjoy your evening!')),
+      onError: (error) => toast.show('error', t('Ausstempeln fehlgeschlagen', 'Clocking out failed'), error.message),
     });
   }
 
@@ -86,8 +88,8 @@ export function Heute() {
       return;
     }
     announced.current = today;
-    toast.show('success', 'Tagessoll erreicht', `${formatDuration(target)} h sind geschafft.`);
-  }, [running, target, remaining, worked, today, toast]);
+    toast.show('success', t('Tagessoll erreicht', 'Daily target reached'), t(`${formatDuration(target)} h sind geschafft.`, `${formatDuration(target)} h done.`));
+  }, [running, target, remaining, worked, today, toast, t]);
 
   return (
     <main className="page">
@@ -96,17 +98,17 @@ export function Heute() {
         <div>
           <p className="greeting">
             <Icon name={greetingIcon(now)} size={16} />
-            {greeting(now)}
+            {greeting(now, locale)}
             {firstName && `, ${firstName}`}
           </p>
-          <h1>{formatDateLong(today)}</h1>
+          <h1>{formatDateLong(today, locale)}</h1>
           <p className="page__subtitle">
             {day?.contract
-              ? `${day.contract.typeLabel} · ${day.contract.weeklyHours.toLocaleString('de-AT')} h/Woche`
-              : 'Kein gültiger Vertrag hinterlegt'}
+              ? `${day.contract.typeLabel} · ${day.contract.weeklyHours.toLocaleString(intlLocale)} ${t('h/Woche', 'h/week')}`
+              : t('Kein gültiger Vertrag hinterlegt', 'No valid contract on file')}
           </p>
         </div>
-        <div className="clock-chip" aria-label="Aktuelle Uhrzeit">
+        <div className="clock-chip" aria-label={t('Aktuelle Uhrzeit', 'Current time')}>
           <Icon name="clock" size={16} />
           <span>{formatClock(localMinutesOfDay(now))}</span>
         </div>
@@ -114,10 +116,14 @@ export function Heute() {
 
       {day?.holidays.map((holiday) => (
         <div key={holiday.name} className={`finding ${holiday.statutory ? '' : 'finding--hinweis'}`}>
-          <span className="finding__reference">{holiday.statutory ? '§ 7 ARG' : 'Hinweis'}</span>
+          <span className="finding__reference">{holiday.statutory ? '§ 7 ARG' : t('Hinweis', 'Note')}</span>
           <p className="finding__message">
-            <strong>{holiday.name}</strong>
-            {holiday.note ? ` — ${holiday.note}` : holiday.statutory ? ' — gesetzlicher Feiertag.' : ''}
+            <strong>{t(holiday.name, holiday.nameEn)}</strong>
+            {holiday.note
+              ? ` — ${t(holiday.note, holiday.noteEn ?? holiday.note)}`
+              : holiday.statutory
+                ? t(' — gesetzlicher Feiertag.', ' — public holiday.')
+                : ''}
           </p>
         </div>
       ))}
@@ -126,22 +132,22 @@ export function Heute() {
         <div className="stamp__state" aria-live="polite">
           <span key={state} className={`stamp__status stamp__status--${state}`}>
             {state === 'running'
-              ? 'Arbeitszeit läuft'
+              ? t('Arbeitszeit läuft', 'Working')
               : state === 'break'
-                ? 'Pause läuft'
+                ? t('Pause läuft', 'On break')
                 : state === 'done'
-                  ? 'Beendet'
-                  : 'Noch nicht begonnen'}
+                  ? t('Beendet', 'Finished')
+                  : t('Noch nicht begonnen', 'Not started yet')}
           </span>
           <p className="stamp__clock">
             {running ? formatDuration(runningMinutes) : formatDuration(worked)}
           </p>
           <p className="stamp__since">
             {running && runningSince
-              ? `seit ${formatClock(localMinutesOfDay(runningSince))} Uhr`
+              ? t(`seit ${formatClock(localMinutesOfDay(runningSince))} Uhr`, `since ${formatClock(localMinutesOfDay(runningSince))}`)
               : worked > 0
-                ? 'heute erfasst'
-                : 'Ein Klick auf „Kommen“ startet die Aufzeichnung.'}
+                ? t('heute erfasst', 'recorded today')
+                : t('Ein Klick auf „Kommen“ startet die Aufzeichnung.', 'Click “Clock in” to start recording.')}
           </p>
         </div>
 
@@ -154,7 +160,7 @@ export function Heute() {
               onClick={() => startSegment('work')}
             >
               <Icon name="play" />
-              Kommen
+              {t('Kommen', 'Clock in')}
             </button>
           )}
 
@@ -167,7 +173,7 @@ export function Heute() {
                 onClick={() => startSegment('break')}
               >
                 <Icon name="coffee" />
-                Pause beginnen
+                {t('Pause beginnen', 'Start break')}
               </button>
               <button
                 className="button button--primary button--large"
@@ -176,7 +182,7 @@ export function Heute() {
                 onClick={() => stopSegment(running.id)}
               >
                 <Icon name="stop" />
-                Gehen
+                {t('Gehen', 'Clock out')}
               </button>
             </>
           )}
@@ -190,7 +196,7 @@ export function Heute() {
                 onClick={() => startSegment('work')}
               >
                 <Icon name="play" />
-                Pause beenden
+                {t('Pause beenden', 'End break')}
               </button>
               <button
                 className="button button--large"
@@ -199,7 +205,7 @@ export function Heute() {
                 onClick={() => stopSegment(running.id)}
               >
                 <Icon name="stop" />
-                Feierabend
+                {t('Feierabend', 'Finish for today')}
               </button>
             </>
           )}
@@ -211,16 +217,18 @@ export function Heute() {
           <div className="progress-block">
             <div className="progress-block__labels">
               <span>
-                <strong>{formatDuration(worked)}</strong> von {formatDuration(target)} h
+                <strong>{formatDuration(worked)}</strong> {t('von', 'of')} {formatDuration(target)} h
               </span>
               <span className="muted">
-                {remaining > 0 ? `noch ${formatDuration(remaining)} h` : 'Tagessoll erreicht'}
+                {remaining > 0
+                  ? t(`noch ${formatDuration(remaining)} h`, `${formatDuration(remaining)} h to go`)
+                  : t('Tagessoll erreicht', 'Daily target reached')}
               </span>
             </div>
             <div
               className={`progress ${remaining <= 0 ? 'progress--done' : ''}`}
               role="progressbar"
-              aria-label="Fortschritt zum Tagessoll"
+              aria-label={t('Fortschritt zum Tagessoll', 'Progress towards daily target')}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(progress * 100)}
@@ -236,25 +244,25 @@ export function Heute() {
 
         <dl className="stamp__figures">
           <div>
-            <dt className="meta">Gearbeitet</dt>
+            <dt className="meta">{t('Gearbeitet', 'Worked')}</dt>
             <dd>
               <Duration minutes={worked} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
-            <dt className="meta">Pause</dt>
+            <dt className="meta">{t('Pause', 'Break')}</dt>
             <dd>
               <Duration minutes={day?.work.breakMinutes ?? 0} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
-            <dt className="meta">Tagessoll</dt>
+            <dt className="meta">{t('Tagessoll', 'Daily target')}</dt>
             <dd>
               <Duration minutes={target} zeroAs="0:00" animate />
             </dd>
           </div>
           <div>
-            <dt className="meta">{remaining > 0 ? 'Noch offen' : 'Saldo heute'}</dt>
+            <dt className="meta">{remaining > 0 ? t('Noch offen', 'Remaining') : t('Saldo heute', 'Balance today')}</dt>
             <dd>
               {remaining > 0 ? (
                 <Duration minutes={remaining} animate />
@@ -268,18 +276,18 @@ export function Heute() {
 
       <section className="section">
         <div className="section__head">
-          <h2>Erfassung</h2>
+          <h2>{t('Erfassung', 'Entries')}</h2>
         </div>
         {day && day.work.intervals.length > 0 ? (
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Von</th>
-                  <th>Bis</th>
-                  <th>Art</th>
-                  <th className="num">Dauer</th>
-                  <th className="grow">Quelle</th>
+                  <th>{t('Von', 'From')}</th>
+                  <th>{t('Bis', 'To')}</th>
+                  <th>{t('Art', 'Type')}</th>
+                  <th className="num">{t('Dauer', 'Duration')}</th>
+                  <th className="grow">{t('Quelle', 'Source')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -288,20 +296,22 @@ export function Heute() {
                     <td className="num">{formatClock(localMinutesOfDay(interval.start))}</td>
                     <td className="num">
                       {running && index === day.work.intervals.length - 1 ? (
-                        <span className="muted">läuft</span>
+                        <span className="muted">{t('läuft', 'running')}</span>
                       ) : (
                         formatClock(localMinutesOfDay(interval.end))
                       )}
                     </td>
                     <td>
                       <span className={`kind-dot kind-dot--${interval.kind}`} />
-                      {SEGMENT_LABEL[interval.kind]}
+                      {t(SEGMENT_LABEL[interval.kind]!, SEGMENT_LABEL_EN[interval.kind]!)}
                     </td>
                     <td>
                       <Duration minutes={minutesBetween(interval.start, interval.end)} />
                     </td>
                     <td className="muted">
-                      {interval.source === 'stamped' ? 'Gestempelt' : 'Nachgetragen'}
+                      {interval.source === 'stamped'
+                        ? t('Gestempelt', 'Clocked')
+                        : t('Nachgetragen', 'Added manually')}
                     </td>
                   </tr>
                 ))}
@@ -311,19 +321,19 @@ export function Heute() {
         ) : (
           <p className="empty">
             <Icon name="clock" size={22} />
-            Für heute ist noch nichts erfasst.
+            {t('Für heute ist noch nichts erfasst.', 'Nothing recorded for today yet.')}
           </p>
         )}
       </section>
 
       <section className="section">
         <div className="section__head">
-          <h2>Prüfung</h2>
+          <h2>{t('Prüfung', 'Compliance check')}</h2>
           <span className="tag tag--muted">
             {day?.evaluation?.regime === 'kjbg'
-              ? 'KJBG — unter 18'
+              ? t('KJBG — unter 18', 'KJBG — under 18')
               : day?.evaluation?.regime === 'ausgenommen'
-                ? 'Vom AZG ausgenommen'
+                ? t('Vom AZG ausgenommen', 'Exempt from AZG')
                 : 'AZG'}
           </span>
         </div>
@@ -331,8 +341,11 @@ export function Heute() {
           findings={day?.evaluation?.findings ?? []}
           emptyText={
             day?.evaluation?.regime === 'ausgenommen'
-              ? 'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht (§ 1 Abs 2 AZG). Die Zeiten werden trotzdem aufgezeichnet.'
-              : 'Alles im Rahmen — keine Beanstandungen.'
+              ? t(
+                  'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht (§ 1 Abs 2 AZG). Die Zeiten werden trotzdem aufgezeichnet.',
+                  'The AZG working-time limits do not apply to this contract (§ 1 Abs 2 AZG). Hours are still recorded.',
+                )
+              : t('Alles im Rahmen — keine Beanstandungen.', 'All within limits — no issues.')
           }
         />
       </section>
@@ -347,12 +360,20 @@ const SEGMENT_LABEL: Record<string, string> = {
   oncall: 'Rufbereitschaft',
 };
 
-function greeting(now: Date): string {
+const SEGMENT_LABEL_EN: Record<string, string> = {
+  work: 'Working time',
+  break: 'Rest break',
+  travel: 'Travel time',
+  oncall: 'On call',
+};
+
+function greeting(now: Date, locale: Locale): string {
   const hour = now.getHours();
-  if (hour < 5) return 'Gute Nacht';
-  if (hour < 11) return 'Guten Morgen';
-  if (hour < 18) return 'Guten Tag';
-  return 'Guten Abend';
+  const en = locale === 'en';
+  if (hour < 5) return en ? 'Good night' : 'Gute Nacht';
+  if (hour < 11) return en ? 'Good morning' : 'Guten Morgen';
+  if (hour < 18) return en ? 'Good afternoon' : 'Guten Tag';
+  return en ? 'Good evening' : 'Guten Abend';
 }
 
 function greetingIcon(now: Date): 'sun' | 'moon' {

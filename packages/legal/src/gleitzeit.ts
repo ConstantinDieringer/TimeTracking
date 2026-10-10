@@ -105,6 +105,9 @@ export function checkFlexDailyLimit(day: DayWork, contract: Contract): RuleResul
       message: `${formatDuration(
         day.workMinutes - limit,
       )} h über der zehnten Stunde — die Gleitzeitvereinbarung sieht keinen ganztägigen Verbrauch von Zeitguthaben vor, diese Zeit ist daher Überstunde mit 50 % Zuschlag und keine Normalarbeitszeit.`,
+      messageEn: `${formatDuration(
+        day.workMinutes - limit,
+      )} h beyond the tenth hour — the flexitime agreement does not allow taking whole days off from the time credit, so this time is overtime with a 50 % premium, not normal working time.`,
     };
   }
 
@@ -118,6 +121,9 @@ export function checkFlexDailyLimit(day: DayWork, contract: Contract): RuleResul
     message: `${formatDuration(
       day.workMinutes - limit,
     )} h über der zwölften Stunde — darüber hinaus ist keine Normalarbeitszeit mehr möglich.`,
+    messageEn: `${formatDuration(
+      day.workMinutes - limit,
+    )} h beyond the twelfth hour — no further normal working time is possible.`,
   };
 }
 
@@ -143,6 +149,9 @@ export function checkFlexFrame(day: DayWork, contract: Contract): RuleResult | n
   const teile: string[] = [];
   if (beforeFrame) teile.push(`Beginn um ${formatClock(start)} vor ${agreement.frameStart}`);
   if (afterFrame) teile.push(`Ende um ${formatClock(end)} nach ${agreement.frameEnd}`);
+  const parts: string[] = [];
+  if (beforeFrame) parts.push(`Start at ${formatClock(start)} before ${agreement.frameStart}`);
+  if (afterFrame) parts.push(`${beforeFrame ? 'end' : 'End'} at ${formatClock(end)} after ${agreement.frameEnd}`);
 
   return {
     code: 'gleitzeit.rahmen',
@@ -152,6 +161,7 @@ export function checkFlexFrame(day: DayWork, contract: Contract): RuleResult | n
     actual: afterFrame ? end : start,
     limit: afterFrame ? frameEnd : frameStart,
     message: `${teile.join(', ')} — außerhalb des vereinbarten Gleitzeitrahmens.`,
+    messageEn: `${parts.join(', ')} — outside the agreed flexitime frame.`,
   };
 }
 
@@ -193,6 +203,12 @@ export function checkFlexCarry(
       })} h — ${formatDuration(ueber)} h über der Übertragsgrenze. Die Periode endet am ${formatDateShort(
         period.end,
       )}, ${daysLeft === 0 ? 'heute' : `noch ${daysLeft} Tage`} zum Abbau.`,
+      messageEn: `Time credit ${formatDuration(balanceMinutes, {
+        sign: true,
+      })} h — ${formatDuration(ueber)} h above the carry-over limit. The period ends on ${formatDateShort(
+        period.end,
+        'en',
+      )}, ${daysLeft === 0 ? 'today' : `${daysLeft} days left`} to reduce it.`,
     };
   }
 
@@ -209,6 +225,12 @@ export function checkFlexCarry(
         sign: true,
       })} h — ${formatDuration(unter)} h über der Übertragsgrenze. Die Periode endet am ${formatDateShort(
         period.end,
+      )}.`,
+      messageEn: `Time debit ${formatDuration(balanceMinutes, {
+        sign: true,
+      })} h — ${formatDuration(unter)} h beyond the carry-over limit. The period ends on ${formatDateShort(
+        period.end,
+        'en',
       )}.`,
     };
   }
@@ -227,6 +249,9 @@ export function checkFlexCarry(
       message: `Saldo ${formatDuration(balanceMinutes, {
         sign: true,
       })} h, Periodenende am ${formatDateShort(period.end)} — die Übertragsgrenze rückt näher.`,
+      messageEn: `Balance ${formatDuration(balanceMinutes, {
+        sign: true,
+      })} h, period ends on ${formatDateShort(period.end, 'en')} — approaching the carry-over limit.`,
     };
   }
 

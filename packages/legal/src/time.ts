@@ -18,7 +18,7 @@
  */
 
 import { TZDate } from '@date-fns/tz';
-import { TIMEZONE, type IsoDate, type Minutes, type Weekday } from './types.js';
+import { TIMEZONE, type IsoDate, type Locale, type Minutes, type Weekday } from './types.js';
 
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const HM_PATTERN = /^(\d{1,2}):(\d{2})$/;
@@ -260,26 +260,54 @@ const MONTH_LONG = [
   'Dezember',
 ] as const;
 
-export function weekdayShort(date: IsoDate): string {
-  return WEEKDAY_SHORT[weekdayOf(date) - 1]!;
+const WEEKDAY_SHORT_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+const WEEKDAY_LONG_EN = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
+const MONTH_LONG_EN = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+export function weekdayShort(date: IsoDate, locale: Locale = 'de'): string {
+  return (locale === 'en' ? WEEKDAY_SHORT_EN : WEEKDAY_SHORT)[weekdayOf(date) - 1]!;
 }
 
-export function weekdayLong(date: IsoDate): string {
-  return WEEKDAY_LONG[weekdayOf(date) - 1]!;
+export function weekdayLong(date: IsoDate, locale: Locale = 'de'): string {
+  return (locale === 'en' ? WEEKDAY_LONG_EN : WEEKDAY_LONG)[weekdayOf(date) - 1]!;
 }
 
-export function monthName(month: number): string {
-  return MONTH_LONG[month - 1]!;
+export function monthName(month: number, locale: Locale = 'de'): string {
+  return (locale === 'en' ? MONTH_LONG_EN : MONTH_LONG)[month - 1]!;
 }
 
-/** `14.09.2026` */
-export function formatDateShort(date: IsoDate): string {
+/** `14.09.2026`, englisch `14/09/2026` (Tag zuerst, wie in Europa üblich). */
+export function formatDateShort(date: IsoDate, locale: Locale = 'de'): string {
   const { year, month, day } = parseIsoDate(date);
-  return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+  const separator = locale === 'en' ? '/' : '.';
+  return [String(day).padStart(2, '0'), String(month).padStart(2, '0'), year].join(separator);
 }
 
-/** `Montag, 14. September 2026` */
-export function formatDateLong(date: IsoDate): string {
+/** `Montag, 14. September 2026`, englisch `Monday, 14 September 2026` */
+export function formatDateLong(date: IsoDate, locale: Locale = 'de'): string {
   const { year, month, day } = parseIsoDate(date);
-  return `${weekdayLong(date)}, ${day}. ${monthName(month)} ${year}`;
+  return locale === 'en'
+    ? `${weekdayLong(date, 'en')}, ${day} ${monthName(month, 'en')} ${year}`
+    : `${weekdayLong(date)}, ${day}. ${monthName(month)} ${year}`;
 }

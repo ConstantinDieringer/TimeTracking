@@ -50,6 +50,7 @@ export interface DayWork {
 export interface SegmentProblem {
   code: 'ende_vor_beginn' | 'ueberlappung' | 'ohne_ende';
   message: string;
+  messageEn: string;
   segment: TimeSegment;
 }
 
@@ -66,6 +67,7 @@ export function validateSegments(segments: readonly TimeSegment[]): SegmentProbl
       problems.push({
         code: 'ohne_ende',
         message: 'Das Segment hat kein Ende — es wurde vermutlich nicht ausgestempelt.',
+        messageEn: 'The segment has no end — probably nobody clocked out.',
         segment,
       });
       continue;
@@ -76,6 +78,7 @@ export function validateSegments(segments: readonly TimeSegment[]): SegmentProbl
       problems.push({
         code: 'ende_vor_beginn',
         message: 'Das Ende liegt vor dem Beginn oder gleichauf.',
+        messageEn: 'The end is before or equal to the start.',
         segment,
       });
       continue;
@@ -91,6 +94,7 @@ export function validateSegments(segments: readonly TimeSegment[]): SegmentProbl
       problems.push({
         code: 'ueberlappung',
         message: 'Das Segment überschneidet sich mit dem vorhergehenden.',
+        messageEn: 'The segment overlaps with the previous one.',
         segment: current.segment,
       });
     }

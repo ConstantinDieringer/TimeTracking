@@ -1,9 +1,12 @@
 import { formatClock, formatDateLong, localDateOf, localMinutesOfDay } from '@zeiterfassung/legal';
 import { useEffect, useState, type FormEvent } from 'react';
 import { LogoMark } from '../components/LogoMark';
+import { Sprachwahl } from '../components/Sprachwahl';
+import { useI18n } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 
 export function Login() {
+  const { t, locale } = useI18n();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 15_000);
@@ -28,8 +31,11 @@ export function Login() {
       // jede Adresse gleich und verrät daher nichts.
       setError(
         signInError.status === 429
-          ? 'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.'
-          : 'E-Mail-Adresse oder Passwort stimmen nicht.',
+          ? t(
+              'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.',
+              'Too many sign-in attempts. Please try again in a few minutes.',
+            )
+          : t('E-Mail-Adresse oder Passwort stimmen nicht.', 'Email address or password is incorrect.'),
       );
       setBusy(false);
     }
@@ -38,16 +44,22 @@ export function Login() {
   return (
     <main className="login">
       <form className="login__form" onSubmit={handleSubmit}>
+        <div className="login__language">
+          <Sprachwahl />
+        </div>
         <h1 className="login__title">
           <LogoMark size={40} />
           Zeiterfassung
         </h1>
         <p className="login__hint">
-          Zugänge legt die Personalverwaltung an. Bei Problemen dort melden.
+          {t(
+            'Zugänge legt die Personalverwaltung an. Bei Problemen dort melden.',
+            'Accounts are created by your HR administration. Please contact them if you have problems.',
+          )}
         </p>
 
         <div className="login__field">
-          <label htmlFor="email">E-Mail</label>
+          <label htmlFor="email">{t('E-Mail', 'Email')}</label>
           <input
             id="email"
             type="email"
@@ -59,7 +71,7 @@ export function Login() {
         </div>
 
         <div className="login__field">
-          <label htmlFor="password">Passwort</label>
+          <label htmlFor="password">{t('Passwort', 'Password')}</label>
           <input
             id="password"
             type="password"
@@ -81,35 +93,50 @@ export function Login() {
           type="submit"
           disabled={busy}
         >
-          {busy ? 'Wird geprüft …' : 'Anmelden'}
+          {busy ? t('Wird geprüft …', 'Checking …') : t('Anmelden', 'Sign in')}
         </button>
 
         <p className="login__help">
-          Passwort vergessen? Die Personalverwaltung setzt es zurück.
+          {t(
+            'Passwort vergessen? Die Personalverwaltung setzt es zurück.',
+            'Forgot your password? Your HR administration can reset it.',
+          )}
         </p>
       </form>
 
       {/* Die rechte Fläche blieb leer und wirkte unfertig. Jetzt steht dort,
           was man vor der Anmeldung wissen will — Datum, Uhrzeit, und was mit
           den eigenen Daten geschieht. Keine Werbung, keine Illustration. */}
-      <aside className="login__aside" aria-label="Hinweise">
-        <p className="login__date">{formatDateLong(localDateOf(now))}</p>
+      <aside className="login__aside" aria-label={t('Hinweise', 'Notes')}>
+        <p className="login__date">{formatDateLong(localDateOf(now), locale)}</p>
         <p className="login__clock">{formatClock(localMinutesOfDay(now))}</p>
         <dl className="login__facts">
           <div>
-            <dt>Aufzeichnung</dt>
-            <dd>Arbeitszeiten und Pausen nach § 26 AZG, mit laufender Prüfung der Höchstgrenzen.</dd>
-          </div>
-          <div>
-            <dt>Ihre Daten</dt>
+            <dt>{t('Aufzeichnung', 'Records')}</dt>
             <dd>
-              Sie sehen nur Ihre eigenen Zeiten, die Verwaltung nur die ihres Unternehmens.
-              Gespeichert wird in der EU.
+              {t(
+                'Arbeitszeiten und Pausen nach § 26 AZG, mit laufender Prüfung der Höchstgrenzen.',
+                'Working hours and breaks under § 26 AZG, continuously checked against the legal limits.',
+              )}
             </dd>
           </div>
           <div>
-            <dt>Nachvollziehbar</dt>
-            <dd>Jede Korrektur wird mit Zeitpunkt und Person protokolliert.</dd>
+            <dt>{t('Ihre Daten', 'Your data')}</dt>
+            <dd>
+              {t(
+                'Sie sehen nur Ihre eigenen Zeiten, die Verwaltung nur die ihres Unternehmens. Gespeichert wird in der EU.',
+                'You only see your own hours; administrators only see those of their company. Data is stored in the EU.',
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t('Nachvollziehbar', 'Traceable')}</dt>
+            <dd>
+              {t(
+                'Jede Korrektur wird mit Zeitpunkt und Person protokolliert.',
+                'Every correction is logged with time and person.',
+              )}
+            </dd>
           </div>
         </dl>
       </aside>

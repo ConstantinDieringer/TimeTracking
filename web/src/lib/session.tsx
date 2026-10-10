@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { isLocale, useI18n } from './i18n';
 import { supabase, type OrganizationRow, type ProfileRow } from './supabase';
 
 interface SessionState {
@@ -97,6 +98,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/**
+ * Gleicht die Sprache mit dem Konto ab. Eine ausdrückliche Wahl in diesem
+ * Browser gilt und wird ins Konto geschrieben; ohne sie übernimmt die
+ * Oberfläche die Sprache aus dem Konto, etwa auf einem neuen Gerät. Supabase
+ * liest `user_metadata.locale` für die Sprache der E-Mails.
+ */
+export function LocaleSync() {
+  const { session } = useSession();
+  const { locale, chosen, adoptLocale } = useI18n();
+  const userId = session?.user.id;
+  const accountLocale: unknown = session?.user.user_metadata?.locale;
+
+  useEffect(() => {
+    if (!userId) return;
+    if (!chosen && isLocale(accountLocale)) {
+      if (accountLocale !== locale) adoptLocale(accountLocale);
+      return;
+    }
+    if (accountLocale !== locale) {
+      void supabase.auth.updateUser({ data: { locale } });
+    }
+  }, [userId, accountLocale, locale, chosen, adoptLocale]);
+
+  return null;
 }
 
 export function useSession(): SessionState {

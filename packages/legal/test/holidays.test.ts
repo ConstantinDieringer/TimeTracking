@@ -42,7 +42,7 @@ describe('Gesetzliche Feiertage nach § 7 ARG', () => {
   });
 
   it('stimmt für 2026 vollständig mit der amtlichen Liste überein', () => {
-    expect(statutoryHolidays(2026)).toEqual([
+    expect(statutoryHolidays(2026).map(({ date, name, statutory }) => ({ date, name, statutory }))).toEqual([
       { date: '2026-01-01', name: 'Neujahr', statutory: true },
       { date: '2026-01-06', name: 'Heilige Drei Könige', statutory: true },
       { date: '2026-04-06', name: 'Ostermontag', statutory: true },

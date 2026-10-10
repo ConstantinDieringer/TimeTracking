@@ -23,12 +23,14 @@ import type { AustrianState, IsoDate } from './types.js';
 export interface Holiday {
   date: IsoDate;
   name: string;
+  nameEn: string;
   /** `true` nur bei den 13 Feiertagen des § 7 ARG. */
   statutory: boolean;
   /** Bei Landesfeiertagen: in welchen Bundesländern sie begangen werden. */
   states?: AustrianState[];
   /** Erläuterung, die in der Oberfläche mitläuft. */
   note?: string;
+  noteEn?: string;
 }
 
 /**
@@ -58,19 +60,19 @@ export function statutoryHolidays(year: number): Holiday[] {
   const easter = easterSunday(year);
 
   const holidays: Holiday[] = [
-    { date: formatIsoDate({ year, month: 1, day: 1 }), name: 'Neujahr', statutory: true },
-    { date: formatIsoDate({ year, month: 1, day: 6 }), name: 'Heilige Drei Könige', statutory: true },
-    { date: addDays(easter, 1), name: 'Ostermontag', statutory: true },
-    { date: formatIsoDate({ year, month: 5, day: 1 }), name: 'Staatsfeiertag', statutory: true },
-    { date: addDays(easter, 39), name: 'Christi Himmelfahrt', statutory: true },
-    { date: addDays(easter, 50), name: 'Pfingstmontag', statutory: true },
-    { date: addDays(easter, 60), name: 'Fronleichnam', statutory: true },
-    { date: formatIsoDate({ year, month: 8, day: 15 }), name: 'Mariä Himmelfahrt', statutory: true },
-    { date: formatIsoDate({ year, month: 10, day: 26 }), name: 'Nationalfeiertag', statutory: true },
-    { date: formatIsoDate({ year, month: 11, day: 1 }), name: 'Allerheiligen', statutory: true },
-    { date: formatIsoDate({ year, month: 12, day: 8 }), name: 'Mariä Empfängnis', statutory: true },
-    { date: formatIsoDate({ year, month: 12, day: 25 }), name: 'Christtag', statutory: true },
-    { date: formatIsoDate({ year, month: 12, day: 26 }), name: 'Stefanitag', statutory: true },
+    { date: formatIsoDate({ year, month: 1, day: 1 }), name: 'Neujahr', nameEn: "New Year's Day", statutory: true },
+    { date: formatIsoDate({ year, month: 1, day: 6 }), name: 'Heilige Drei Könige', nameEn: "Epiphany", statutory: true },
+    { date: addDays(easter, 1), name: 'Ostermontag', nameEn: "Easter Monday", statutory: true },
+    { date: formatIsoDate({ year, month: 5, day: 1 }), name: 'Staatsfeiertag', nameEn: "Labour Day", statutory: true },
+    { date: addDays(easter, 39), name: 'Christi Himmelfahrt', nameEn: "Ascension Day", statutory: true },
+    { date: addDays(easter, 50), name: 'Pfingstmontag', nameEn: "Whit Monday", statutory: true },
+    { date: addDays(easter, 60), name: 'Fronleichnam', nameEn: "Corpus Christi", statutory: true },
+    { date: formatIsoDate({ year, month: 8, day: 15 }), name: 'Mariä Himmelfahrt', nameEn: "Assumption Day", statutory: true },
+    { date: formatIsoDate({ year, month: 10, day: 26 }), name: 'Nationalfeiertag', nameEn: "National Day", statutory: true },
+    { date: formatIsoDate({ year, month: 11, day: 1 }), name: 'Allerheiligen', nameEn: "All Saints' Day", statutory: true },
+    { date: formatIsoDate({ year, month: 12, day: 8 }), name: 'Mariä Empfängnis', nameEn: "Immaculate Conception", statutory: true },
+    { date: formatIsoDate({ year, month: 12, day: 25 }), name: 'Christtag', nameEn: "Christmas Day", statutory: true },
+    { date: formatIsoDate({ year, month: 12, day: 26 }), name: 'Stefanitag', nameEn: "St. Stephen's Day", statutory: true },
   ];
 
   holidays.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -87,44 +89,50 @@ export function observances(year: number): Holiday[] {
   return [
     {
       date: addDays(easter, -2),
-      name: 'Karfreitag',
+      name: 'Karfreitag', nameEn: "Good Friday",
       statutory: false,
       note: 'Seit 2019 kein gesetzlicher Feiertag. An seine Stelle trat der persönliche Feiertag nach § 7a ARG.',
+      noteEn: 'No longer a public holiday since 2019. It was replaced by the personal holiday under § 7a ARG.',
     },
     {
       date: formatIsoDate({ year, month: 3, day: 19 }),
-      name: 'Hl. Josef',
+      name: 'Hl. Josef', nameEn: "St. Joseph's Day",
       statutory: false,
       states: ['K', 'ST', 'T', 'V'],
       note: 'Landesfeiertag — kein gesetzlicher Feiertag nach § 7 ARG, kein Anspruch auf Feiertagsentgelt.',
+      noteEn: 'Regional holiday — not a public holiday under § 7 ARG, no entitlement to holiday pay.',
     },
     {
       date: formatIsoDate({ year, month: 5, day: 4 }),
-      name: 'Hl. Florian',
+      name: 'Hl. Florian', nameEn: "St. Florian's Day",
       statutory: false,
       states: ['OO'],
       note: 'Landesfeiertag — kein gesetzlicher Feiertag nach § 7 ARG, kein Anspruch auf Feiertagsentgelt.',
+      noteEn: 'Regional holiday — not a public holiday under § 7 ARG, no entitlement to holiday pay.',
     },
     {
       date: formatIsoDate({ year, month: 9, day: 24 }),
-      name: 'Hl. Rupert',
+      name: 'Hl. Rupert', nameEn: "St. Rupert's Day",
       statutory: false,
       states: ['S'],
       note: 'Landesfeiertag — kein gesetzlicher Feiertag nach § 7 ARG, kein Anspruch auf Feiertagsentgelt.',
+      noteEn: 'Regional holiday — not a public holiday under § 7 ARG, no entitlement to holiday pay.',
     },
     {
       date: formatIsoDate({ year, month: 11, day: 11 }),
-      name: 'Hl. Martin',
+      name: 'Hl. Martin', nameEn: "St. Martin's Day",
       statutory: false,
       states: ['B'],
       note: 'Landesfeiertag — kein gesetzlicher Feiertag nach § 7 ARG, kein Anspruch auf Feiertagsentgelt.',
+      noteEn: 'Regional holiday — not a public holiday under § 7 ARG, no entitlement to holiday pay.',
     },
     {
       date: formatIsoDate({ year, month: 11, day: 15 }),
-      name: 'Hl. Leopold',
+      name: 'Hl. Leopold', nameEn: "St. Leopold's Day",
       statutory: false,
       states: ['W', 'NO'],
       note: 'Landesfeiertag — kein gesetzlicher Feiertag nach § 7 ARG, kein Anspruch auf Feiertagsentgelt.',
+      noteEn: 'Regional holiday — not a public holiday under § 7 ARG, no entitlement to holiday pay.',
     },
   ];
 }

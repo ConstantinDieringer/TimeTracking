@@ -47,6 +47,7 @@ export function checkMinorDailyMaximum(day: DayWork): RuleResult {
       actual: day.workMinutes,
       limit: MINOR_MAX_DAILY_MINUTES,
       message: `Tagesarbeitszeit ${formatDuration(day.workMinutes)} h — für Jugendliche unter 18 sind höchstens 9 Stunden zulässig, und das nur bei anderer Verteilung der Wochenarbeitszeit.`,
+      messageEn: `Daily working time ${formatDuration(day.workMinutes)} h — young people under 18 may work at most 9 hours, and only if the weekly hours are distributed differently.`,
     };
   }
 
@@ -59,6 +60,7 @@ export function checkMinorDailyMaximum(day: DayWork): RuleResult {
       actual: day.workMinutes,
       limit: MINOR_NORMAL_DAILY_MINUTES,
       message: `Tagesarbeitszeit ${formatDuration(day.workMinutes)} h — über 8 Stunden nur zulässig, wenn die Wochenarbeitszeit anders verteilt ist, etwa zur Verlängerung der Wochenendruhe.`,
+      messageEn: `Daily working time ${formatDuration(day.workMinutes)} h — more than 8 hours is only allowed if the weekly hours are distributed differently, e.g. to extend the weekend rest.`,
     };
   }
 
@@ -70,6 +72,7 @@ export function checkMinorDailyMaximum(day: DayWork): RuleResult {
     actual: day.workMinutes,
     limit: MINOR_NORMAL_DAILY_MINUTES,
     message: `Tagesarbeitszeit ${formatDuration(day.workMinutes)} h.`,
+    messageEn: `Daily working time ${formatDuration(day.workMinutes)} h.`,
   };
 }
 
@@ -84,6 +87,7 @@ export function checkMinorBreak(day: DayWork): RuleResult {
       actual: day.breakMinutes,
       limit: 0,
       message: `Arbeitszeit ${formatDuration(day.workMinutes)} h — keine Ruhepause vorgeschrieben.`,
+      messageEn: `Working time ${formatDuration(day.workMinutes)} h — no rest break required.`,
     };
   }
 
@@ -100,6 +104,9 @@ export function checkMinorBreak(day: DayWork): RuleResult {
       message: `Keine zusammenhängende Ruhepause von 30 Minuten bei ${formatDuration(
         day.workMinutes,
       )} h Arbeitszeit — für Jugendliche ist sie spätestens nach 6 Stunden zu gewähren und darf nicht geteilt werden.`,
+      messageEn: `No continuous 30-minute rest break with ${formatDuration(
+        day.workMinutes,
+      )} h of work — young people must get it after 6 hours at the latest, and it may not be split.`,
     };
   }
 
@@ -112,6 +119,7 @@ export function checkMinorBreak(day: DayWork): RuleResult {
       actual: day.breakMinutes,
       limit: MINOR_MIN_BREAK_MINUTES,
       message: `Ab viereinhalb Stunden besteht Anspruch auf 30 Minuten Ruhepause — bisher sind ${day.breakMinutes} Minuten erfasst.`,
+      messageEn: `From four and a half hours of work, a 30-minute rest break is due — so far ${day.breakMinutes} minutes are recorded.`,
     };
   }
 
@@ -123,6 +131,7 @@ export function checkMinorBreak(day: DayWork): RuleResult {
     actual: day.breakMinutes,
     limit: MINOR_MIN_BREAK_MINUTES,
     message: `Ruhepause ${day.breakMinutes} Minuten.`,
+    messageEn: `Rest break of ${day.breakMinutes} minutes.`,
   };
 }
 
@@ -139,6 +148,9 @@ export function checkMinorNightBan(day: DayWork): RuleResult | null {
   const teile: string[] = [];
   if (tooEarly) teile.push(`Beginn um ${formatClock(start)}`);
   if (tooLate) teile.push(`Ende um ${formatClock(end)}`);
+  const parts: string[] = [];
+  if (tooEarly) parts.push(`start at ${formatClock(start)}`);
+  if (tooLate) parts.push(`end at ${formatClock(end)}`);
 
   return {
     code: 'kjbg.nachtarbeit',
@@ -148,6 +160,7 @@ export function checkMinorNightBan(day: DayWork): RuleResult | null {
     actual: tooLate ? end : start,
     limit: tooLate ? MINOR_NIGHT_BAN_START : MINOR_NIGHT_BAN_END,
     message: `${teile.join(', ')} — Jugendliche dürfen zwischen 20:00 und 06:00 nicht beschäftigt werden.`,
+    messageEn: `${parts.join(', ').replace(/^./, (c) => c.toUpperCase())} — young people may not work between 20:00 and 06:00.`,
   };
 }
 
@@ -171,6 +184,9 @@ export function checkMinorNightRest(previousDay: DayWork | null, day: DayWork): 
     message: short
       ? `Nachtruhe ${formatDuration(rest)} h — für Jugendliche sind 12 Stunden vorgeschrieben.`
       : `Nachtruhe ${formatDuration(rest)} h.`,
+    messageEn: short
+      ? `Night rest of ${formatDuration(rest)} h — young people require 12 hours.`
+      : `Night rest of ${formatDuration(rest)} h.`,
   };
 }
 
@@ -187,6 +203,7 @@ export function checkMinorWeeklyMaximum(days: readonly DayWork[], weekStart: Iso
       actual: total,
       limit: MINOR_MAX_WEEKLY_MINUTES,
       message: `Wochenarbeitszeit ${formatDuration(total)} h — für Jugendliche sind höchstens 45 Stunden in einzelnen Wochen zulässig.`,
+      messageEn: `Weekly working time ${formatDuration(total)} h — young people may work at most 45 hours in individual weeks.`,
     };
   }
 
@@ -199,6 +216,7 @@ export function checkMinorWeeklyMaximum(days: readonly DayWork[], weekStart: Iso
       actual: total,
       limit: MINOR_NORMAL_WEEKLY_MINUTES,
       message: `Wochenarbeitszeit ${formatDuration(total)} h — über 40 Stunden nur bei zulässiger anderer Verteilung.`,
+      messageEn: `Weekly working time ${formatDuration(total)} h — more than 40 hours only with a permitted different distribution.`,
     };
   }
 
@@ -210,6 +228,7 @@ export function checkMinorWeeklyMaximum(days: readonly DayWork[], weekStart: Iso
     actual: total,
     limit: MINOR_NORMAL_WEEKLY_MINUTES,
     message: `Wochenarbeitszeit ${formatDuration(total)} h.`,
+    messageEn: `Weekly working time ${formatDuration(total)} h.`,
   };
 }
 
@@ -240,6 +259,7 @@ export function checkMinorWeekendRest(days: readonly DayWork[], weekStart: IsoDa
       actual: freeDays.length,
       limit: 2,
       message: 'Der Sonntag ist nicht frei — Jugendliche haben Anspruch auf zwei zusammenhängende freie Tage, darunter jedenfalls den Sonntag.',
+      messageEn: 'Sunday is not free — young people are entitled to two consecutive days off, which must include Sunday.',
     };
   }
 
@@ -252,6 +272,7 @@ export function checkMinorWeekendRest(days: readonly DayWork[], weekStart: IsoDa
       actual: freeDays.length,
       limit: 2,
       message: 'Nur der Sonntag ist frei — es fehlt der zweite, zusammenhängende freie Tag.',
+      messageEn: 'Only Sunday is free — the second consecutive day off is missing.',
     };
   }
 
@@ -263,6 +284,7 @@ export function checkMinorWeekendRest(days: readonly DayWork[], weekStart: IsoDa
     actual: freeDays.length,
     limit: 2,
     message: 'Zwei zusammenhängende freie Tage einschließlich Sonntag.',
+    messageEn: 'Two consecutive days off including Sunday.',
   };
 }
 
@@ -283,5 +305,8 @@ export function checkMinorOvertimeBan(weeklyMinutes: Minutes, weekStart: IsoDate
     message: `${formatDuration(
       weeklyMinutes - MINOR_NORMAL_WEEKLY_MINUTES,
     )} h über 40 Stunden — Jugendliche dürfen zu Überstunden nur in den engen Ausnahmen des § 20 KJBG herangezogen werden.`,
+    messageEn: `${formatDuration(
+      weeklyMinutes - MINOR_NORMAL_WEEKLY_MINUTES,
+    )} h above 40 hours — young people may only be asked to work overtime within the narrow exceptions of § 20 KJBG.`,
   };
 }

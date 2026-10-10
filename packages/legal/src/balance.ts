@@ -28,12 +28,13 @@ import {
 import type { DayWork } from './work.js';
 import {
   ABSENCE_IS_PAID,
-  ABSENCE_LABEL,
+  absenceLabel,
   ABSENCE_CONSUMES_VACATION,
   type Absence,
   type Contract,
   type Employee,
   type IsoDate,
+  type Locale,
   type Minutes,
   type RuleResult,
 } from './types.js';
@@ -518,6 +519,7 @@ export function checkPersonalHoliday(
       actual: inYear.length,
       limit: 1,
       message: `${inYear.length} persönliche Feiertage in ${year} — zulässig ist einer pro Kalenderjahr.`,
+      messageEn: `${inYear.length} personal holidays in ${year} — only one per calendar year is allowed.`,
     };
   }
 
@@ -533,6 +535,7 @@ export function checkPersonalHoliday(
       actual: noticeDays,
       limit: 90,
       message: `Ankündigung ${noticeDays} Tage im Voraus — § 7a ARG verlangt drei Monate. Ohne Frist ist der Arbeitgeber nicht gebunden.`,
+      messageEn: `Announced ${noticeDays} days in advance — § 7a ARG requires three months. Without this notice the employer is not bound.`,
     };
   }
 
@@ -569,6 +572,11 @@ export function checkGeringfuegigkeit(contract: Contract, month: IsoDate): RuleR
       )} — das Dienstverhältnis ist voll versicherungspflichtig.${
         hasGeringfuegigkeitsgrenze(year) ? '' : ` Für ${year} ist noch kein Wert hinterlegt, verwendet wird der zuletzt bekannte.`
       }`,
+      messageEn: `Monthly pay ${euro(gross)} is above the marginal-employment threshold of ${euro(
+        limit,
+      )} — the employment is fully subject to social insurance.${
+        hasGeringfuegigkeitsgrenze(year) ? '' : ` No value is stored for ${year} yet; the most recent one is used.`
+      }`,
     };
   }
 
@@ -581,6 +589,7 @@ export function checkGeringfuegigkeit(contract: Contract, month: IsoDate): RuleR
       actual: gross,
       limit,
       message: `Monatsentgelt ${euro(gross)} — die Geringfügigkeitsgrenze von ${euro(limit)} ist nahe.`,
+      messageEn: `Monthly pay ${euro(gross)} — close to the marginal-employment threshold of ${euro(limit)}.`,
     };
   }
 
@@ -597,7 +606,8 @@ export function describeBalance(minutes: Minutes): string {
 }
 
 /** Beschriftung einer Abwesenheit für Listen und Exporte. */
-export function describeAbsence(absence: Absence): string {
-  const label = ABSENCE_LABEL[absence.kind];
-  return absence.halfDay ? `${label} (halbtägig)` : label;
+export function describeAbsence(absence: Absence, locale: Locale = 'de'): string {
+  const label = absenceLabel(absence.kind, locale);
+  if (!absence.halfDay) return label;
+  return locale === 'en' ? `${label} (half day)` : `${label} (halbtägig)`;
 }

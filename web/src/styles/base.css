@@ -332,6 +332,52 @@ legend + * {
   }
 }
 
+/* Sprachwahl: dieselbe Schiene wie .segmented, nur klein genug für die
+ * Kopfleiste und die Anmeldeseite. */
+.language-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-muted);
+  border: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.language-switch button {
+  min-width: 2.25rem;
+  min-height: 1.75rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.language-switch button:hover {
+  color: var(--ink);
+}
+
+.language-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.language-switch button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* --- Layout -------------------------------------------------------------- */
 
 .app {
