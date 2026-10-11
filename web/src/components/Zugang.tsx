@@ -72,14 +72,14 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
     }
   }
 
+  // Zweistufig: der rote Knopf öffnet nur die Bestätigung. Übertragen wird
+  // erst, wenn der Name der Person eingetippt ist — ein Fehlklick reicht nicht.
+  const [confirming, setConfirming] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+  const nameMatches = confirmName.trim().toLowerCase() === displayName.trim().toLowerCase();
+
   async function transferOwnership() {
-    if (
-      !window.confirm(
-        `Die Inhaberschaft an ${displayName} übertragen? Sie bleiben Administrator, können die Übertragung aber nicht selbst rückgängig machen.`,
-      )
-    ) {
-      return;
-    }
+    if (!nameMatches) return;
     setBusy(true);
     setError(null);
     const { error: rpcError } = await supabase.rpc('transfer_ownership', {
@@ -88,6 +88,8 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
     setBusy(false);
     if (rpcError) setError(rpcError.message);
     else {
+      setConfirming(false);
+      setConfirmName('');
       toast.show('success', 'Inhaberschaft übertragen', `${displayName} ist jetzt Inhaber.`);
       await afterChange();
     }
@@ -128,17 +130,63 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
             Die Verwaltung sieht und bearbeitet alle Mitarbeiter, Verträge und Zeiten dieses
             Unternehmens. Den Inhaber kann sie nicht herabstufen.
           </p>
-          {isOwner && access.data.active && (
+          {isOwner && access.data.active && !confirming && (
             <div className="row">
               <button
-                className="button"
+                className="button button--destructive"
                 type="button"
                 disabled={busy}
-                onClick={() => void transferOwnership()}
+                onClick={() => setConfirming(true)}
               >
                 Inhaberschaft übertragen
               </button>
             </div>
+          )}
+          {isOwner && access.data.active && confirming && (
+            <form
+              className="confirm-box"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void transferOwnership();
+              }}
+            >
+              <p className="confirm-box__title">Inhaberschaft an {displayName} übertragen?</p>
+              <p>
+                {displayName} wird Inhaber dieses Unternehmens. Sie bleiben Administrator, können
+                die Übertragung aber <strong>nicht selbst rückgängig machen</strong> — zurückgeben
+                kann sie nur der neue Inhaber.
+              </p>
+              <label htmlFor="z-bestaetigen">
+                Zur Bestätigung den Namen eintippen: <strong>{displayName}</strong>
+              </label>
+              <input
+                id="z-bestaetigen"
+                autoComplete="off"
+                value={confirmName}
+                onChange={(event) => setConfirmName(event.target.value)}
+                autoFocus
+              />
+              <div className="row">
+                <button
+                  className="button button--destructive"
+                  type="submit"
+                  disabled={busy || !nameMatches}
+                >
+                  {busy ? 'Wird übertragen …' : 'Endgültig übertragen'}
+                </button>
+                <button
+                  className="button"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setConfirming(false);
+                    setConfirmName('');
+                  }}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </form>
           )}
         </>
       )}

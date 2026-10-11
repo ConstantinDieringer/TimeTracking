@@ -262,6 +262,50 @@ legend + * {
   color: var(--violation);
 }
 
+/* Folgenschwere Aktion, die sich nicht selbst rückgängig machen lässt —
+ * etwa die Inhaberschaft übertragen. Rot gefüllt, damit sie niemand mit einer
+ * Alltagsaktion verwechselt. */
+.button--destructive {
+  background: var(--violation);
+  border-color: var(--violation);
+  color: #fff;
+}
+
+.button--destructive:hover:not(:disabled) {
+  background: #991b1b;
+  border-color: #991b1b;
+  color: #fff;
+}
+
+.button--destructive:disabled {
+  background: var(--violation-line);
+  border-color: var(--violation-line);
+  color: #fff;
+}
+
+.confirm-box {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--violation-soft);
+  border: 1px solid var(--violation-line);
+  border-radius: var(--radius-lg);
+}
+
+.confirm-box__title {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--violation);
+}
+
+.confirm-box p {
+  margin: 0 0 var(--space-3);
+}
+
+.confirm-box input {
+  max-width: 24rem;
+  margin-bottom: var(--space-3);
+}
+
 /* Die Hauptaktion einer Seite — Kommen, Gehen. */
 .button--large {
   min-height: 3rem;
