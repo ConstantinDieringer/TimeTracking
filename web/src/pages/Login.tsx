@@ -27,6 +27,8 @@ export function Login() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
+      // Nur in der Entwicklung: der genaue Grund, den die Maske verschweigt.
+      if (import.meta.env.DEV) console.error('Anmeldung fehlgeschlagen', signInError.status, signInError.code, signInError.message);
       // Bewusst ohne Unterscheidung, ob die Adresse existiert: sonst ließe
       // sich über die Anmeldemaske herausfinden, wer hier beschäftigt ist.
       // Nur die Sperre nach zu vielen Versuchen wird genannt — sie gilt für

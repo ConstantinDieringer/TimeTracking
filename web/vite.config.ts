@@ -98,6 +98,13 @@ export default defineConfig(({ command, mode }) => {
   // letzte funktionierende Version online. Beim Hoster (Cloudflare: Settings
   // → Builds → Variables and secrets) als Build-Variablen setzen, nicht als
   // Laufzeitvariablen — Vite schreibt sie beim Bauen ins Bündel.
+  // Supabase-Projekte liegen unter .supabase.co. Ein angehängtes „m“ fällt
+  // beim Lesen kaum auf, lässt aber jede Anmeldung mit „Failed to fetch“
+  // scheitern — und die Maske meldet dann nur „Passwort stimmt nicht“.
+  if (supabaseUrl && /\.supabase\.com\/?$/.test(supabaseUrl)) {
+    throw new Error(`VITE_SUPABASE_URL endet auf .supabase.com, richtig ist .supabase.co: ${supabaseUrl}`);
+  }
+
   if (command === 'build') {
     const missing = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'].filter((name) => !env[name]);
     if (missing.length > 0) {
