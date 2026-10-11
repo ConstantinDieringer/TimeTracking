@@ -1,5 +1,6 @@
 import { formatClock, formatDateLong, localDateOf, localMinutesOfDay } from '@zeiterfassung/legal';
 import { useEffect, useState, type FormEvent } from 'react';
+import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { Sprachwahl } from '../components/Sprachwahl';
 import { useI18n } from '../lib/i18n';
@@ -15,6 +16,7 @@ export function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -72,14 +74,29 @@ export function Login() {
 
         <div className="login__field">
           <label htmlFor="password">{t('Passwort', 'Password')}</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <div className="password-field">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+            <button
+              type="button"
+              className="password-field__toggle"
+              onClick={() => setShowPassword((shown) => !shown)}
+              aria-pressed={showPassword}
+              aria-controls="password"
+              aria-label={
+                showPassword ? t('Passwort verbergen', 'Hide password') : t('Passwort anzeigen', 'Show password')
+              }
+              title={showPassword ? t('Passwort verbergen', 'Hide password') : t('Passwort anzeigen', 'Show password')}
+            >
+              <Icon name={showPassword ? 'eyeOff' : 'eye'} />
+            </button>
+          </div>
         </div>
 
         {error && (

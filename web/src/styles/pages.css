@@ -43,6 +43,35 @@
   margin-bottom: var(--space-4);
 }
 
+/* Passwortfeld mit Knopf zum Anzeigen: der Knopf sitzt im Feld, rechts. */
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: calc(var(--control-height) + var(--space-1));
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: var(--control-height);
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.password-field__toggle:hover {
+  color: var(--accent);
+}
+
 .login__submit {
   margin-top: var(--space-2);
   align-self: stretch;
