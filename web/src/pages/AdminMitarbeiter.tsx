@@ -397,7 +397,6 @@ export function AdminMitarbeiter() {
           auch nicht aus der Verwaltung heraus. Erfasst Zeiten, Abwesenheiten, Verträge,
           Stammdaten einschließlich Rolle und Deaktivierung, Dienstverträge und den Zugang; je
           Eintrag, wer geändert hat, und jeden geänderten Wert vorher (durchgestrichen) und nachher.
-          Zeiten in Wiener Ortszeit.
         </p>
         <div className="table-scroll">
           <table className="protokoll">
