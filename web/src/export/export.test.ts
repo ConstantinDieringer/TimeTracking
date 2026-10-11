@@ -84,7 +84,7 @@ const days: TimesheetDay[] = [
     segment('2026-10-27', '12:30', '13:00', 'break'),
     segment('2026-10-27', '13:00', '17:04'),
   ]),
-  // Ein Verstoß, damit der Abschnitt „Beanstandungen" mitgezeichnet wird.
+  // Ein Verstoß, damit der Abschnitt mit den Verstößen mitgezeichnet wird.
   buildDay('2026-10-28', [segment('2026-10-28', '08:00', '14:30')]),
 ];
 

@@ -1272,7 +1272,7 @@ tr.is-today td {
   margin-right: var(--space-2);
 }
 
-/* Keine Beanstandungen ist eine gute Nachricht. */
+/* Alle Regeln eingehalten ist eine gute Nachricht. */
 .all-clear {
   display: flex;
   align-items: center;

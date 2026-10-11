@@ -345,7 +345,7 @@ export function Heute() {
                   'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht (§ 1 Abs 2 AZG). Die Zeiten werden trotzdem aufgezeichnet.',
                   'The AZG working-time limits do not apply to this contract (§ 1 Abs 2 AZG). Hours are still recorded.',
                 )
-              : t('Alles im Rahmen — keine Beanstandungen.', 'All within limits — no issues.')
+              : t('Alles im Rahmen — alle Arbeitszeitregeln eingehalten.', 'All within limits — all working-time rules met.')
           }
         />
       </section>

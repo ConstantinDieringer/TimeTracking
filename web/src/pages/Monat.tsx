@@ -305,7 +305,7 @@ export function Monat() {
           <h2>Prüfung</h2>
           <span className="meta">{findings.length} Befunde</span>
         </div>
-        <Findings findings={findings} showDate emptyText="Keine Beanstandungen in diesem Monat." />
+        <Findings findings={findings} showDate emptyText="In diesem Monat wurden alle Arbeitszeitregeln eingehalten." />
       </section>
 
       <section className="section">

@@ -368,7 +368,7 @@ export function AdminMitarbeiter() {
             </dd>
           </div>
         </dl>
-        <Findings findings={findings} showDate emptyText="Keine Beanstandungen in diesem Monat." />
+        <Findings findings={findings} showDate emptyText="In diesem Monat wurden alle Arbeitszeitregeln eingehalten." />
       </section>
 
       <section className="section">
