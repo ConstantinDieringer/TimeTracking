@@ -11,7 +11,7 @@ import {
   type AustrianState,
   type Contract,
 } from '@zeiterfassung/legal';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Dienstvertraege } from '../components/Dienstvertraege';
@@ -24,7 +24,8 @@ import { VertragsForm } from '../components/VertragsForm';
 import { Urlaubskonto } from '../components/Urlaubskonto';
 import { Zugang } from '../components/Zugang';
 import { contractOn } from '../lib/mapping';
-import { useAuditLog, useContracts, useEmployee, useTimesheet } from '../lib/queries';
+import { changedByLabel, describeEntry, type Lookups } from '../lib/protokoll';
+import { useAllEmployees, useAuditLog, useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { supabase, type Tables } from '../lib/supabase';
 import { collectFindings } from '../lib/timesheet';
 
@@ -44,6 +45,21 @@ export function AdminMitarbeiter() {
   const employee = useEmployee(employeeId);
   const contracts = useContracts(employeeId);
   const audit = useAuditLog(employeeId, 60);
+  const people = useAllEmployees(true);
+  // Alle Vertragsarten, auch archivierte: alte Einträge verweisen auf sie.
+  const allContractTypes = useQuery({
+    queryKey: ['contract-types', 'alle'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('contract_types').select('id, label');
+      if (error) throw error;
+      return data;
+    },
+  });
+  const lookups: Lookups = {
+    names: new Map((people.data ?? []).map((person) => [person.id, person.display_name])),
+    contractTypes: new Map((allContractTypes.data ?? []).map((type) => [type.id, type.label])),
+  };
   const { timesheet } = useTimesheet({ employeeId, from, to });
 
   const monthDays = timesheet?.days.filter((day) => day.date >= from && day.date <= to) ?? [];
@@ -377,111 +393,81 @@ export function AdminMitarbeiter() {
           <span className="meta">Letzte {audit.data?.length ?? 0} Einträge</span>
         </div>
         <p className="muted">
-          Wird von einem Datenbank-Trigger geschrieben und lässt sich weder ändern noch löschen —
-          auch nicht aus der Verwaltung heraus. Erfasst Zeiten, Abwesenheiten, Verträge und
-          Stammdaten einschließlich Rolle und Deaktivierung.
+          Wird von der Datenbank selbst geschrieben und lässt sich weder ändern noch löschen —
+          auch nicht aus der Verwaltung heraus. Erfasst Zeiten, Abwesenheiten, Verträge,
+          Stammdaten einschließlich Rolle und Deaktivierung, Dienstverträge und den Zugang; je
+          Eintrag, wer geändert hat, und jeden geänderten Wert vorher (durchgestrichen) und nachher.
+          Zeiten in Wiener Ortszeit.
         </p>
         <div className="table-scroll">
-          <table>
+          <table className="protokoll">
             <thead>
               <tr>
                 <th>Zeitpunkt</th>
-                <th>Tabelle</th>
-                <th>Vorgang</th>
-                <th className="grow">Änderung</th>
+                <th>Von</th>
+                <th>Bereich</th>
+                <th className="grow">Was</th>
               </tr>
             </thead>
             <tbody>
-              {(audit.data ?? []).map((entry) => (
-                <tr key={entry.id}>
-                  <td className="num num--muted">
-                    {new Date(entry.changed_at).toLocaleString('de-AT')}
+              {(audit.data ?? []).map((entry) => {
+                const described = describeEntry(entry, lookups);
+                return (
+                  <tr key={entry.id}>
+                    <td className="num num--muted protokoll__zeit">
+                      {new Date(entry.changed_at).toLocaleString('de-AT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="protokoll__von">
+                      {changedByLabel(entry.changed_by, employeeId, lookups.names)}
+                    </td>
+                    <td>{described.area}</td>
+                    <td className="grow">
+                      <p className="protokoll__was">
+                        <strong>{described.action}</strong>
+                        {described.subject && <> · {described.subject}</>}
+                      </p>
+                      {described.changes.length > 0 && (
+                        <ul className="protokoll__changes">
+                          {described.changes.map((change) => (
+                            <li key={change.label}>
+                              <span className="protokoll__feld">{change.label}:</span>{' '}
+                              {change.before && change.after ? (
+                                <>
+                                  <del>{change.before}</del> → <ins>{change.after}</ins>
+                                </>
+                              ) : change.after ? (
+                                <ins>{change.after}</ins>
+                              ) : (
+                                <del>{change.before}</del>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {entry.operation === 'UPDATE' && described.changes.length === 0 && (
+                        <p className="muted protokoll__was">ohne inhaltliche Änderung</p>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {audit.data?.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="empty">
+                    Noch keine Einträge.
                   </td>
-                  <td>{TABLE_LABEL[entry.table_name] ?? entry.table_name}</td>
-                  <td>{OPERATION_LABEL[entry.operation] ?? entry.operation}</td>
-                  <td className="muted grow">{describeChange(entry.old_data, entry.new_data)}</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </section>
     </main>
   );
-}
-
-const TABLE_LABEL: Record<string, string> = {
-  time_entries: 'Zeiterfassung',
-  absences: 'Abwesenheit',
-  employment_contracts: 'Vertrag',
-  contract_documents: 'Dienstvertrag (PDF)',
-  profiles: 'Stammdaten',
-  organizations: 'Unternehmen',
-  'auth.users': 'Zugang',
-};
-
-/** Vorgänge in Supabase Auth, die die Edge Function selbst protokolliert. */
-const ACTION_LABEL: Record<string, string> = {
-  zugang_angelegt: 'Zugang angelegt',
-  einladung_verschickt: 'Einladung per E-Mail verschickt',
-  passwort_gesetzt: 'Passwort von der Verwaltung neu gesetzt',
-};
-
-const OPERATION_LABEL: Record<string, string> = {
-  INSERT: 'Angelegt',
-  UPDATE: 'Geändert',
-  DELETE: 'Gelöscht',
-};
-
-/** Nennt die Felder, die sich geändert haben — die vollen JSON-Objekte helfen niemandem. */
-function describeChange(oldData: unknown, newData: unknown): string {
-  const before = (oldData ?? {}) as Record<string, unknown>;
-  const after = (newData ?? {}) as Record<string, unknown>;
-
-  const action = typeof after.aktion === 'string' ? ACTION_LABEL[after.aktion] : undefined;
-  if (action) return action;
-  if (!oldData) return 'neu angelegt';
-  if (!newData) return 'entfernt';
-
-  const ignored = new Set(['updated_at', 'updated_by', 'created_at', 'created_by']);
-  const changed = Object.keys({ ...before, ...after })
-    .filter((key) => !ignored.has(key))
-    .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-    .map((key) => `${FIELD_LABEL[key] ?? key}: ${format(before[key])} → ${format(after[key])}`);
-
-  return changed.length > 0 ? changed.join(', ') : 'ohne inhaltliche Änderung';
-}
-
-const FIELD_LABEL: Record<string, string> = {
-  started_at: 'Beginn',
-  ended_at: 'Ende',
-  work_date: 'Datum',
-  kind: 'Art',
-  note: 'Anmerkung',
-  source: 'Quelle',
-  half_day: 'Halbtägig',
-  weekly_hours: 'Wochenstunden',
-  valid_from: 'Gültig ab',
-  valid_to: 'Gültig bis',
-  display_name: 'Name',
-  personnel_number: 'Personalnummer',
-  birth_date: 'Geburtsdatum',
-  hired_on: 'Eintritt',
-  left_on: 'Austritt',
-  state: 'Bundesland',
-  role: 'Rolle',
-  active: 'Aktiv',
-  organization_id: 'Unternehmen',
-  prior_service_months: 'Vordienstzeiten (Monate)',
-  vacation_opening_days: 'Offener Urlaub bei Übernahme',
-  vacation_opening_date: 'Übernahme-Stichtag',
-  first_viewed_at: 'Von der Person geöffnet',
-};
-
-function format(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    return new Date(value).toLocaleString('de-AT');
-  }
-  return String(value);
 }

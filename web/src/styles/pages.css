@@ -866,3 +866,44 @@ textarea {
   flex-basis: 100%;
   color: var(--warn);
 }
+/* --- Änderungsprotokoll --------------------------------------------------- */
+
+.protokoll td {
+  vertical-align: top;
+}
+
+.protokoll__zeit,
+.protokoll__von {
+  white-space: nowrap;
+}
+
+.protokoll__was {
+  margin: 0;
+}
+
+.protokoll__changes {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.protokoll__changes li + li {
+  margin-top: 2px;
+}
+
+.protokoll__feld {
+  color: var(--ink);
+}
+
+.protokoll del {
+  color: var(--violation);
+  text-decoration-thickness: 1px;
+}
+
+.protokoll ins {
+  color: var(--accent-hover);
+  text-decoration: none;
+  font-weight: 500;
+}
