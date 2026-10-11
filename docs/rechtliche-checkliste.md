@@ -15,16 +15,22 @@ Rechtlich bist du **Auftragsverarbeiter** (Art. 28 DSGVO): Verantwortlich für
 die Daten ist jeweils das Kundenunternehmen.
 
 - [ ] **Auftragsverarbeitungsvertrag (AVV)** mit jedem Kundenunternehmen
-      abschließen, bevor echte Daten eingegeben werden.
+      abschließen, bevor echte Daten eingegeben werden. Vorlage:
+      `docs/avv-vorlage.md` (Anlage 1 Unterauftragsverarbeiter, Anlage 2
+      `docs/tom.md`).
 - [ ] **AVV mit Supabase** abschließen (Dashboard → *Organization Settings →
       Legal Documents*). Supabase ist dein Unterauftragsverarbeiter; das muss
       im AVV mit den Kunden genannt sein, samt Grundlage der Übermittlung in
       die USA (Data Privacy Framework bzw. Standardvertragsklauseln).
+      Cloudflare: das DPA ist Teil der Nutzungsbedingungen und gilt ohne
+      eigene Unterschrift; die aktuelle Fassung auf cloudflare.com (Trust Hub)
+      herunterladen und zu den Unterlagen legen.
 - [ ] **Verzeichnis der Verarbeitungstätigkeiten als Auftragsverarbeiter**
-      (Art. 30 Abs. 2 DSGVO).
-- [ ] **Technische und organisatorische Maßnahmen** dokumentieren (Art. 32
-      DSGVO): Row Level Security, Änderungsprotokoll, EU-Hosting, Backups,
-      Zugangsschutz. Die README liefert die Grundlage.
+      (Art. 30 Abs. 2 DSGVO): `docs/verarbeitungsverzeichnis.md`, Teil A
+      ausfüllen.
+- [x] **Technische und organisatorische Maßnahmen** dokumentiert (Art. 32
+      DSGVO): `docs/tom.md`. Offen dort: Punkte mit ☐ (Backups,
+      Zwei-Faktor-Anmeldung, Penetrationstest) und [Platzhalter].
 - [ ] **Pro-Plan bei Supabase**, bevor echte Daten hineinkommen. Der
       Free-Plan hat keine Backups und pausiert nach einer Woche ohne Nutzung —
       beides verträgt sich nicht mit der Aufbewahrungspflicht.
@@ -49,7 +55,8 @@ die Daten ist jeweils das Kundenunternehmen.
       Mitarbeiter vor Beginn der Aufzeichnung darauf hinweisen.
 - [ ] **AVV** mit dem Betreiber unterzeichnen.
 - [ ] **Verzeichnis der Verarbeitungstätigkeiten** um die Zeiterfassung
-      ergänzen (Art. 30 Abs. 1 DSGVO).
+      ergänzen (Art. 30 Abs. 1 DSGVO). Vorlage:
+      `docs/verarbeitungsverzeichnis.md`, Teil B.
 - [ ] **Betriebsrat vorhanden?** Dann prüfen, ob eine Betriebsvereinbarung
       nötig ist (§§ 96, 96a ArbVG).
 - [ ] **Gleitzeit?** Es braucht eine schriftliche Gleitzeitvereinbarung

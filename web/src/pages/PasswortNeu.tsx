@@ -7,17 +7,21 @@ import { supabase } from '../lib/supabase';
 import { PasswordToggle } from './Login';
 
 /**
- * Neues Passwort festlegen, nach dem Klick auf den Link in der E-Mail
- * „Passwort zurücksetzen“.
+ * Passwort festlegen — nach dem Link in der E-Mail „Passwort zurücksetzen“
+ * oder in der Einladung.
  *
- * Der Link bringt einen Einmal-Code mit. Je nach E-Mail-Vorlage ist es ein
- * `code` (PKCE: funktioniert nur im Browser, in dem der Link angefordert
- * wurde) oder ein `token_hash` (funktioniert überall). Beides wird hier gegen
- * eine Anmeldung getauscht, die nur zum Setzen des Passworts dient.
+ * Der Link bringt einen Einmal-Code mit, je nach Ablauf in anderer Form:
+ *   * `code` (PKCE, „Passwort vergessen“): funktioniert nur im Browser, in dem
+ *     der Link angefordert wurde,
+ *   * `token_hash` (eigene E-Mail-Vorlage): funktioniert überall,
+ *   * `access_token` im Fragment (Einladung, vom Server ausgelöst).
+ * Alle drei werden hier gegen eine Anmeldung getauscht, mit der sich das
+ * Passwort setzen lässt.
  */
 export function PasswortNeu() {
   const { t } = useI18n();
   const [phase, setPhase] = useState<'pruefen' | 'eingabe' | 'ungueltig' | 'fertig'>('pruefen');
+  const [invited, setInvited] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -30,12 +34,25 @@ export function PasswortNeu() {
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const code = query.get('code');
       const tokenHash = query.get('token_hash');
+      const accessToken = hash.get('access_token');
+      const refreshToken = hash.get('refresh_token');
+      const type = query.get('type') ?? hash.get('type');
+      if (type === 'invite') setInvited(true);
 
       let ok = false;
       if (query.get('error') || hash.get('error')) {
         ok = false;
       } else if (tokenHash) {
-        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type === 'invite' ? 'invite' : 'recovery',
+        });
+        ok = !error;
+      } else if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
         ok = !error;
       } else if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -60,7 +77,7 @@ export function PasswortNeu() {
         </div>
         <h1 className="login__title">
           <LogoMark size={40} />
-          {t('Neues Passwort', 'New password')}
+          {invited ? t('Willkommen', 'Welcome') : t('Neues Passwort', 'New password')}
         </h1>
 
         {phase === 'pruefen' && <Loading />}
@@ -69,14 +86,23 @@ export function PasswortNeu() {
           <div className="login__form">
             <p className="error-text" role="alert">
               {t(
-                'Der Link ist abgelaufen, wurde schon verwendet oder in einem anderen Browser geöffnet als dem, in dem er angefordert wurde. Bitte einen neuen Link anfordern.',
-                'The link has expired, has already been used, or was opened in a different browser from the one it was requested in. Please request a new link.',
+                'Der Link ist abgelaufen, wurde schon verwendet oder in einem anderen Browser geöffnet als dem, in dem er angefordert wurde. Bitte einen neuen Link anfordern — bei einer Einladung bei der Personalverwaltung, sonst über „Passwort vergessen?“.',
+                'The link has expired, has already been used, or was opened in a different browser from the one it was requested in. Please request a new link — for an invitation from your HR administration, otherwise via “Forgot your password?”.',
               )}
             </p>
             <a className="button button--primary button--large login__submit" href="/">
               {t('Zur Anmeldung', 'Go to sign in')}
             </a>
           </div>
+        )}
+
+        {phase === 'eingabe' && invited && (
+          <p className="login__hint">
+            {t(
+              'Sie wurden zur Zeiterfassung Ihres Unternehmens eingeladen. Legen Sie jetzt Ihr Passwort fest — nur Sie kennen es.',
+              'You have been invited to your company’s time tracking. Set your password now — only you will know it.',
+            )}
+          </p>
         )}
 
         {phase === 'eingabe' && <Eingabe onDone={() => setPhase('fertig')} />}

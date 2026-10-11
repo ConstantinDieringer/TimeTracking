@@ -46,6 +46,19 @@ interface CreatePayload {
   hiredOn: string;
 }
 
+/**
+ * Wie `create`, aber ohne Passwort: die Person bekommt eine E-Mail und legt
+ * ihr Passwort selbst fest. So kennt es außer ihr niemand — auch nicht die
+ * Verwaltung, die es sonst persönlich übergeben müsste.
+ */
+interface InvitePayload {
+  action: 'invite';
+  email: string;
+  displayName: string;
+  role: 'employee' | 'admin';
+  hiredOn: string;
+}
+
 interface SetPasswordPayload {
   action: 'set-password';
   userId: string;
@@ -58,7 +71,7 @@ interface SetActivePayload {
   active: boolean;
 }
 
-type Payload = CreatePayload | SetPasswordPayload | SetActivePayload;
+type Payload = CreatePayload | InvitePayload | SetPasswordPayload | SetActivePayload;
 
 /** Fehler, deren Text der Aufrufer sehen darf. */
 class Rejection extends Error {
@@ -108,7 +121,8 @@ function parsePayload(raw: unknown): Payload {
   const body = raw as Record<string, unknown>;
 
   switch (body.action) {
-    case 'create': {
+    case 'create':
+    case 'invite': {
       const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
       const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : '';
       const hiredOn = body.hiredOn ?? new Date().toISOString().slice(0, 10);
@@ -124,16 +138,13 @@ function parsePayload(raw: unknown): Payload {
       if (typeof hiredOn !== 'string' || !ISO_DATE.test(hiredOn) || Number.isNaN(Date.parse(hiredOn))) {
         throw new Rejection('Das Eintrittsdatum ist ungültig.');
       }
+      const role = body.role === 'admin' ? 'admin' : 'employee';
+      if (body.action === 'invite') {
+        return { action: 'invite', email, displayName, role, hiredOn };
+      }
       const problem = passwordProblem(body.password);
       if (problem) throw new Rejection(problem);
-      return {
-        action: 'create',
-        email,
-        password: body.password as string,
-        displayName,
-        role: body.role === 'admin' ? 'admin' : 'employee',
-        hiredOn,
-      };
+      return { action: 'create', email, password: body.password as string, displayName, role, hiredOn };
     }
 
     case 'set-password': {
@@ -176,7 +187,7 @@ Deno.serve(async (request) => {
   }
 
   try {
-    return await handle(request, json);
+    return await handle(request, json, cors['Access-Control-Allow-Origin'] ?? null);
   } catch (caught) {
     if (caught instanceof Rejection) return json({ error: caught.message }, caught.status);
     // Einzelheiten nur ins Protokoll der Funktion: Meldungen von Postgres
@@ -189,6 +200,7 @@ Deno.serve(async (request) => {
 async function handle(
   request: Request,
   json: (body: unknown, status?: number) => Response,
+  allowedOrigin: string | null,
 ): Promise<Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -298,6 +310,30 @@ async function handle(
     if (error) console.error('admin-users: Abmelden fehlgeschlagen', error);
   }
 
+  /**
+   * Rolle, Unternehmen und Eintrittsdatum setzt erst dieser Schritt mit dem
+   * service_role-Schlüssel. Nicht über user_metadata — das kann jeder Benutzer
+   * selbst beschreiben, und der Trigger handle_new_user übernimmt daraus
+   * bewusst nur den Namen. Und nicht über app_metadata — GoTrue schreibt das
+   * erst nach dem INSERT, den der Trigger sieht.
+   */
+  async function assign(userId: string, input: { role: string; hiredOn: string; displayName: string }) {
+    const { error: profileError } = await admin
+      .from('profiles')
+      .update({
+        organization_id: organizationId,
+        role: input.role,
+        hired_on: input.hiredOn,
+        display_name: input.displayName,
+      })
+      .eq('id', userId);
+    if (profileError) {
+      // Kein Konto ohne Zuordnung zurücklassen.
+      await admin.auth.admin.deleteUser(userId);
+      throw profileError;
+    }
+  }
+
   switch (payload.action) {
     case 'create': {
       const { data, error } = await admin.auth.admin.createUser({
@@ -322,28 +358,37 @@ async function handle(
         throw error;
       }
 
-      // Rolle, Unternehmen und Eintrittsdatum setzt erst dieser Schritt mit
-      // dem service_role-Schlüssel. Nicht über user_metadata — das kann jeder
-      // Benutzer selbst beschreiben, und der Trigger handle_new_user übernimmt
-      // daraus bewusst nur den Namen. Und nicht über app_metadata — GoTrue
-      // schreibt das erst nach dem INSERT, den der Trigger sieht.
-      const { error: profileError } = await admin
-        .from('profiles')
-        .update({
-          organization_id: organizationId,
-          role: payload.role,
-          hired_on: payload.hiredOn,
-          display_name: payload.displayName,
-        })
-        .eq('id', data.user.id);
-      if (profileError) {
-        // Kein Konto ohne Zuordnung zurücklassen.
-        await admin.auth.admin.deleteUser(data.user.id);
-        throw profileError;
-      }
+      await assign(data.user.id, payload);
 
       await audit(data.user.id, 'INSERT', {
         aktion: 'zugang_angelegt',
+        rolle: payload.role,
+      });
+      return json({ userId: data.user.id });
+    }
+
+    case 'invite': {
+      // Der Link in der E-Mail führt auf die Seite zum Festlegen des Passworts
+      // der App, von der aus eingeladen wurde. Nur erlaubte Herkünfte — sonst
+      // ließe sich der Einmal-Code an eine fremde Seite umleiten.
+      if (!allowedOrigin) throw new Rejection('Einladungen sind nur aus der Anwendung heraus möglich.', 403);
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(payload.email, {
+        data: { display_name: payload.displayName },
+        redirectTo: `${allowedOrigin}/passwort-neu`,
+      });
+      if (error) {
+        if (error.code === 'email_exists' || /already/i.test(error.message)) {
+          throw new Rejection('Für diese E-Mail-Adresse gibt es bereits einen Zugang.');
+        }
+        if (error.status === 429 || error.code === 'over_email_send_rate_limit') {
+          throw new Rejection('Gerade wurden zu viele E-Mails verschickt. Bitte später erneut versuchen.', 429);
+        }
+        throw error;
+      }
+
+      await assign(data.user.id, payload);
+      await audit(data.user.id, 'INSERT', {
+        aktion: 'einladung_verschickt',
         rolle: payload.role,
       });
       return json({ userId: data.user.id });

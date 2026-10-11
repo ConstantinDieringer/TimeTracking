@@ -33,7 +33,13 @@ export function App() {
 
   // Der Link aus der E-Mail „Passwort zurücksetzen“ führt hierher — mit oder
   // ohne bestehende Anmeldung, deshalb vor allen anderen Weichen.
-  if (location.pathname === '/passwort-neu') return <PasswortNeu />;
+  // Landet der Link auf der Startseite, weil die Zieladresse in Supabase
+  // (noch) nicht freigegeben ist, erkennt man ihn am Code in der Adresse.
+  const authLink =
+    /(^|&)type=(invite|recovery)(&|$)/.test(location.hash.slice(1)) ||
+    new URLSearchParams(location.search).has('code') ||
+    new URLSearchParams(location.search).has('token_hash');
+  if (location.pathname === '/passwort-neu' || authLink) return <PasswortNeu />;
 
   if (loading) {
     return (

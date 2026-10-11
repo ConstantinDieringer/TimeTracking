@@ -423,6 +423,7 @@ const TABLE_LABEL: Record<string, string> = {
 /** Vorgänge in Supabase Auth, die die Edge Function selbst protokolliert. */
 const ACTION_LABEL: Record<string, string> = {
   zugang_angelegt: 'Zugang angelegt',
+  einladung_verschickt: 'Einladung per E-Mail verschickt',
   passwort_gesetzt: 'Passwort von der Verwaltung neu gesetzt',
 };
 

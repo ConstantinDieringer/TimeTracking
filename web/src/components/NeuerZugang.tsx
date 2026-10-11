@@ -33,6 +33,9 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
 
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
+  // Einladung: die Person legt ihr Passwort selbst fest, niemand sonst kennt
+  // es. Erstpasswort: für den Fall, dass keine E-Mail ankommen kann.
+  const [method, setMethod] = useState<'passwort' | 'einladung'>('passwort');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'employee' | 'admin'>('employee');
   const [hiredOn, setHiredOn] = useState(() => localDateOf(new Date()));
@@ -141,7 +144,10 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
     setBusy(true);
 
     const { data, error: invokeError } = await supabase.functions.invoke('admin-users', {
-      body: { action: 'create', email, password, displayName, role, hiredOn },
+      body:
+        method === 'einladung'
+          ? { action: 'invite', email, displayName, role, hiredOn }
+          : { action: 'create', email, password, displayName, role, hiredOn },
     });
 
     if (invokeError || data?.error) {
@@ -199,7 +205,13 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    toast.show('success', `${displayName} angelegt`, 'Zugangsdaten jetzt persönlich übergeben.');
+    toast.show(
+      'success',
+      `${displayName} angelegt`,
+      method === 'einladung'
+        ? `Die Einladung ist an ${email} unterwegs. Der Link gilt eine Stunde.`
+        : 'Zugangsdaten jetzt persönlich übergeben.',
+    );
     onDone();
   }
 
@@ -232,17 +244,30 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             />
           </div>
           <div>
-            <label htmlFor="neu-passwort">Erstpasswort</label>
-            <input
-              id="neu-passwort"
-              type="text"
-              required
-              minLength={12}
-              maxLength={72}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            <label htmlFor="neu-methode">Zugang per</label>
+            <select
+              id="neu-methode"
+              value={method}
+              onChange={(event) => setMethod(event.target.value as 'passwort' | 'einladung')}
+            >
+              <option value="einladung">Einladung per E-Mail</option>
+              <option value="passwort">Erstpasswort</option>
+            </select>
           </div>
+          {method === 'passwort' && (
+            <div>
+              <label htmlFor="neu-passwort">Erstpasswort</label>
+              <input
+                id="neu-passwort"
+                type="text"
+                required
+                minLength={12}
+                maxLength={72}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+          )}
           <div>
             <label htmlFor="neu-rolle">Rolle</label>
             <select
@@ -256,8 +281,10 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
           </div>
         </div>
         <p className="muted editor__note">
-          Das Erstpasswort braucht mindestens 12 Zeichen mit Buchstaben und Ziffern. Es steht im Klartext, damit es persönlich übergeben werden kann. Eine Rolle
-          in der Verwaltung sieht die Zeiten aller Mitarbeiter.
+          {method === 'einladung'
+            ? 'Die Person bekommt eine E-Mail mit einem Link, über den sie ihr Passwort selbst festlegt — niemand sonst kennt es. Der Link gilt eine Stunde.'
+            : 'Das Erstpasswort braucht mindestens 12 Zeichen mit Buchstaben und Ziffern. Es steht im Klartext, damit es persönlich übergeben werden kann.'}{' '}
+          Eine Rolle in der Verwaltung sieht die Zeiten aller Mitarbeiter.
         </p>
       </fieldset>
 

@@ -53,8 +53,8 @@ Angriffstests), sofern nicht anders vermerkt.
 | XSS | React maskiert; kein `innerHTML`; CSP |
 | CSRF | nicht anwendbar: Token im `Authorization`-Header, keine Cookies |
 | SSRF | nicht anwendbar: die App lädt keine fremden URLs; PDF mit `pdf-lib` ohne HTML |
-| Storage-Buckets | nicht anwendbar: Storage ist abgeschaltet |
-| Einladungs-Flow | nicht anwendbar: Zugänge legt die Verwaltung an, Registrierung ist aus |
+| Storage-Buckets | ein privater Bucket `dienstvertraege`: nur PDF bis 10 MB, Zugriff per Policy nur Verwaltung des Unternehmens und die Person selbst, kein Überschreiben; Anzeige über signierte Links mit 60 Sekunden Gültigkeit |
+| Einladungs-Flow | Einladung über `inviteUserByEmail` in der Edge Function: Unternehmen und Rolle setzt der Server, der Link führt nur auf erlaubte Herkünfte (`ALLOWED_ORIGINS`); Registrierung bleibt aus |
 | Manipulation von Zeiteinträgen | Serverzeit beim Stempeln, Monatsabschluss, Plausibilität, unveränderliches Protokoll |
 | CSV-/Formel-Injection | erledigt |
 | Fehler verraten Interna | Edge Function erledigt; Meldungen aus der Datenbank sind eigene deutsche Texte |
@@ -79,6 +79,9 @@ Angriffstests), sofern nicht anders vermerkt.
 - [ ] **Beim Online-Stellen:** die Adresse der App für die Edge Function
       freigeben, sonst lehnt sie Aufrufe aus dem Browser ab:
       `npx supabase secrets set ALLOWED_ORIGINS=https://deine-adresse.at`.
+      Gesetzt am 11. 10. 2026 für die lokalen Adressen und
+      `https://timetracking.constantin-dieringer.workers.dev`; mit der
+      finalen Domain ergänzen (die Liste ersetzt die alte vollständig).
       Die Header aus `web/dist/_headers` beim Hoster übernehmen (Netlify und
       Cloudflare Pages lesen die Datei selbst).
 - [ ] **Zwei-Faktor-Anmeldung** für deine Konten bei Supabase, GitHub und npm.
@@ -95,7 +98,7 @@ Angriffstests), sofern nicht anders vermerkt.
 - **Zwei-Faktor-Anmeldung in der App** für Inhaber und Administratoren
   (Supabase unterstützt TOTP). Vorher zu entscheiden: wer hilft dem Inhaber,
   wenn er sein Handy verliert? Es gibt bewusst keinen Plattform-Admin.
-- **Passwort ändern** in der App und „Passwort vergessen“ (braucht SMTP mit
-  SPF/DKIM/DMARC).
+- **Passwort ändern** in der App. „Passwort vergessen“ und Einladungen sind
+  gebaut, kommen aber erst mit eigenem SMTP bei allen an.
 - **Externer Penetrationstest**, bevor fremde Unternehmen ihre Daten
   anvertrauen. Diese Prüfung ersetzt keinen.
