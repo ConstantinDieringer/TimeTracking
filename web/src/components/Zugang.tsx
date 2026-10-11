@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSession } from '../lib/session';
 import { supabase } from '../lib/supabase';
+import { InfoTip } from './InfoTip';
 import { useToast } from './Toast';
 
 /**
@@ -106,15 +107,27 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
 
       {targetIsOwner ? (
         <p className="muted">
-          {targetIsSelf ? 'Sie sind' : `${displayName} ist`} Inhaber dieses Unternehmens: immer
-          Administrator, weder herabstufbar noch deaktivierbar. Weitergeben kann die Inhaberschaft
-          nur der Inhaber selbst.
+          {targetIsSelf ? 'Sie sind' : `${displayName} ist`} Inhaber dieses Unternehmens.
+          <InfoTip>
+            <span>
+              Der Inhaber ist immer Administrator, weder herabstufbar noch deaktivierbar.
+              Weitergeben kann die Inhaberschaft nur der Inhaber selbst.
+            </span>
+          </InfoTip>
         </p>
       ) : (
         <>
           <div className="form-grid">
             <div>
-              <label htmlFor="z-rolle">Rolle</label>
+              <label htmlFor="z-rolle">
+                Rolle
+                <InfoTip>
+                  <span>
+                    Die Verwaltung sieht und bearbeitet alle Mitarbeiter, Verträge und Zeiten dieses
+                    Unternehmens. Den Inhaber kann sie nicht herabstufen.
+                  </span>
+                </InfoTip>
+              </label>
               <select
                 id="z-rolle"
                 value={access.data.role}
@@ -126,10 +139,6 @@ export function Zugang({ employeeId, displayName }: { employeeId: string; displa
               </select>
             </div>
           </div>
-          <p className="muted editor__note">
-            Die Verwaltung sieht und bearbeitet alle Mitarbeiter, Verträge und Zeiten dieses
-            Unternehmens. Den Inhaber kann sie nicht herabstufen.
-          </p>
           {isOwner && access.data.active && !confirming && (
             <div className="row">
               <button

@@ -173,8 +173,8 @@ export function App() {
           </Link>
           <span>
             {t(
-              'Aufzeichnung nach § 26 AZG · Daten in der EU',
-              'Working-time records under § 26 AZG · Data stored in the EU',
+              'Arbeitszeitaufzeichnung · Daten in der EU',
+              'Working-time records · Data stored in the EU',
             )}
           </span>
         </div>

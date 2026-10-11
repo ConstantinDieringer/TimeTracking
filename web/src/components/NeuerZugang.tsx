@@ -9,6 +9,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useContractDefaults } from '../lib/defaults';
 import { useContractTypes } from '../lib/queries';
 import { supabase } from '../lib/supabase';
+import { InfoTip } from './InfoTip';
 import { GleitzeitFelder, pruefeGleitzeit, type GleitzeitWerte } from './GleitzeitFelder';
 import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
 import { useToast } from './Toast';
@@ -244,7 +245,19 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             />
           </div>
           <div>
-            <label htmlFor="neu-methode">Zugang per</label>
+            <label htmlFor="neu-methode">
+              Zugang per
+              <InfoTip>
+                <span>
+                  <strong>Einladung:</strong> Die Person bekommt eine E-Mail mit einem Link und legt
+                  ihr Passwort selbst fest — niemand sonst kennt es. Der Link gilt eine Stunde.
+                </span>
+                <span>
+                  <strong>Erstpasswort:</strong> mindestens 12 Zeichen mit Buchstaben und Ziffern.
+                  Es steht im Klartext, damit es persönlich übergeben werden kann.
+                </span>
+              </InfoTip>
+            </label>
             <select
               id="neu-methode"
               value={method}
@@ -269,7 +282,12 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             </div>
           )}
           <div>
-            <label htmlFor="neu-rolle">Rolle</label>
+            <label htmlFor="neu-rolle">
+              Rolle
+              <InfoTip>
+                <span>Die Verwaltung sieht und bearbeitet die Zeiten aller Mitarbeiter.</span>
+              </InfoTip>
+            </label>
             <select
               id="neu-rolle"
               value={role}
@@ -280,12 +298,6 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             </select>
           </div>
         </div>
-        <p className="muted editor__note">
-          {method === 'einladung'
-            ? 'Die Person bekommt eine E-Mail mit einem Link, über den sie ihr Passwort selbst festlegt — niemand sonst kennt es. Der Link gilt eine Stunde.'
-            : 'Das Erstpasswort braucht mindestens 12 Zeichen mit Buchstaben und Ziffern. Es steht im Klartext, damit es persönlich übergeben werden kann.'}{' '}
-          Eine Rolle in der Verwaltung sieht die Zeiten aller Mitarbeiter.
-        </p>
       </fieldset>
 
       <fieldset>
@@ -302,7 +314,15 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             />
           </div>
           <div>
-            <label htmlFor="neu-geburt">Geburtsdatum</label>
+            <label htmlFor="neu-geburt">
+              Geburtsdatum
+              <InfoTip>
+                <span>
+                  Entscheidet tagesgenau, ob das KJBG oder das AZG gilt. Fehlt es, wird die Person
+                  wie eine erwachsene behandelt — bei Lehrlingen unbedingt eintragen.
+                </span>
+              </InfoTip>
+            </label>
             <input
               id="neu-geburt"
               type="date"
@@ -319,7 +339,15 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             />
           </div>
           <div>
-            <label htmlFor="neu-land">Bundesland des Arbeitsorts</label>
+            <label htmlFor="neu-land">
+              Bundesland des Arbeitsorts
+              <InfoTip>
+                <span>
+                  Bestimmt die angezeigten Landesfeiertage. Vorbelegt mit dem Betriebsstandard; für
+                  Mitarbeiter an anderen Standorten ändern.
+                </span>
+              </InfoTip>
+            </label>
             <select
               id="neu-land"
               required
@@ -337,12 +365,6 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
             </select>
           </div>
         </div>
-        <p className="muted editor__note">
-          Das Geburtsdatum entscheidet tagesgenau, ob das KJBG oder das AZG gilt. Fehlt es, wird
-          die Person wie eine erwachsene behandelt — bei Lehrlingen unbedingt eintragen. Das
-          Bundesland bestimmt die angezeigten Landesfeiertage; es ist mit dem Betriebsstandard
-          vorbelegt und für Mitarbeiter an anderen Standorten zu ändern.
-        </p>
       </fieldset>
 
       <fieldset>
@@ -366,7 +388,21 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
           <Normalarbeitszeit value={collectiveWeeklyHours} onChange={handleCollectiveChange} />
 
           <div>
-            <label htmlFor="neu-stunden">Vereinbarte Wochenstunden</label>
+            <label htmlFor="neu-stunden">
+              Vereinbarte Wochenstunden
+              {dailyTargets && (
+                <InfoTip>
+                  <span>
+                    Vorschlag für die Verteilung: Montag bis Freitag je{' '}
+                    {formatDuration(dailyTargets[1])} h, Wochenende frei. Eine abweichende Verteilung
+                    lässt sich im Mitarbeiterblatt einstellen.
+                    {selectedType?.category === 'lehrling' &&
+                      ' Für Lehrlinge unter 18 gelten zusätzlich die engeren Grenzen des KJBG.'}
+                  </span>
+                  <span className="infotip__ref">§ 4 AZG</span>
+                </InfoTip>
+              )}
+            </label>
             <input
               id="neu-stunden"
               required
@@ -402,15 +438,6 @@ export function NeuerZugang({ onDone }: { onDone: () => void }) {
 
         <Einordnung weeklyHours={weeklyHours} collectiveWeeklyHours={collectiveWeeklyHours} />
 
-        {dailyTargets && (
-          <p className="muted editor__note">
-            Vorschlag für die Verteilung: Montag bis Freitag je{' '}
-            {formatDuration(dailyTargets[1])} h, Wochenende frei. Eine abweichende Verteilung nach
-            § 4 AZG lässt sich im Mitarbeiterblatt einstellen.
-            {selectedType?.category === 'lehrling' &&
-              ' Für Lehrlinge unter 18 gelten zusätzlich die engeren Grenzen des KJBG.'}
-          </p>
-        )}
       </fieldset>
 
       <GleitzeitFelder idPrefix="neu" werte={gleitzeit} onChange={setGleitzeit} />

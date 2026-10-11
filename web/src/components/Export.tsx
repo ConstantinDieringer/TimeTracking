@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { buildDayCsv, downloadCsv } from '../export/csv';
 import { buildMonthJournal, downloadPdf } from '../export/pdf';
 import type { Timesheet, TimesheetDay } from '../lib/timesheet';
+import { InfoTip } from './InfoTip';
 
 /**
  * Ausgabe der Aufzeichnungen.
@@ -77,6 +78,15 @@ export function Export({
         >
           Als CSV für die Lohnverrechnung
         </button>
+        <InfoTip>
+          <span>
+            Das PDF enthält Beginn, Ende und Dauer jedes Abschnitts sowie die Ruhepausen
+            {contract?.flexTime ? ', bei Gleitzeit zusätzlich den Saldo' : ''}.
+          </span>
+          <span className="infotip__ref">
+            § 26 Abs 1 AZG{contract?.flexTime ? ', § 26 Abs 5 AZG' : ''}
+          </span>
+        </InfoTip>
       </div>
 
       {error && (
@@ -85,11 +95,6 @@ export function Export({
         </p>
       )}
 
-      <p className="muted">
-        Das PDF enthält Beginn, Ende und Dauer jedes Abschnitts sowie die Ruhepausen, wie es
-        § 26 Abs 1 AZG verlangt
-        {contract?.flexTime ? ', bei Gleitzeit zusätzlich den Saldo (§ 26 Abs 5 AZG)' : ''}.
-      </p>
     </div>
   );
 }

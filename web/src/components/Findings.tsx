@@ -1,12 +1,13 @@
 import { formatDateShort, type RuleResult } from '@zeiterfassung/legal';
 import { Icon } from './Icon';
+import { InfoTip } from './InfoTip';
 
 /**
  * Darstellung der Regelbefunde.
  *
- * Die Fundstelle steht immer neben der Meldung. Das ist keine Zierde: eine
- * Warnung, die ihre gesetzliche Grundlage nennt, lässt sich nachschlagen und
- * gegebenenfalls widerlegen — eine ohne wirkt wie eine Behauptung der Software.
+ * Die Fundstelle steckt im (i) neben der Meldung: eine Warnung, die ihre
+ * gesetzliche Grundlage nennt, lässt sich nachschlagen und gegebenenfalls
+ * widerlegen — aber nicht jede Meldung muss den Paragrafen ausbreiten.
  *
  * Keine Befunde sind eine gute Nachricht und werden auch so gezeigt: mit
  * Häkchen auf grünem Grund statt als graue Leerstelle.
@@ -46,8 +47,12 @@ export function Findings({
                 <span className="finding__date">{formatDateShort(finding.date)}</span>
               )}
               {finding.message}
+              {finding.reference && (
+                <InfoTip>
+                  <span>Rechtsgrundlage: {finding.reference}</span>
+                </InfoTip>
+              )}
             </p>
-            <span className="finding__reference">{finding.reference}</span>
           </div>
         </div>
       ))}

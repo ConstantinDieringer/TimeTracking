@@ -17,6 +17,7 @@ import { Link, useParams } from 'react-router';
 import { Dienstvertraege } from '../components/Dienstvertraege';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
+import { InfoTip } from '../components/InfoTip';
 import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { Pager } from '../components/Pager';
@@ -147,7 +148,15 @@ export function AdminMitarbeiter() {
             />
           </div>
           <div>
-            <label htmlFor="s-geburt">Geburtsdatum</label>
+            <label htmlFor="s-geburt">
+              Geburtsdatum
+              <InfoTip>
+                <span>
+                  Entscheidet tagesgenau, ob das KJBG oder das AZG gilt. Fehlt es, wird die Person
+                  wie eine erwachsene behandelt.
+                </span>
+              </InfoTip>
+            </label>
             <input
               id="s-geburt"
               type="date"
@@ -174,7 +183,15 @@ export function AdminMitarbeiter() {
             />
           </div>
           <div>
-            <label htmlFor="s-land">Bundesland</label>
+            <label htmlFor="s-land">
+              Bundesland
+              <InfoTip>
+                <span>
+                  Steuert nur die Anzeige der Landesfeiertage — einen Entgeltanspruch begründen
+                  diese nicht.
+                </span>
+              </InfoTip>
+            </label>
             <select
               id="s-land"
               defaultValue={employee.data.state}
@@ -194,7 +211,17 @@ export function AdminMitarbeiter() {
         </div>
         <div className="form-grid stammdaten__urlaub">
           <div>
-            <label htmlFor="s-vordienst">Vordienstzeiten in Monaten</label>
+            <label htmlFor="s-vordienst">
+              Vordienstzeiten in Monaten
+              <InfoTip>
+                <span>
+                  Zeiten bei anderen Arbeitgebern zählen für die 30 Urlaubstage nach 25
+                  Dienstjahren mit. Welche Zeiten in welchem Umfang anzurechnen sind, regelt das
+                  Gesetz; hier steht das Ergebnis in Monaten.
+                </span>
+                <span className="infotip__ref">§ 3 UrlG</span>
+              </InfoTip>
+            </label>
             <input
               id="s-vordienst"
               type="number"
@@ -208,7 +235,17 @@ export function AdminMitarbeiter() {
             />
           </div>
           <div>
-            <label htmlFor="s-uebernahme-tage">Offener Urlaub bei Übernahme (Tage)</label>
+            <label htmlFor="s-uebernahme-tage">
+              Offener Urlaub bei Übernahme (Tage)
+              <InfoTip>
+                <span>
+                  Nur nötig, wenn jemand schon vor dieser Software bei Ihnen gearbeitet hat: der
+                  gesamte offene Urlaub zum Stichtag, einschließlich des laufenden Urlaubsjahres.
+                  Ohne Stichtag beginnt das Konto mit dem Urlaubsjahr, in dem die Person angelegt
+                  wurde.
+                </span>
+              </InfoTip>
+            </label>
             <input
               id="s-uebernahme-tage"
               type="number"
@@ -231,19 +268,6 @@ export function AdminMitarbeiter() {
             />
           </div>
         </div>
-        <p className="muted editor__note">
-          <strong>Vordienstzeiten</strong> bei anderen Arbeitgebern zählen für die 30 Urlaubstage
-          nach 25 Dienstjahren mit — welche Zeiten in welchem Umfang anzurechnen sind, regelt § 3
-          UrlG; hier steht das Ergebnis in Monaten. <strong>Offener Urlaub bei Übernahme</strong>{' '}
-          ist nur nötig, wenn jemand schon vor dieser Software bei Ihnen gearbeitet hat: der
-          gesamte offene Urlaub zum Stichtag, einschließlich des laufenden Urlaubsjahres. Ohne
-          Stichtag beginnt das Konto mit dem Urlaubsjahr, in dem die Person angelegt wurde.
-        </p>
-        <p className="muted editor__note">
-          Das Geburtsdatum ist kein Beiwerk: es entscheidet tagesgenau, ob das KJBG oder das AZG
-          gilt. Fehlt es, wird die Person wie eine erwachsene behandelt. Das Bundesland steuert nur
-          die Anzeige der Landesfeiertage — einen Entgeltanspruch begründen diese nicht.
-        </p>
       </section>
 
       <Zugang employeeId={employeeId} displayName={employee.data.displayName} />
@@ -389,15 +413,22 @@ export function AdminMitarbeiter() {
 
       <section className="section">
         <div className="section__head">
-          <h2>Änderungsprotokoll</h2>
+          <h2>
+            Änderungsprotokoll
+            <InfoTip>
+              <span>
+                Wird von der Datenbank selbst geschrieben und lässt sich weder ändern noch löschen —
+                auch nicht aus der Verwaltung heraus.
+              </span>
+              <span>
+                Erfasst Zeiten, Abwesenheiten, Verträge, Stammdaten einschließlich Rolle und
+                Deaktivierung, Dienstverträge und den Zugang; je Eintrag, wer geändert hat, und
+                jeden geänderten Wert vorher (durchgestrichen) und nachher.
+              </span>
+            </InfoTip>
+          </h2>
           <span className="meta">Letzte {audit.data?.length ?? 0} Einträge</span>
         </div>
-        <p className="muted">
-          Wird von der Datenbank selbst geschrieben und lässt sich weder ändern noch löschen —
-          auch nicht aus der Verwaltung heraus. Erfasst Zeiten, Abwesenheiten, Verträge,
-          Stammdaten einschließlich Rolle und Deaktivierung, Dienstverträge und den Zugang; je
-          Eintrag, wer geändert hat, und jeden geänderten Wert vorher (durchgestrichen) und nachher.
-        </p>
         <div className="table-scroll">
           <table className="protokoll">
             <thead>

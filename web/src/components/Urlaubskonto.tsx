@@ -10,6 +10,7 @@ import { useContractDefaults } from '../lib/defaults';
 import { contractOn } from '../lib/mapping';
 import { useAbsences, useContracts, useEmployee } from '../lib/queries';
 import { Icon } from './Icon';
+import { InfoTip } from './InfoTip';
 import { Counter } from './Num';
 
 /**
@@ -76,7 +77,36 @@ export function Urlaubskonto({ employeeId }: { employeeId: string }) {
   return (
     <section className="section">
       <div className="section__head">
-        <h2>Urlaubskonto</h2>
+        <h2>
+          Urlaubskonto
+          <InfoTip>
+            <span>
+              Verbrauchter Urlaub wird immer vom ältesten Anspruch abgezogen. Nicht genommener
+              Urlaub verjährt zwei Jahre nach Ende des Urlaubsjahres, in dem er entstanden ist.
+            </span>
+            {ledger.accruing && ledger.fullFrom && (
+              <span>
+                In den ersten sechs Monaten entsteht der Urlaub schrittweise, im Verhältnis zur
+                zurückgelegten Dienstzeit. Ab {formatDateShort(ledger.fullFrom)} stehen die vollen{' '}
+                {days(ledger.fullEntitlementDays)} Arbeitstage zu.
+              </span>
+            )}
+            {!ledger.accruing && ledger.aliquot && ledger.compensationDays === null && (
+              <span>
+                Der Anspruch ist wegen Ein- oder Austritt im Urlaubsjahr anteilig gekürzt. Voller
+                Jahresanspruch: {days(ledger.fullEntitlementDays)} Arbeitstage.
+              </span>
+            )}
+            {ledger.expiredDays > 0 && (
+              <span>
+                In früheren Urlaubsjahren sind {days(ledger.expiredDays)} Tage ungenutzt verjährt —
+                sofern rechtzeitig auf den drohenden Verfall hingewiesen wurde; sonst bleiben sie
+                bestehen.
+              </span>
+            )}
+            <span className="infotip__ref">§ 2 UrlG (Anspruch), § 4 Abs 5 UrlG (Verjährung)</span>
+          </InfoTip>
+        </h2>
         <span className="meta">
           Urlaubsjahr {formatDateShort(ledger.periodStart)} – {formatDateShort(ledger.periodEnd)}
         </span>
@@ -136,19 +166,29 @@ export function Urlaubskonto({ employeeId }: { employeeId: string }) {
               {ledger.compensationDays >= 0 ? (
                 <>
                   <strong>Urlaubsersatzleistung: {days(ledger.compensationDays)} Tage.</strong>{' '}
-                  Das Dienstverhältnis endet am {formatDateShort(employee.data.leftOn!)}. Offener
-                  Urlaub wird ausbezahlt: der anteilige Anspruch des laufenden Urlaubsjahres und
-                  der Rest aus früheren Jahren. Den Betrag errechnet die Lohnverrechnung.
+                  Das Dienstverhältnis endet am {formatDateShort(employee.data.leftOn!)}; offener
+                  Urlaub wird ausbezahlt.
+                  <InfoTip>
+                    <span>
+                      Ausbezahlt werden der anteilige Anspruch des laufenden Urlaubsjahres und der
+                      Rest aus früheren Jahren. Den Betrag errechnet die Lohnverrechnung.
+                    </span>
+                    <span className="infotip__ref">§ 10 UrlG</span>
+                  </InfoTip>
                 </>
               ) : (
                 <>
-                  <strong>{days(-ledger.compensationDays)} Tage mehr genommen als erworben.</strong>{' '}
-                  Ein Rückersatz ist nur bei unberechtigtem vorzeitigem Austritt oder verschuldeter
-                  Entlassung vorgesehen.
+                  <strong>{days(-ledger.compensationDays)} Tage mehr genommen als erworben.</strong>
+                  <InfoTip>
+                    <span>
+                      Ein Rückersatz ist nur bei unberechtigtem vorzeitigem Austritt oder
+                      verschuldeter Entlassung vorgesehen.
+                    </span>
+                    <span className="infotip__ref">§ 10 UrlG</span>
+                  </InfoTip>
                 </>
               )}
             </p>
-            <span className="finding__reference">§ 10 UrlG</span>
           </div>
         </div>
       )}
@@ -159,33 +199,16 @@ export function Urlaubskonto({ employeeId }: { employeeId: string }) {
           <div className="finding__body">
             <p className="finding__message">
               <strong>{days(ledger.expiringDays)} Tage verjähren am {formatDateShort(ledger.periodEnd)}</strong>,
-              wenn sie bis dahin nicht genommen werden. Verbrauchter Urlaub wird immer vom ältesten
-              Anspruch abgezogen.
+              wenn sie bis dahin nicht genommen werden.
+              <InfoTip>
+                <span>Verbrauchter Urlaub wird immer vom ältesten Anspruch abgezogen.</span>
+                <span className="infotip__ref">§ 4 Abs 5 UrlG</span>
+              </InfoTip>
             </p>
-            <span className="finding__reference">§ 4 Abs 5 UrlG</span>
           </div>
         </div>
       )}
 
-      {ledger.accruing && ledger.fullFrom && (
-        <p className="muted figures__note">
-          In den ersten sechs Monaten entsteht der Urlaub schrittweise, im Verhältnis zur
-          zurückgelegten Dienstzeit. Ab {formatDateShort(ledger.fullFrom)} stehen die vollen{' '}
-          {days(ledger.fullEntitlementDays)} Arbeitstage zu (§ 2 Abs 2 UrlG).
-        </p>
-      )}
-      {!ledger.accruing && ledger.aliquot && ledger.compensationDays === null && (
-        <p className="muted figures__note">
-          Der Anspruch ist wegen Ein- oder Austritt im Urlaubsjahr anteilig gekürzt. Voller
-          Jahresanspruch: {days(ledger.fullEntitlementDays)} Arbeitstage.
-        </p>
-      )}
-      {ledger.expiredDays > 0 && (
-        <p className="muted figures__note">
-          In früheren Urlaubsjahren sind {days(ledger.expiredDays)} Tage ungenutzt verjährt — sofern
-          rechtzeitig auf den drohenden Verfall hingewiesen wurde; sonst bleiben sie bestehen.
-        </p>
-      )}
     </section>
   );
 }

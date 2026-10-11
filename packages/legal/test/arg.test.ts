@@ -78,7 +78,7 @@ describe('§ 7 ARG — Feiertagsruhe', () => {
     const result = checkHolidayRest(day('2026-10-26', ['09:00', '13:00']))!;
     expect(result.severity).toBe('hinweis');
     expect(result.message).toContain('Nationalfeiertag');
-    expect(result.message).toContain('§ 9 Abs 5 ARG');
+    expect(result.reference).toContain('§ 9 Abs 5 ARG');
   });
 
   it('schweigt an einem Feiertag ohne Arbeit', () => {

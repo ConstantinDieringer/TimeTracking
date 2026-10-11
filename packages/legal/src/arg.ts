@@ -93,12 +93,12 @@ export function checkWeeklyRest(days: readonly DayWork[], sunday: IsoDate): Rule
     return {
       code: 'arg.sonntagsarbeit',
       severity: 'verstoss',
-      reference: '§ 3 Abs 1 ARG',
+      reference: '§ 3 Abs 1 ARG, Ausnahmen §§ 10 ff ARG, § 6 ARG (Ersatzruhe)',
       date: sunday,
       actual: sundayWork,
       limit: 0,
-      message: `${formatDuration(sundayWork)} h Arbeit am Sonntag — die wöchentliche Ruhezeit muss den Sonntag einschließen. Ausnahmen brauchen eine Grundlage nach §§ 10 ff ARG; es entsteht Anspruch auf Ersatzruhe nach § 6 ARG.`,
-      messageEn: `${formatDuration(sundayWork)} h of work on Sunday — the weekly rest must include Sunday. Exceptions need a legal basis under §§ 10 ff ARG; compensatory rest is due under § 6 ARG.`,
+      message: `${formatDuration(sundayWork)} h Arbeit am Sonntag — die wöchentliche Ruhezeit muss den Sonntag einschließen. Ausnahmen brauchen eine gesetzliche Grundlage; es entsteht Anspruch auf Ersatzruhe.`,
+      messageEn: `${formatDuration(sundayWork)} h of work on Sunday — the weekly rest must include Sunday. Exceptions need a legal basis; compensatory rest is due.`,
     };
   }
 
@@ -190,12 +190,12 @@ export function checkHolidayRest(day: DayWork): RuleResult | null {
   return {
     code: 'arg.feiertagsruhe',
     severity: 'hinweis',
-    reference: '§ 7 ARG',
+    reference: '§ 7 ARG, § 9 Abs 5 ARG (Entgelt), § 6 ARG (Ersatzruhe)',
     date: day.date,
     actual: day.workMinutes,
     limit: 0,
-    message: `${formatDuration(day.workMinutes)} h Arbeit am ${holiday.name} — das Entgelt gebührt zusätzlich zum Feiertagsentgelt (§ 9 Abs 5 ARG), und es entsteht Anspruch auf Ersatzruhe nach § 6 ARG.`,
-    messageEn: `${formatDuration(day.workMinutes)} h of work on ${holiday.nameEn} — pay is due in addition to holiday pay (§ 9 Abs 5 ARG), and compensatory rest is due under § 6 ARG.`,
+    message: `${formatDuration(day.workMinutes)} h Arbeit am ${holiday.name} — das Entgelt gebührt zusätzlich zum Feiertagsentgelt, und es entsteht Anspruch auf Ersatzruhe.`,
+    messageEn: `${formatDuration(day.workMinutes)} h of work on ${holiday.nameEn} — pay is due in addition to holiday pay, and compensatory rest is due.`,
   };
 }
 

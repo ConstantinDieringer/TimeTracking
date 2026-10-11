@@ -8,6 +8,7 @@ import {
 } from '@zeiterfassung/legal';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { InfoTip } from '../components/InfoTip';
 import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
 import { NeuerZugang } from '../components/NeuerZugang';
@@ -238,12 +239,17 @@ export function Admin() {
       {inaktive.length > 0 && (
         <section className="section">
           <div className="section__head">
-            <h2>Deaktivierte Zugänge</h2>
+            <h2>
+              Deaktivierte Zugänge
+              <InfoTip>
+                <span>
+                  Deaktiviert statt gelöscht: die Aufzeichnungen sind weiter aufzubewahren, und ein
+                  gelöschter Zugang nähme sie mit.
+                </span>
+                <span className="infotip__ref">§ 26 AZG</span>
+              </InfoTip>
+            </h2>
           </div>
-          <p className="muted">
-            Deaktiviert statt gelöscht: die Aufzeichnungen sind nach § 26 AZG weiter aufzubewahren,
-            und ein gelöschter Zugang nähme sie mit.
-          </p>
           <div className="table-scroll">
             <table>
               <thead>

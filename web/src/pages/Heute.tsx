@@ -9,6 +9,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Ansicht } from '../components/Ansicht';
 import { Findings } from '../components/Findings';
+import { InfoTip } from '../components/InfoTip';
 import { Icon } from '../components/Icon';
 import { Duration } from '../components/Num';
 import { Tageslinie } from '../components/Tageslinie';
@@ -116,14 +117,22 @@ export function Heute() {
 
       {day?.holidays.map((holiday) => (
         <div key={holiday.name} className={`finding ${holiday.statutory ? '' : 'finding--hinweis'}`}>
-          <span className="finding__reference">{holiday.statutory ? '§ 7 ARG' : t('Hinweis', 'Note')}</span>
           <p className="finding__message">
             <strong>{t(holiday.name, holiday.nameEn)}</strong>
-            {holiday.note
-              ? ` — ${t(holiday.note, holiday.noteEn ?? holiday.note)}`
-              : holiday.statutory
-                ? t(' — gesetzlicher Feiertag.', ' — public holiday.')
-                : ''}
+            {holiday.statutory
+              ? t(' — gesetzlicher Feiertag', ' — public holiday')
+              : t(' — kein gesetzlicher Feiertag', ' — not a public holiday')}
+            <InfoTip>
+              <span>
+                {holiday.note
+                  ? t(holiday.note, holiday.noteEn ?? holiday.note)
+                  : t(
+                      'An gesetzlichen Feiertagen besteht Anspruch auf Arbeitsruhe und Feiertagsentgelt.',
+                      'Public holidays entitle employees to rest and holiday pay.',
+                    )}
+              </span>
+              <span className="infotip__ref">§ 7 ARG</span>
+            </InfoTip>
           </p>
         </div>
       ))}
@@ -342,8 +351,8 @@ export function Heute() {
           emptyText={
             day?.evaluation?.regime === 'ausgenommen'
               ? t(
-                  'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht (§ 1 Abs 2 AZG). Die Zeiten werden trotzdem aufgezeichnet.',
-                  'The AZG working-time limits do not apply to this contract (§ 1 Abs 2 AZG). Hours are still recorded.',
+                  'Für diesen Vertrag gelten die Arbeitszeitgrenzen des AZG nicht. Die Zeiten werden trotzdem aufgezeichnet.',
+                  'The AZG working-time limits do not apply to this contract. Hours are still recorded.',
                 )
               : t('Alles im Rahmen — alle Arbeitszeitregeln eingehalten.', 'All within limits — all working-time rules met.')
           }

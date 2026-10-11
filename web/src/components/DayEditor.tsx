@@ -19,6 +19,7 @@ import {
 } from '../lib/queries';
 import type { TimesheetDay } from '../lib/timesheet';
 import { useToast } from './Toast';
+import { InfoTip } from './InfoTip';
 
 const SEGMENT_KINDS = [
   { value: 'work', label: 'Arbeitszeit' },
@@ -223,7 +224,18 @@ export function DayEditor({
         </div>
 
         <div>
-          <label htmlFor="absence">Abwesenheit</label>
+          <label htmlFor="absence">
+            Abwesenheit
+            {day.absence?.kind === 'persoenlicher_feiertag' && (
+              <InfoTip>
+                <span>
+                  Der persönliche Feiertag wird einmal im Kalenderjahr einseitig bestimmt, ist drei
+                  Monate im Voraus schriftlich bekanntzugeben und verbraucht einen Urlaubstag.
+                </span>
+                <span className="infotip__ref">§ 7a ARG</span>
+              </InfoTip>
+            )}
+          </label>
           <select
             id="absence"
             value={day.absence?.kind ?? ''}
@@ -238,12 +250,6 @@ export function DayEditor({
             ))}
           </select>
 
-          {day.absence?.kind === 'persoenlicher_feiertag' && (
-            <p className="muted editor__note">
-              Der persönliche Feiertag nach § 7a ARG wird einmal im Kalenderjahr einseitig bestimmt,
-              ist drei Monate im Voraus schriftlich bekanntzugeben und verbraucht einen Urlaubstag.
-            </p>
-          )}
         </div>
       </div>
 

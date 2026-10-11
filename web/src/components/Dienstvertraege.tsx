@@ -13,6 +13,7 @@ import {
   type DocumentKind,
 } from '../lib/dokumente';
 import { useSession } from '../lib/session';
+import { InfoTip } from './InfoTip';
 import { useToast } from './Toast';
 
 /**
@@ -79,7 +80,25 @@ export function Dienstvertraege({ employeeId }: { employeeId: string }) {
   return (
     <section className="section">
       <div className="section__head">
-        <h2>Dienstvertrag</h2>
+        <h2>
+          Dienstvertrag
+          <InfoTip>
+            <span>
+              Sehen können das Dokument nur die Verwaltung dieses Unternehmens und die Person
+              selbst. Ablegen, erstes Öffnen durch die Person und Löschen werden protokolliert; das
+              erste Öffnen gilt als Nachweis der elektronischen Übergabe eines Dienstzettels.
+            </span>
+            <span>
+              Abgelegte Dateien lassen sich nicht ersetzen — eine Änderung als Nachtrag hochladen.
+            </span>
+            <span>
+              <strong>Keine Gesundheitsdaten</strong>, Angaben zu einer Behinderung oder zur
+              Gewerkschaftszugehörigkeit im Dokument, soweit sie für das Arbeitsverhältnis nicht
+              nötig sind.
+            </span>
+            <span className="infotip__ref">§ 2 AVRAG, Art. 9 DSGVO</span>
+          </InfoTip>
+        </h2>
       </div>
 
       <div className="table-scroll">
@@ -201,15 +220,6 @@ export function Dienstvertraege({ employeeId }: { employeeId: string }) {
         </div>
       </form>
 
-      <p className="muted editor__note">
-        Sehen können das Dokument nur die Verwaltung dieses Unternehmens und die Person selbst.
-        Ablegen, erstes Öffnen durch die Person und Löschen werden protokolliert; das erste Öffnen
-        gilt als Nachweis der elektronischen Übergabe eines Dienstzettels (§ 2 AVRAG). Abgelegte
-        Dateien lassen sich nicht ersetzen — eine Änderung als Nachtrag hochladen.{' '}
-        <strong>Keine Gesundheitsdaten</strong>, Angaben zu einer Behinderung oder zur
-        Gewerkschaftszugehörigkeit im Dokument, soweit sie für das Arbeitsverhältnis nicht nötig
-        sind (Art. 9 DSGVO).
-      </p>
     </section>
   );
 }

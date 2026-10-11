@@ -14,6 +14,7 @@ import {
 } from '@zeiterfassung/legal';
 import { useMemo } from 'react';
 import { Findings } from '../components/Findings';
+import { InfoTip } from '../components/InfoTip';
 import { Duration } from '../components/Num';
 import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { useSession } from '../lib/session';
@@ -142,7 +143,26 @@ export function Auswertung() {
           </div>
           {flexPeriod && (
             <div>
-              <dt className="meta">Gleitzeitsaldo</dt>
+              <dt className="meta">
+                Gleitzeitsaldo
+                {contract?.flexTime && (
+                  <InfoTip>
+                    <span>
+                      Laufende Gleitzeitperiode {formatDateShort(flexPeriod.start)} bis{' '}
+                      {formatDateShort(flexPeriod.end)}. Übertragbar sind höchstens{' '}
+                      {formatDuration(contract.flexTime.maxCarryCredit)} h Guthaben und{' '}
+                      {formatDuration(contract.flexTime.maxCarryDebit)} h Zeitschuld.
+                    </span>
+                    <span>
+                      Die tägliche Normalarbeitszeit beträgt{' '}
+                      {contract.flexTime.allowsFullDayCompensation
+                        ? '12 Stunden, weil die Vereinbarung ganztägigen Verbrauch von Zeitguthaben zulässt.'
+                        : '10 Stunden — die elfte Stunde ist Überstunde, weil die Vereinbarung keinen ganztägigen Verbrauch von Zeitguthaben vorsieht.'}
+                    </span>
+                    <span className="infotip__ref">§ 4b Abs 2 Z 3 und Abs 4 AZG</span>
+                  </InfoTip>
+                )}
+              </dt>
               <dd>
                 <Duration minutes={flexBalance ?? 0} sign animate />
               </dd>
@@ -156,36 +176,43 @@ export function Auswertung() {
             {unrecorded.length === 1 ? 'vergangenen Arbeitstag' : 'vergangenen Arbeitstagen'} ist
             weder Arbeitszeit noch eine Abwesenheit erfasst; das entspricht{' '}
             {formatDuration(unrecordedMinutes)} h des Saldos. Der erste ist der{' '}
-            {formatDateShort(unrecorded[0]!.date)}. Ohne Nachtrag bleibt die Aufzeichnung nach
-            § 26 AZG lückenhaft.
+            {formatDateShort(unrecorded[0]!.date)}.
+            <InfoTip>
+              <span>Ohne Nachtrag bleibt die gesetzlich vorgeschriebene Aufzeichnung lückenhaft.</span>
+              <span className="infotip__ref">§ 26 AZG</span>
+            </InfoTip>
           </p>
         )}
 
-        {flexPeriod && contract?.flexTime && (
-          <p className="muted figures__note">
-            Laufende Gleitzeitperiode {formatDateShort(flexPeriod.start)} bis{' '}
-            {formatDateShort(flexPeriod.end)}. Übertragbar sind höchstens{' '}
-            {formatDuration(contract.flexTime.maxCarryCredit)} h Guthaben und{' '}
-            {formatDuration(contract.flexTime.maxCarryDebit)} h Zeitschuld (§ 4b Abs 2 Z 3 AZG).
-            Die tägliche Normalarbeitszeit beträgt{' '}
-            {contract.flexTime.allowsFullDayCompensation ? '12' : '10'} Stunden
-            {contract.flexTime.allowsFullDayCompensation
-              ? ', weil die Vereinbarung ganztägigen Verbrauch von Zeitguthaben zulässt.'
-              : ' — die elfte Stunde ist Überstunde, weil die Vereinbarung keinen ganztägigen Verbrauch von Zeitguthaben vorsieht (§ 4b Abs 4 AZG).'}
-          </p>
-        )}
       </section>
 
       <section className="section">
         <div className="section__head">
-          <h2>Mehrleistung im Jahr</h2>
+          <h2>
+            Mehrleistung im Jahr
+            <InfoTip>
+              <span>
+                <strong>Mehrarbeit</strong> sind Stunden über der vereinbarten Teilzeit bis zur
+                Normalarbeitszeit, mit 25 % Zuschlag. <strong>Überstunden</strong> liegen über der
+                Normalarbeitszeit, mit 50 % Zuschlag. Die Spalte „Zuschlag als Zeit“ rechnet den
+                Zuschlag in Stunden um.
+              </span>
+              {contract?.allIn && (
+                <span>
+                  All-in-Vertrag: Überstunden sind pauschal abgegolten. Aufzuzeichnen sind sie
+                  trotzdem — nur so lässt sich prüfen, ob die Pauschale die geleisteten Stunden
+                  deckt.
+                </span>
+              )}
+              <span className="infotip__ref">§ 3, § 10 Abs 1, § 19d Abs 3a und § 26 AZG</span>
+            </InfoTip>
+          </h2>
         </div>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Art</th>
-                <th className="grow">Grundlage</th>
+                <th className="grow">Art</th>
                 <th className="num">Zeit</th>
                 <th className="num">Zuschlag als Zeit</th>
               </tr>
@@ -193,15 +220,15 @@ export function Auswertung() {
             <tbody>
               <tr>
                 <td>Normalarbeitszeit</td>
-                <td className="muted">§ 3 AZG</td>
                 <td>
                   <Duration minutes={classifications.normalMinutes} zeroAs="0:00" />
                 </td>
                 <td className="num num--muted">—</td>
               </tr>
               <tr>
-                <td>Mehrarbeit</td>
-                <td className="muted">§ 19d Abs 3a AZG · 25 %</td>
+                <td>
+                  Mehrarbeit <span className="muted">· 25 %</span>
+                </td>
                 <td>
                   <Duration minutes={classifications.mehrarbeitMinutes} zeroAs="0:00" />
                 </td>
@@ -210,8 +237,9 @@ export function Auswertung() {
                 </td>
               </tr>
               <tr>
-                <td>Überstunden</td>
-                <td className="muted">§ 10 Abs 1 AZG · 50 %</td>
+                <td>
+                  Überstunden <span className="muted">· 50 %</span>
+                </td>
                 <td>
                   <Duration minutes={classifications.ueberstundenMinutes} zeroAs="0:00" />
                 </td>
@@ -222,20 +250,23 @@ export function Auswertung() {
             </tbody>
           </table>
         </div>
-        {contract?.allIn && (
-          <p className="muted figures__note">
-            All-in-Vertrag: Überstunden sind pauschal abgegolten. Aufzuzeichnen sind sie trotzdem —
-            § 26 AZG kennt keine Ausnahme für Pauschalen, und nur so lässt sich prüfen, ob die
-            Pauschale die geleisteten Stunden deckt.
-          </p>
-        )}
       </section>
 
       {employeeId && <Urlaubskonto employeeId={employeeId} />}
 
       <section className="section">
         <div className="section__head">
-          <h2>Laufende Prüfungen</h2>
+          <h2>
+            Laufende Prüfungen
+            <InfoTip>
+              <span>
+                Regeln, die sich nicht an einem einzelnen Tag prüfen lassen, sondern nur über
+                mehrere Wochen — etwa der Durchschnitt von höchstens 48 Wochenstunden über 17
+                Wochen. Sie werden mit jeder neuen Arbeitszeit neu berechnet.
+              </span>
+              <span className="infotip__ref">§ 9 Abs 4 AZG</span>
+            </InfoTip>
+          </h2>
         </div>
         <Findings findings={extraFindings} />
       </section>

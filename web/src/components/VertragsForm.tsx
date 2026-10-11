@@ -6,6 +6,7 @@ import { useContractTypes } from '../lib/queries';
 import { supabase, type ContractTypeRow } from '../lib/supabase';
 import { GleitzeitFelder, pruefeGleitzeit, type GleitzeitWerte } from './GleitzeitFelder';
 import { Einordnung, Normalarbeitszeit } from './Normalarbeitszeit';
+import { InfoTip } from './InfoTip';
 import { Loading } from './Loading';
 import { useToast } from './Toast';
 
@@ -318,7 +319,17 @@ export function VertragsForm({
       </fieldset>
 
       <fieldset>
-        <legend>Tagessoll in Minuten</legend>
+        <legend>
+          Tagessoll in Minuten
+          <InfoTip>
+            <span>
+              Eine abweichende Verteilung ist zulässig — etwa eine Viertagewoche mit zehn Stunden.
+              Sie hebt zugleich die tägliche Normalarbeitszeit auf das Tagessoll an, höchstens auf
+              zehn Stunden.
+            </span>
+            <span className="infotip__ref">§ 4 AZG</span>
+          </InfoTip>
+        </legend>
         <div className="weekday-grid">
           {WEEKDAYS.map((label, index) => (
             <div key={label}>
@@ -350,11 +361,6 @@ export function VertragsForm({
               : '.'}
           </span>
         </div>
-        <p className="muted editor__note">
-          Eine abweichende Verteilung ist nach § 4 AZG zulässig — etwa eine Viertagewoche mit zehn
-          Stunden. Sie hebt zugleich die tägliche Normalarbeitszeit auf das Tagessoll an, höchstens
-          auf zehn Stunden.
-        </p>
       </fieldset>
 
       <GleitzeitFelder
@@ -395,7 +401,16 @@ export function VertragsForm({
             checked={draft.allIn}
             onChange={(event) => setDraft({ ...draft, allIn: event.target.checked })}
           />
-          <span>All-in — Überstunden pauschal abgegolten, aber weiterhin aufzuzeichnen</span>
+          <span>
+            All-in
+            <InfoTip>
+              <span>
+                Überstunden sind mit dem Gehalt pauschal abgegolten. Die Arbeitszeitgrenzen gelten
+                trotzdem, und die Zeiten sind weiterhin aufzuzeichnen.
+              </span>
+              <span className="infotip__ref">§ 26 AZG</span>
+            </InfoTip>
+          </span>
         </label>
 
         <label className="check">
@@ -405,8 +420,15 @@ export function VertragsForm({
             onChange={(event) => setDraft({ ...draft, exemptFromAzg: event.target.checked })}
           />
           <span>
-            Vom AZG ausgenommen (§ 1 Abs 2 Z 8 AZG) — leitende Angestellte mit maßgeblicher
-            Entscheidungsbefugnis
+            Vom AZG ausgenommen
+            <InfoTip>
+              <span>
+                Nur für leitende Angestellte mit maßgeblicher selbständiger Entscheidungsbefugnis.
+                Entscheidend ist die tatsächliche Position, nicht die Vertragsart. Die
+                Arbeitszeitgrenzen werden dann nicht geprüft.
+              </span>
+              <span className="infotip__ref">§ 1 Abs 2 Z 8 AZG</span>
+            </InfoTip>
           </span>
         </label>
 
@@ -416,7 +438,12 @@ export function VertragsForm({
             checked={draft.nightWork}
             onChange={(event) => setDraft({ ...draft, nightWork: event.target.checked })}
           />
-          <span>Nachtarbeit vereinbart (§ 12a AZG)</span>
+          <span>
+            Nachtarbeit vereinbart
+            <InfoTip>
+              <span className="infotip__ref">§ 12a AZG</span>
+            </InfoTip>
+          </span>
         </label>
 
         <label className="check">

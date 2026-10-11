@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { privacyNoticeTemplate, usePrivacyNotice, useSavePrivacyNotice } from '../lib/privacy';
 import { useSession } from '../lib/session';
+import { InfoTip } from '../components/InfoTip';
 import { Loading } from '../components/Loading';
 import { useToast } from '../components/Toast';
 
@@ -69,7 +70,18 @@ export function Datenschutz() {
       {editing && (
         <form onSubmit={handleSubmit}>
           <fieldset>
-            <legend>Text für alle Mitarbeiter</legend>
+            <legend>
+              Text für alle Mitarbeiter
+              <InfoTip>
+                <span>
+                  Verantwortlich ist Ihr Unternehmen, nicht der Betreiber dieser Software. Die
+                  Vorlage beschreibt, was die Software tatsächlich verarbeitet; Angaben in eckigen
+                  Klammern müssen Sie ergänzen. Sie ist keine Rechtsberatung — lassen Sie den Text
+                  vor der Veröffentlichung prüfen.
+                </span>
+                <span className="infotip__ref">Art. 13 DSGVO</span>
+              </InfoTip>
+            </legend>
             <label htmlFor="ds-text" className="visually-hidden">
               Datenschutzinformation
             </label>
@@ -79,12 +91,6 @@ export function Datenschutz() {
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />
-            <p className="muted editor__note">
-              Verantwortlich ist Ihr Unternehmen, nicht der Betreiber dieser Software. Die Vorlage
-              beschreibt, was die Software tatsächlich verarbeitet; Angaben in eckigen Klammern
-              müssen Sie ergänzen. Sie ist keine Rechtsberatung — lassen Sie den Text vor der
-              Veröffentlichung prüfen.
-            </p>
           </fieldset>
 
           {error && (

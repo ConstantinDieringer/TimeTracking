@@ -1,6 +1,7 @@
 import { STATE_LABEL, type AustrianState } from '@zeiterfassung/legal';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
+import { InfoTip } from '../components/InfoTip';
 import { GleitzeitFelder, pruefeGleitzeit } from '../components/GleitzeitFelder';
 import { Loading } from '../components/Loading';
 import { Normalarbeitszeit } from '../components/Normalarbeitszeit';
@@ -108,7 +109,17 @@ export function AdminEinstellungen() {
             </div>
 
             <div>
-              <label htmlFor="std-urlaub">Urlaubsanspruch in Arbeitstagen</label>
+              <label htmlFor="std-urlaub">
+                Urlaubsanspruch in Arbeitstagen
+                <InfoTip>
+                  <span>
+                    Mindestens 25 Arbeitstage, nach 25 Dienstjahren 30. Ein höherer vertraglicher
+                    Anspruch ist möglich, ein niedrigerer nicht — das Tool rechnet immer mit dem für
+                    die Person günstigeren Wert.
+                  </span>
+                  <span className="infotip__ref">§ 2 UrlG</span>
+                </InfoTip>
+              </label>
               <input
                 id="std-urlaub"
                 type="number"
@@ -122,15 +133,21 @@ export function AdminEinstellungen() {
               />
             </div>
           </div>
-          <p className="muted editor__note">
-            § 2 UrlG sieht mindestens 25 Arbeitstage vor, nach 25 Dienstjahren 30. Ein höherer
-            vertraglicher Anspruch ist möglich, ein niedrigerer nicht — das Tool rechnet immer mit
-            dem für die Person günstigeren Wert.
-          </p>
 
           <div className="form-grid">
             <div>
-              <label htmlFor="std-urlaubsjahr">Urlaubsjahr</label>
+              <label htmlFor="std-urlaubsjahr">
+                Urlaubsjahr
+                <InfoTip>
+                  <span>
+                    Neue Mitarbeiter erwerben ihren Urlaub in den ersten sechs Monaten schrittweise,
+                    im Verhältnis zur zurückgelegten Dienstzeit; danach steht der volle
+                    Jahresanspruch zu. Das Kalenderjahr als Urlaubsjahr ist nur zulässig, wenn Ihr
+                    Kollektivvertrag oder eine Betriebsvereinbarung es vorsieht.
+                  </span>
+                  <span className="infotip__ref">§ 2 Abs 2 und 4 UrlG</span>
+                </InfoTip>
+              </label>
               <select
                 id="std-urlaubsjahr"
                 value={draft.vacationYear}
@@ -146,19 +163,25 @@ export function AdminEinstellungen() {
               </select>
             </div>
           </div>
-          <p className="muted editor__note">
-            Neue Mitarbeiter erwerben ihren Urlaub in den ersten sechs Monaten schrittweise, im
-            Verhältnis zur zurückgelegten Dienstzeit; danach steht der volle Jahresanspruch zu
-            (§ 2 Abs 2 UrlG). Das Kalenderjahr als Urlaubsjahr ist nur zulässig, wenn Ihr
-            Kollektivvertrag oder eine Betriebsvereinbarung es vorsieht (§ 2 Abs 4 UrlG).
-          </p>
         </fieldset>
 
         <fieldset>
           <legend>Standort</legend>
           <div className="form-grid">
             <div>
-              <label htmlFor="std-land">Bundesland des Betriebs</label>
+              <label htmlFor="std-land">
+                Bundesland des Betriebs
+                <InfoTip>
+                  <span>
+                    Steuert, welche Landesfeiertage angezeigt werden — Leopold in Wien und
+                    Niederösterreich, Rupert in Salzburg und so fort. Diese Tage sind{' '}
+                    <strong>keine</strong> gesetzlichen Feiertage und begründen weder
+                    Feiertagsruhe noch Feiertagsentgelt. Bei Mitarbeitern an anderen Standorten
+                    lässt sich das Bundesland einzeln überschreiben.
+                  </span>
+                  <span className="infotip__ref">§ 7 ARG</span>
+                </InfoTip>
+              </label>
               <select
                 id="std-land"
                 required
@@ -178,13 +201,6 @@ export function AdminEinstellungen() {
               </select>
             </div>
           </div>
-          <p className="muted editor__note">
-            Steuert, welche Landesfeiertage angezeigt werden — Leopold in Wien und
-            Niederösterreich, Rupert in Salzburg und so fort. Diese Tage sind{' '}
-            <strong>keine</strong> gesetzlichen Feiertage nach § 7 ARG und begründen weder
-            Feiertagsruhe noch Feiertagsentgelt. Bei Mitarbeitern an anderen Standorten lässt sich
-            das Bundesland einzeln überschreiben.
-          </p>
         </fieldset>
 
         <GleitzeitFelder

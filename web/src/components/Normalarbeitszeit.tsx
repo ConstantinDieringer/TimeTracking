@@ -1,5 +1,6 @@
 import { COMMON_COLLECTIVE_WEEKLY_HOURS } from '@zeiterfassung/legal';
 import { useId, useState } from 'react';
+import { InfoTip } from './InfoTip';
 
 /**
  * Auswahl der kollektivvertraglichen Normalarbeitszeit.
@@ -98,8 +99,14 @@ export function Einordnung({
   if (weeklyHours === collectiveWeeklyHours) {
     return (
       <p className="muted">
-        Vollzeit. Mehrarbeit nach § 19d AZG kommt nicht in Betracht; alles über der
-        Normalarbeitszeit ist Überstunde mit 50 % Zuschlag.
+        Vollzeit
+        <InfoTip>
+          <span>
+            Mehrarbeit kommt nicht in Betracht; alles über der Normalarbeitszeit ist Überstunde mit
+            50 % Zuschlag.
+          </span>
+          <span className="infotip__ref">§ 19d AZG, § 10 AZG</span>
+        </InfoTip>
       </p>
     );
   }
@@ -107,8 +114,14 @@ export function Einordnung({
   const room = Math.round((collectiveWeeklyHours - weeklyHours) * 10) / 10;
   return (
     <p className="muted">
-      Teilzeit. Die nächsten {room.toLocaleString('de-AT')} Wochenstunden über der Vereinbarung
-      sind Mehrarbeit mit 25 % (§ 19d AZG); erst darüber beginnt die Überstunde mit 50 %.
+      Teilzeit
+      <InfoTip>
+        <span>
+          Die nächsten {room.toLocaleString('de-AT')} Wochenstunden über der Vereinbarung sind
+          Mehrarbeit mit 25 % Zuschlag; erst darüber beginnt die Überstunde mit 50 %.
+        </span>
+        <span className="infotip__ref">§ 19d Abs 3a AZG, § 10 AZG</span>
+      </InfoTip>
     </p>
   );
 }

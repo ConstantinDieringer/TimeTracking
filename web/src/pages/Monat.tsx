@@ -18,6 +18,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Ansicht } from '../components/Ansicht';
 import { DayEditor } from '../components/DayEditor';
 import { Export } from '../components/Export';
+import { InfoTip } from '../components/InfoTip';
 import { Findings } from '../components/Findings';
 import { Loading } from '../components/Loading';
 import { Duration } from '../components/Num';
@@ -286,18 +287,21 @@ export function Monat() {
             </dd>
           </div>
           <div>
-            <dt className="meta">Feiertagsarbeit</dt>
+            <dt className="meta">
+              Feiertagsarbeit
+              <InfoTip>
+                <span>
+                  Arbeit an einem gesetzlichen Feiertag wird zusätzlich zum Feiertagsentgelt
+                  vergütet und begründet Anspruch auf Ersatzruhe.
+                </span>
+                <span className="infotip__ref">§ 9 Abs 5 und § 6 ARG</span>
+              </InfoTip>
+            </dt>
             <dd>
               <Duration minutes={holidayWork} zeroAs="0:00" animate />
             </dd>
           </div>
         </dl>
-        {holidayWork > 0 && (
-          <p className="muted figures__note">
-            Arbeit an einem Feiertag wird zusätzlich zum Feiertagsentgelt vergütet (§ 9 Abs 5 ARG)
-            und begründet Anspruch auf Ersatzruhe nach § 6 ARG.
-          </p>
-        )}
       </section>
 
       <section className="section">
@@ -310,8 +314,16 @@ export function Monat() {
 
       <section className="section">
         <div className="section__head">
-          <h2>Meine Aufzeichnungen</h2>
-          <span className="meta">§ 26 Abs 8 AZG</span>
+          <h2>
+            Meine Aufzeichnungen
+            <InfoTip>
+              <span>
+                Sie haben das Recht, Ihre Arbeitszeitaufzeichnungen jederzeit kostenlos zu
+                erhalten — hier als PDF oder CSV.
+              </span>
+              <span className="infotip__ref">§ 26 Abs 8 AZG</span>
+            </InfoTip>
+          </h2>
         </div>
         {timesheet && employee.data ? (
           <Export

@@ -1,5 +1,6 @@
 import { formatDateShort } from '@zeiterfassung/legal';
 import { Icon } from '../components/Icon';
+import { InfoTip } from '../components/InfoTip';
 import { Loading } from '../components/Loading';
 import { useToast } from '../components/Toast';
 import {
@@ -60,7 +61,18 @@ export function MeinVertrag() {
     <main className="page">
       <div className="page__head">
         <div>
-          <h1>{t('Mein Vertrag', 'My contract')}</h1>
+          <h1>
+            {t('Mein Vertrag', 'My contract')}
+            <InfoTip>
+              <span>
+                {t(
+                  'Nur Sie und die Personalverwaltung Ihres Unternehmens können diese Dokumente sehen. Wann Sie ein Dokument zum ersten Mal geöffnet haben, wird als Nachweis der Übergabe gespeichert. Gespeichert wird in der EU.',
+                  'Only you and your company’s HR administration can see these documents. The first time you open a document is recorded as proof of delivery. Data is stored in the EU.',
+                )}
+              </span>
+              <span className="infotip__ref">§ 2 AVRAG</span>
+            </InfoTip>
+          </h1>
           <p className="page__subtitle">
             {t(
               'Dienstvertrag, Dienstzettel und Nachträge, die die Personalverwaltung abgelegt hat.',
@@ -124,12 +136,6 @@ export function MeinVertrag() {
         </section>
       )}
 
-      <p className="muted editor__note">
-        {t(
-          'Nur Sie und die Personalverwaltung Ihres Unternehmens können diese Dokumente sehen. Wann Sie ein Dokument zum ersten Mal geöffnet haben, wird als Nachweis der Übergabe gespeichert. Gespeichert wird in der EU.',
-          'Only you and your company’s HR administration can see these documents. The first time you open a document is recorded as proof of delivery. Data is stored in the EU.',
-        )}
-      </p>
     </main>
   );
 }

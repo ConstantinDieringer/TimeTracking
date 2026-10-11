@@ -1,5 +1,6 @@
 import { formatDuration } from '@zeiterfassung/legal';
 import { useId } from 'react';
+import { InfoTip } from './InfoTip';
 
 export interface GleitzeitWerte {
   enabled: boolean;
@@ -72,7 +73,24 @@ export function GleitzeitFelder({
 
   return (
     <fieldset>
-      <legend>Gleitzeit nach § 4b AZG</legend>
+      <legend>
+        Gleitzeit
+        <InfoTip>
+          {werte.enabled ? (
+            <span>
+              Übertragbar sind derzeit {formatDuration(werte.maxCarryCreditMinutes)} h Guthaben und{' '}
+              {formatDuration(werte.maxCarryDebitMinutes)} h Zeitschuld in die nächste Periode. Wird
+              die Grenze überschritten, meldet das Tool es rechtzeitig vor Periodenende.
+            </span>
+          ) : (
+            <span>
+              Ohne schriftliche Vereinbarung gibt es keine Gleitzeit. Die tägliche
+              Normalarbeitszeit beträgt dann acht Stunden, alles darüber ist Überstunde.
+            </span>
+          )}
+          <span className="infotip__ref">§ 4b AZG{werte.enabled ? ', Übertrag: § 4b Abs 2 Z 3 AZG' : ''}</span>
+        </InfoTip>
+      </legend>
 
       <label className="check">
         <input
@@ -83,12 +101,6 @@ export function GleitzeitFelder({
         <span>Es besteht eine schriftliche Gleitzeitvereinbarung</span>
       </label>
 
-      {!werte.enabled && (
-        <p className="muted editor__note">
-          Ohne schriftliche Vereinbarung gibt es keine Gleitzeit. Die tägliche Normalarbeitszeit
-          beträgt dann acht Stunden, alles darüber ist Überstunde.
-        </p>
-      )}
 
       {werte.enabled && (
         <>
@@ -217,12 +229,6 @@ export function GleitzeitFelder({
             )}
           </div>
 
-          <p className="muted editor__note">
-            Übertragbar sind derzeit {formatDuration(werte.maxCarryCreditMinutes)} h Guthaben und{' '}
-            {formatDuration(werte.maxCarryDebitMinutes)} h Zeitschuld in die nächste Periode
-            (§ 4b Abs 2 Z 3 AZG). Wird die Grenze überschritten, meldet das Tool es rechtzeitig vor
-            Periodenende.
-          </p>
         </>
       )}
     </fieldset>

@@ -534,8 +534,8 @@ export function checkPersonalHoliday(
       date,
       actual: noticeDays,
       limit: 90,
-      message: `Ankündigung ${noticeDays} Tage im Voraus — § 7a ARG verlangt drei Monate. Ohne Frist ist der Arbeitgeber nicht gebunden.`,
-      messageEn: `Announced ${noticeDays} days in advance — § 7a ARG requires three months. Without this notice the employer is not bound.`,
+      message: `Ankündigung ${noticeDays} Tage im Voraus — verlangt sind drei Monate. Ohne Frist ist der Arbeitgeber nicht gebunden.`,
+      messageEn: `Announced ${noticeDays} days in advance — three months are required. Without this notice the employer is not bound.`,
     };
   }
 
