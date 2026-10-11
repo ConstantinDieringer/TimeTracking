@@ -128,6 +128,73 @@ export type Database = {
           },
         ]
       }
+      contract_documents: {
+        Row: {
+          employee_id: string
+          file_name: string
+          first_viewed_at: string | null
+          id: string
+          kind: string
+          organization_id: string
+          sha256: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string | null
+          valid_from: string | null
+        }
+        Insert: {
+          employee_id: string
+          file_name: string
+          first_viewed_at?: string | null
+          id?: string
+          kind?: string
+          organization_id: string
+          sha256: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          valid_from?: string | null
+        }
+        Update: {
+          employee_id?: string
+          file_name?: string
+          first_viewed_at?: string | null
+          id?: string
+          kind?: string
+          organization_id?: string
+          sha256?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          valid_from?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_types: {
         Row: {
           archived: boolean
@@ -590,6 +657,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       lock_month: { Args: { p_month: string }; Returns: undefined }
+      mark_contract_document_viewed: {
+        Args: { p_document: string }
+        Returns: undefined
+      }
       purge_employee: { Args: { p_employee: string }; Returns: undefined }
       retention_overview: {
         Args: never

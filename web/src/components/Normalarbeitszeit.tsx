@@ -29,40 +29,43 @@ export function Normalarbeitszeit({
   return (
     <div>
       <label htmlFor={id}>Normalarbeitszeit laut Kollektivvertrag</label>
-      <select
-        id={id}
-        disabled={disabled}
-        value={custom ? 'custom' : String(value)}
-        onChange={(event) => {
-          if (event.target.value === 'custom') {
-            setCustom(true);
-            return;
-          }
-          setCustom(false);
-          onChange(Number(event.target.value));
-        }}
-      >
-        {COMMON_COLLECTIVE_WEEKLY_HOURS.map((hours) => (
-          <option key={hours} value={String(hours)}>
-            {hours.toLocaleString('de-AT')} Stunden
-          </option>
-        ))}
-        <option value="custom">Anderer Wert …</option>
-      </select>
-
-      {custom && (
-        <input
-          className="stacked-input"
-          aria-label="Abweichende Normalarbeitszeit in Stunden"
-          inputMode="decimal"
-          value={String(value).replace('.', ',')}
+      <div className={custom ? 'inline-controls' : undefined}>
+        <select
+          id={id}
           disabled={disabled}
+          value={custom ? 'custom' : String(value)}
           onChange={(event) => {
-            const parsed = Number(event.target.value.replace(',', '.'));
-            if (Number.isFinite(parsed)) onChange(parsed);
+            if (event.target.value === 'custom') {
+              setCustom(true);
+              return;
+            }
+            setCustom(false);
+            onChange(Number(event.target.value));
           }}
-        />
-      )}
+        >
+          {COMMON_COLLECTIVE_WEEKLY_HOURS.map((hours) => (
+            <option key={hours} value={String(hours)}>
+              {hours.toLocaleString('de-AT')} Stunden
+            </option>
+          ))}
+          <option value="custom">Anderer Wert …</option>
+        </select>
+
+        {/* Neben der Auswahl statt darunter: die Zelle bleibt eine Zeile hoch,
+            die Felder daneben verrutschen nicht. */}
+        {custom && (
+          <input
+            aria-label="Abweichende Normalarbeitszeit in Stunden"
+            inputMode="decimal"
+            value={String(value).replace('.', ',')}
+            disabled={disabled}
+            onChange={(event) => {
+              const parsed = Number(event.target.value.replace(',', '.'));
+              if (Number.isFinite(parsed)) onChange(parsed);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

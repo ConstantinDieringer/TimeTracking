@@ -97,6 +97,21 @@ textarea {
     box-shadow var(--transition);
 }
 
+/* Einzeilige Felder alle gleich hoch. Sonst ist ein Datumsfeld höher als ein
+ * Textfeld und das wieder höher als eine Auswahl — nebeneinander stehen sie
+ * dann nie auf einer Linie. */
+input:not([type]),
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='date'],
+input[type='time'],
+input[type='number'],
+select {
+  height: var(--control-height);
+  padding-block: 0;
+}
+
 input:hover:not(:disabled),
 select:hover:not(:disabled),
 textarea:hover:not(:disabled) {

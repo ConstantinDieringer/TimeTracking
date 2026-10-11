@@ -1,5 +1,4 @@
-import { formatClock, formatDateLong, localDateOf, localMinutesOfDay } from '@zeiterfassung/legal';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { Sprachwahl } from '../components/Sprachwahl';
@@ -7,14 +6,43 @@ import { useI18n } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 
 export function Login() {
-  const { t, locale } = useI18n();
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(timer);
-  }, []);
-
+  const { t } = useI18n();
+  const [mode, setMode] = useState<'anmelden' | 'vergessen'>('anmelden');
   const [email, setEmail] = useState('');
+
+  return (
+    <main className="login">
+      <div className="login__card">
+        <div className="login__language">
+          <Sprachwahl />
+        </div>
+        <h1 className="login__title">
+          <LogoMark size={40} />
+          Zeiterfassung
+        </h1>
+        {mode === 'anmelden' ? (
+          <AnmeldenForm email={email} setEmail={setEmail} onForgot={() => setMode('vergessen')} t={t} />
+        ) : (
+          <VergessenForm email={email} setEmail={setEmail} onBack={() => setMode('anmelden')} t={t} />
+        )}
+      </div>
+    </main>
+  );
+}
+
+type Translate = (de: string, en: string) => string;
+
+function AnmeldenForm({
+  email,
+  setEmail,
+  onForgot,
+  t,
+}: {
+  email: string;
+  setEmail: (email: string) => void;
+  onForgot: () => void;
+  t: Translate;
+}) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,119 +74,173 @@ export function Login() {
   }
 
   return (
-    <main className="login">
-      <form className="login__form" onSubmit={handleSubmit}>
-        <div className="login__language">
-          <Sprachwahl />
-        </div>
-        <h1 className="login__title">
-          <LogoMark size={40} />
-          Zeiterfassung
-        </h1>
-        <p className="login__hint">
-          {t(
-            'Zugänge legt die Personalverwaltung an. Bei Problemen dort melden.',
-            'Accounts are created by your HR administration. Please contact them if you have problems.',
-          )}
-        </p>
+    <form className="login__form" onSubmit={handleSubmit}>
+      <div className="login__field">
+        <label htmlFor="email">{t('E-Mail', 'Email')}</label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="username"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </div>
 
-        <div className="login__field">
-          <label htmlFor="email">{t('E-Mail', 'Email')}</label>
+      <div className="login__field">
+        <label htmlFor="password">{t('Passwort', 'Password')}</label>
+        <div className="password-field">
           <input
-            id="email"
-            type="email"
-            autoComplete="username"
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
             required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
           />
+          <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((shown) => !shown)} controls="password" t={t} />
         </div>
+      </div>
 
-        <div className="login__field">
-          <label htmlFor="password">{t('Passwort', 'Password')}</label>
-          <div className="password-field">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-            <button
-              type="button"
-              className="password-field__toggle"
-              onClick={() => setShowPassword((shown) => !shown)}
-              aria-pressed={showPassword}
-              aria-controls="password"
-              aria-label={
-                showPassword ? t('Passwort verbergen', 'Hide password') : t('Passwort anzeigen', 'Show password')
-              }
-              title={showPassword ? t('Passwort verbergen', 'Hide password') : t('Passwort anzeigen', 'Show password')}
-            >
-              <Icon name={showPassword ? 'eyeOff' : 'eye'} />
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <p className="error-text" role="alert">
-            {error}
-          </p>
-        )}
-
-        <button
-          className="button button--primary button--large login__submit"
-          type="submit"
-          disabled={busy}
-        >
-          {busy ? t('Wird geprüft …', 'Checking …') : t('Anmelden', 'Sign in')}
-        </button>
-
-        <p className="login__help">
-          {t(
-            'Passwort vergessen? Die Personalverwaltung setzt es zurück.',
-            'Forgot your password? Your HR administration can reset it.',
-          )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
         </p>
-      </form>
+      )}
 
-      {/* Die rechte Fläche blieb leer und wirkte unfertig. Jetzt steht dort,
-          was man vor der Anmeldung wissen will — Datum, Uhrzeit, und was mit
-          den eigenen Daten geschieht. Keine Werbung, keine Illustration. */}
-      <aside className="login__aside" aria-label={t('Hinweise', 'Notes')}>
-        <p className="login__date">{formatDateLong(localDateOf(now), locale)}</p>
-        <p className="login__clock">{formatClock(localMinutesOfDay(now))}</p>
-        <dl className="login__facts">
-          <div>
-            <dt>{t('Aufzeichnung', 'Records')}</dt>
-            <dd>
-              {t(
-                'Arbeitszeiten und Pausen nach § 26 AZG, mit laufender Prüfung der Höchstgrenzen.',
-                'Working hours and breaks under § 26 AZG, continuously checked against the legal limits.',
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('Ihre Daten', 'Your data')}</dt>
-            <dd>
-              {t(
-                'Sie sehen nur Ihre eigenen Zeiten, die Verwaltung nur die ihres Unternehmens. Gespeichert wird in der EU.',
-                'You only see your own hours; administrators only see those of their company. Data is stored in the EU.',
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('Nachvollziehbar', 'Traceable')}</dt>
-            <dd>
-              {t(
-                'Jede Korrektur wird mit Zeitpunkt und Person protokolliert.',
-                'Every correction is logged with time and person.',
-              )}
-            </dd>
-          </div>
-        </dl>
-      </aside>
-    </main>
+      <button className="button button--primary button--large login__submit" type="submit" disabled={busy}>
+        {busy ? t('Wird geprüft …', 'Checking …') : t('Anmelden', 'Sign in')}
+      </button>
+
+      <button className="link-button login__switch" type="button" onClick={onForgot}>
+        {t('Passwort vergessen?', 'Forgot your password?')}
+      </button>
+    </form>
+  );
+}
+
+function VergessenForm({
+  email,
+  setEmail,
+  onBack,
+  t,
+}: {
+  email: string;
+  setEmail: (email: string) => void;
+  onBack: () => void;
+  t: Translate;
+}) {
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/passwort-neu`,
+    });
+    setBusy(false);
+
+    if (resetError?.status === 429) {
+      setError(
+        t(
+          'Gerade wurde schon eine E-Mail angefordert. Bitte eine Minute warten und erneut versuchen.',
+          'An email was requested just now. Please wait a minute and try again.',
+        ),
+      );
+      return;
+    }
+    if (resetError && import.meta.env.DEV) console.error('Zurücksetzen fehlgeschlagen', resetError);
+
+    // Dieselbe Antwort, ob es die Adresse gibt oder nicht — sonst ließe sich
+    // hier ausprobieren, wer einen Zugang hat. Supabase schickt die E-Mail nur,
+    // wenn ein Konto existiert.
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <div className="login__form">
+        <p className="login__notice" role="status">
+          <Icon name="check" />
+          <span>
+            {t(
+              'Wenn zu dieser Adresse ein Zugang besteht, ist eine E-Mail mit einem Link zum Festlegen eines neuen Passworts unterwegs. Der Link gilt eine Stunde. Bitte auch den Spam-Ordner prüfen.',
+              'If an account exists for this address, an email with a link to set a new password is on its way. The link is valid for one hour. Please also check your spam folder.',
+            )}
+          </span>
+        </p>
+        <button className="button button--large login__submit" type="button" onClick={onBack}>
+          {t('Zurück zur Anmeldung', 'Back to sign in')}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="login__form" onSubmit={handleSubmit}>
+      <p className="login__hint">
+        {t(
+          'Geben Sie die E-Mail-Adresse Ihres Zugangs an. Sie bekommen einen Link, mit dem Sie ein neues Passwort festlegen.',
+          'Enter the email address of your account. You will receive a link to set a new password.',
+        )}
+      </p>
+
+      <div className="login__field">
+        <label htmlFor="reset-email">{t('E-Mail', 'Email')}</label>
+        <input
+          id="reset-email"
+          type="email"
+          autoComplete="username"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+
+      <button className="button button--primary button--large login__submit" type="submit" disabled={busy}>
+        {busy ? t('Wird gesendet …', 'Sending …') : t('Link zusenden', 'Send link')}
+      </button>
+
+      <button className="link-button login__switch" type="button" onClick={onBack}>
+        {t('Zurück zur Anmeldung', 'Back to sign in')}
+      </button>
+    </form>
+  );
+}
+
+export function PasswordToggle({
+  shown,
+  onToggle,
+  controls,
+  t,
+}: {
+  shown: boolean;
+  onToggle: () => void;
+  controls: string;
+  t: Translate;
+}) {
+  const label = shown ? t('Passwort verbergen', 'Hide password') : t('Passwort anzeigen', 'Show password');
+  return (
+    <button
+      type="button"
+      className="password-field__toggle"
+      onClick={onToggle}
+      aria-pressed={shown}
+      aria-controls={controls}
+      aria-label={label}
+      title={label}
+    >
+      <Icon name={shown ? 'eyeOff' : 'eye'} />
+    </button>
   );
 }

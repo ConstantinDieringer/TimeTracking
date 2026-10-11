@@ -69,6 +69,24 @@ die Daten ist jeweils das Kundenunternehmen.
       Personalverwaltung in der österreichischen DSFA-Ausnahmenverordnung
       genannt ist — im Einzelfall bestätigen lassen.
 
+- [ ] **Dienstverträge in der Anwendung ablegen?** Dann:
+      - Datenschutzinformation um den Absatz zu Dienstverträgen ergänzen (in
+        der Vorlage enthalten) und das Verzeichnis der Verarbeitungstätigkeiten
+        erweitern.
+      - Nur ablegen, was für das Arbeitsverhältnis nötig ist. Angaben zu
+        Gesundheit, Behinderung oder Gewerkschaft nur, wenn unvermeidbar
+        (Art. 9 DSGVO).
+      - Ein **Dienstzettel** darf elektronisch übergeben werden, wenn die Person
+        ihn abrufen, speichern und ausdrucken kann (§ 2 AVRAG). Die Anwendung
+        erfüllt das; als Nachweis gilt das erste Öffnen, das unter
+        *Dienstvertrag* im Mitarbeiterblatt steht. Ist es nach angemessener
+        Zeit leer, den Dienstzettel zusätzlich auf Papier übergeben.
+      - Wo Schriftform verlangt ist (etwa beim Lehrvertrag), ersetzt der Scan
+        das unterschriebene Original nicht. Original aufbewahren oder
+        qualifiziert elektronisch signieren (ID Austria).
+      - Vor dem Löschlauf nach Fristablauf die Dateien der Person in der
+        Verwaltung löschen; `purge_employee` verweigert sonst die Löschung.
+
 ## C. Was die Software abdeckt
 
 | Pflicht | Umsetzung |
@@ -83,3 +101,5 @@ die Daten ist jeweils das Kundenunternehmen.
 | Auskunft (Art. 15 DSGVO) | Selbstauskunft der Zeiten; vollständige Auskunft über die Verwaltung |
 | Speicherbegrenzung (Art. 5 DSGVO) | `retention_overview` und `purge_employee` |
 | Datenresidenz | Supabase-Projekt in der EU (Irland) |
+| Dienstverträge (DSGVO, § 2 AVRAG) | privater Speicher je Unternehmen, Zugriff nur Verwaltung und Person selbst, nur PDF bis 10 MB, kein Überschreiben, SHA-256-Prüfwert, Protokoll von Ablage, erstem Öffnen und Löschung |
+| Passwort vergessen | Link per E-Mail, gleiche Antwort für vorhandene und unbekannte Adressen, andere Anmeldungen werden danach beendet |

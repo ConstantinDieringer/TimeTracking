@@ -14,6 +14,8 @@ import { Admin } from './pages/Admin';
 import { AdminEinstellungen } from './pages/AdminEinstellungen';
 import { AdminMitarbeiter } from './pages/AdminMitarbeiter';
 import { Datenschutz } from './pages/Datenschutz';
+import { MeinVertrag } from './pages/MeinVertrag';
+import { PasswortNeu } from './pages/PasswortNeu';
 
 export function App() {
   const { session, profile, loading, isAdmin, signOut } = useSession();
@@ -28,6 +30,10 @@ export function App() {
       .querySelector('.nav [aria-current="page"]')
       ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [location.pathname, loading]);
+
+  // Der Link aus der E-Mail „Passwort zurücksetzen“ führt hierher — mit oder
+  // ohne bestehende Anmeldung, deshalb vor allen anderen Weichen.
+  if (location.pathname === '/passwort-neu') return <PasswortNeu />;
 
   if (loading) {
     return (
@@ -104,6 +110,10 @@ export function App() {
               <Icon name="chart" />
               {t('Auswertung', 'Reports')}
             </NavLink>
+            <NavLink to="/vertrag" viewTransition>
+              <Icon name="file" />
+              {t('Vertrag', 'Contract')}
+            </NavLink>
             {isAdmin && (
               <NavLink to="/admin" viewTransition>
                 <Icon name="users" />
@@ -141,6 +151,7 @@ export function App() {
           <Route path="/monat/:month" element={<Monat />} />
           <Route path="/auswertung" element={<Auswertung />} />
           <Route path="/datenschutz" element={<Datenschutz />} />
+          <Route path="/vertrag" element={<MeinVertrag />} />
           {isAdmin && <Route path="/admin" element={<Admin />} />}
           {isAdmin && <Route path="/admin/einstellungen" element={<AdminEinstellungen />} />}
           {isAdmin && <Route path="/admin/:employeeId" element={<AdminMitarbeiter />} />}

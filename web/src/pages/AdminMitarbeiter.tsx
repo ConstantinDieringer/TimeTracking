@@ -14,6 +14,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { Dienstvertraege } from '../components/Dienstvertraege';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
 import { Loading } from '../components/Loading';
@@ -317,6 +318,8 @@ export function AdminMitarbeiter() {
         )}
       </section>
 
+      <Dienstvertraege employeeId={employeeId} />
+
       <section className="section">
         <div className="section__head">
           <h2>
@@ -411,6 +414,7 @@ const TABLE_LABEL: Record<string, string> = {
   time_entries: 'Zeiterfassung',
   absences: 'Abwesenheit',
   employment_contracts: 'Vertrag',
+  contract_documents: 'Dienstvertrag (PDF)',
   profiles: 'Stammdaten',
   organizations: 'Unternehmen',
   'auth.users': 'Zugang',
@@ -470,6 +474,7 @@ const FIELD_LABEL: Record<string, string> = {
   prior_service_months: 'Vordienstzeiten (Monate)',
   vacation_opening_days: 'Offener Urlaub bei Übernahme',
   vacation_opening_date: 'Übernahme-Stichtag',
+  first_viewed_at: 'Von der Person geöffnet',
 };
 
 function format(value: unknown): string {
