@@ -4,6 +4,7 @@ import {
   CATEGORY_LABEL,
   changedByLabel,
   describeEntry,
+  groupStampDays,
   type Category,
   type Lookups,
 } from '../lib/protokoll';
@@ -21,7 +22,8 @@ const FILTERS: Array<Category | 'alle'> = ['alle', 'eingetragen', 'geaendert', '
  * Arbeitszeiten der ursprüngliche Zeitraum neben dem neuen.
  */
 export function Aenderungsprotokoll({ employeeId }: { employeeId: string }) {
-  const audit = useAuditLog(employeeId, 200);
+  // Ein gestempelter Tag sind sechs Einträge; 600 reichen gut drei Monate zurück.
+  const audit = useAuditLog(employeeId, 600);
   const people = useAllEmployees(true);
   const [filter, setFilter] = useState<Category | 'alle'>('alle');
 
@@ -43,9 +45,11 @@ export function Aenderungsprotokoll({ employeeId }: { employeeId: string }) {
 
   // Einträge ohne inhaltliche Änderung (etwa nur ein neuer Zeitstempel)
   // sagen niemandem etwas und fallen weg.
-  const entries = (audit.data ?? [])
-    .map((entry) => ({ entry, described: describeEntry(entry, lookups) }))
-    .filter(({ described }) => !described.empty);
+  const entries = groupStampDays(
+    (audit.data ?? [])
+      .map((entry) => ({ entry, described: describeEntry(entry, lookups) }))
+      .filter(({ described }) => !described.empty),
+  );
 
   const counts = new Map<Category, number>();
   for (const { described } of entries) {
@@ -114,8 +118,8 @@ export function Aenderungsprotokoll({ employeeId }: { employeeId: string }) {
             )}
             {described.changes.length > 0 && (
               <ul className="protokoll__changes">
-                {described.changes.map((change) => (
-                  <li key={change.label}>
+                {described.changes.map((change, index) => (
+                  <li key={`${change.label}-${index}`}>
                     <span className="protokoll__feld">{change.label}:</span>{' '}
                     {change.before && change.after ? (
                       <>

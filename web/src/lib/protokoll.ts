@@ -50,6 +50,12 @@ export interface DescribedEntry {
   changes: FieldChange[];
   /** Änderungen ohne Inhalt (nur Zeitstempel) blendet die Ansicht aus. */
   empty?: boolean;
+  /** Bei Stempelvorgängen: Tag und Abschnitt, damit sich ein Tag zusammenfassen lässt. */
+  stamp?: { day: string; kind: string; start: string; end?: string };
+  /** Bei nachgetragenen Abschnitten: Tag und Abschnitt, damit sich der Tag zusammenfassen lässt. */
+  entered?: { day: string; kind: string; start: string; end: string };
+  /** Bei eingetragenen Abwesenheiten: Art und Tag, damit sich ein Zeitraum zusammenfassen lässt. */
+  absence?: { kind: string; label: string; date: string };
 }
 
 export interface Lookups {
@@ -227,15 +233,29 @@ function describeTimeEntry(operation: string, before: Data | null, after: Data |
   if (operation === 'INSERT') {
     const stamped = current.source === 'stamped';
     const open = current.ended_at == null;
+    const isBreak = current.kind === 'break';
     return {
       category: 'eingetragen',
-      title: stamped && open ? 'Eingestempelt' : `${noun} eingetragen`,
+      title: stamped && open ? (isBreak ? 'Pause begonnen' : 'Eingestempelt') : `${noun} eingetragen`,
       subject:
         stamped && open
           ? `${day(current)}, Beginn ${timestamp(current.started_at)}`
           : `${day(current)}, ${range(current)}`,
       detail: stamped ? 'per Stempeluhr' : 'nachgetragen',
       changes: noteChange(null, current),
+      stamp:
+        stamped && open
+          ? { day: day(current), kind: String(current.kind), start: timestamp(current.started_at) }
+          : undefined,
+      entered:
+        !stamped && !open
+          ? {
+              day: day(current),
+              kind: String(current.kind),
+              start: timestamp(current.started_at),
+              end: timestamp(current.ended_at),
+            }
+          : undefined,
     };
   }
 
@@ -258,10 +278,16 @@ function describeTimeEntry(operation: string, before: Data | null, after: Data |
   ) {
     return {
       category: 'eingetragen',
-      title: 'Ausgestempelt',
+      title: after?.kind === 'break' ? 'Pause beendet' : 'Ausgestempelt',
       subject: `${day(after)}, ${range(after)}`,
       detail: 'per Stempeluhr',
       changes: [],
+      stamp: {
+        day: day(after),
+        kind: String(after.kind),
+        start: timestamp(after.started_at),
+        end: timestamp(after.ended_at),
+      },
     };
   }
 
@@ -325,6 +351,10 @@ function describeAbsence(operation: string, before: Data | null, after: Data | n
       title: `${kind} ${operation === 'INSERT' ? 'eingetragen' : 'gelöscht'}`,
       subject: when,
       changes: operation === 'INSERT' ? noteChange(null, current) : [],
+      absence:
+        operation === 'INSERT' && typeof current.absence_date === 'string'
+          ? { kind: String(current.kind), label: kind, date: current.absence_date }
+          : undefined,
     };
   }
 
@@ -493,4 +523,141 @@ function dailyTargets(value: unknown): string {
   return value
     .map((target, index) => `${WEEKDAYS[index]} ${formatDuration(Number(target))}`)
     .join(', ');
+}
+
+// --- Zusammenfassen ---------------------------------------------------------
+
+export interface LogItem<T> {
+  /** Der jüngste Eintrag der Gruppe — Zeitpunkt und Urheber. */
+  entry: T;
+  described: DescribedEntry;
+  /** Wie viele Einträge zusammengefasst sind. */
+  count: number;
+}
+
+/**
+ * Fasst die Stempelvorgänge eines Tages zu einem Eintrag zusammen.
+ *
+ * Ein normal gestempelter Arbeitstag sind sechs Einträge — Ein- und
+ * Ausstempeln, Pause begonnen und beendet. Interessant ist daran nur der
+ * Tag selbst. Korrekturen, Nachträge und alles andere bleiben einzeln.
+ * Erwartet die Einträge neueste zuerst.
+ */
+export function groupStampDays<T extends { changed_by: string | null; changed_at: string }>(
+  items: Array<{ entry: T; described: DescribedEntry }>,
+): Array<LogItem<T>> {
+  type Item = { entry: T; described: DescribedEntry };
+  const groups = new Map<string, Item[]>();
+  const order: Array<{ key: string } | { item: Item }> = [];
+  // Für Gruppen mit Zeitfenster: die zuletzt offene Gruppe je Art und ihr
+  // Zeitpunkt. Die Einträge kommen neueste zuerst.
+  const open = new Map<string, { key: string; time: number }>();
+  let counter = 0;
+
+  const join = (base: string, item: Item, windowMinutes: number | null) => {
+    const time = new Date(item.entry.changed_at).getTime();
+    const current = open.get(base);
+    if (current && (windowMinutes === null || current.time - time <= windowMinutes * 60_000)) {
+      groups.get(current.key)!.push(item);
+      current.time = time;
+      return;
+    }
+    const key = `${base}#${counter++}`;
+    groups.set(key, [item]);
+    open.set(base, { key, time });
+    order.push({ key });
+  };
+
+  for (const item of items) {
+    const { stamp, absence, entered } = item.described;
+    const by = item.entry.changed_by;
+    // Ein Arbeitstag mit der Stempeluhr: alle Vorgänge des Tages, auch wenn
+    // dazwischen anderes liegt, etwa die Korrektur einer Kollegin.
+    if (stamp) join(`stempel|${stamp.day}|${by}`, item, null);
+    // Ein nachgetragener Tag: die Abschnitte gehen innerhalb weniger Minuten ein.
+    else if (entered) join(`nachtrag|${entered.day}|${by}`, item, 15);
+    // Ein Urlaub über mehrere Tage: dieselbe Art, auf einmal eingetragen.
+    else if (absence) join(`abwesenheit|${absence.kind}|${by}`, item, 5);
+    else order.push({ item });
+  }
+
+  return order.map((slot) => {
+    if ('item' in slot) return { ...slot.item, count: 1 };
+    const group = groups.get(slot.key)!;
+    if (group.length === 1) return { ...group[0]!, count: 1 };
+    const newest = group[0]!;
+
+    if (slot.key.startsWith('abwesenheit|')) {
+      const dates = group.map(({ described }) => described.absence!.date).sort();
+      const first = dates[0]!;
+      const last = dates[dates.length - 1]!;
+      return {
+        entry: newest.entry,
+        count: group.length,
+        described: {
+          category: 'eingetragen' as const,
+          title: `${newest.described.absence!.label} eingetragen`,
+          subject: `${weekdayShort(first)} ${date(first)} – ${weekdayShort(last)} ${date(last)}`,
+          detail: `${group.length} Arbeitstage`,
+          changes: group.flatMap(({ described }) => described.changes),
+        },
+      };
+    }
+
+    if (slot.key.startsWith('nachtrag|')) {
+      const segments = group
+        .map(({ described }) => described.entered!)
+        .sort((a, b) => a.start.localeCompare(b.start));
+      return {
+        entry: newest.entry,
+        count: group.length,
+        described: {
+          category: 'eingetragen' as const,
+          title: 'Arbeitstag nachgetragen',
+          subject: `${newest.described.entered!.day}, ${segments[0]!.start}–${segments[segments.length - 1]!.end}`,
+          detail: 'nachgetragen',
+          changes: [
+            ...segments.map((segment) => ({
+              label: SEGMENT_LABEL[segment.kind] ?? segment.kind,
+              before: '',
+              after: `${segment.start}–${segment.end}`,
+            })),
+            ...group.flatMap(({ described }) => described.changes),
+          ],
+        },
+      };
+    }
+
+    // Stempeluhr — älteste zuerst, damit die Abschnitte in Tagesreihenfolge stehen.
+    const segments: Array<{ kind: string; start: string; end?: string }> = [];
+    for (const { described } of [...group].reverse()) {
+      const stamp = described.stamp!;
+      const known = segments.find((segment) => segment.kind === stamp.kind && segment.start === stamp.start);
+      if (known) known.end = stamp.end ?? known.end;
+      else segments.push({ kind: stamp.kind, start: stamp.start, end: stamp.end });
+    }
+    segments.sort((a, b) => a.start.localeCompare(b.start));
+    const first = segments[0]!;
+    const last = segments[segments.length - 1]!;
+    const running = segments.some((segment) => !segment.end);
+    // Liegt der letzte Vorgang lange zurück, läuft der Tag nicht mehr — dann
+    // wurde das Ausstempeln vergessen.
+    const forgotten = running && Date.now() - new Date(newest.entry.changed_at).getTime() > 16 * 3600_000;
+    const openLabel = forgotten ? 'ohne Ende' : 'läuft';
+    return {
+      entry: newest.entry,
+      count: group.length,
+      described: {
+        category: 'eingetragen' as const,
+        title: forgotten ? 'Arbeitstag gestempelt, Ausstempeln fehlt' : running ? 'Arbeitstag läuft' : 'Arbeitstag gestempelt',
+        subject: `${newest.described.stamp!.day}, ${first.start}–${last.end ?? openLabel}`,
+        detail: 'per Stempeluhr',
+        changes: segments.map((segment) => ({
+          label: SEGMENT_LABEL[segment.kind] ?? segment.kind,
+          before: '',
+          after: `${segment.start}–${segment.end ?? openLabel}`,
+        })),
+      },
+    };
+  });
 }
