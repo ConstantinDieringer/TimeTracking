@@ -27,15 +27,29 @@ export interface FieldChange {
   after: string;
 }
 
+export type Category = 'eingetragen' | 'geaendert' | 'hochgeladen' | 'geloescht' | 'zugang';
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  eingetragen: 'Eingetragen',
+  geaendert: 'Geändert',
+  hochgeladen: 'Hochgeladen',
+  geloescht: 'Gelöscht',
+  zugang: 'Zugang',
+};
+
 export interface DescribedEntry {
-  /** Bereich, etwa „Arbeitszeit“ oder „Vertrag“. */
-  area: string;
-  /** Vorgang in Worten, etwa „nachgetragen“ oder „geändert“. */
-  action: string;
-  /** Worum es geht, etwa „Arbeit am Mo 06.10.2026, 08:00–12:00“. */
+  /** Wonach sich filtern lässt: eingetragen, geändert, hochgeladen … */
+  category: Category;
+  /** Eine Zeile, die für sich steht, etwa „Arbeitszeit eingetragen“. */
+  title: string;
+  /** Worum es geht, etwa „Mo 06.10.2026, 08:00–12:00“. */
   subject: string;
-  /** Geänderte Felder; bei Anlegen und Löschen die wesentlichen Werte. */
+  /** Zusatz hinter dem Betreff, etwa „nachgetragen“ oder „120 KB“. */
+  detail?: string;
+  /** Geänderte Felder; bei Arbeitszeiten der Zeitraum vorher → nachher. */
   changes: FieldChange[];
+  /** Änderungen ohne Inhalt (nur Zeitstempel) blendet die Ansicht aus. */
+  empty?: boolean;
 }
 
 export interface Lookups {
@@ -162,55 +176,234 @@ const SUMMARY: Record<string, string[]> = {
   organizations: ['name'],
 };
 
-const AREA: Record<string, string> = {
-  time_entries: 'Arbeitszeit',
-  absences: 'Abwesenheit',
-  employment_contracts: 'Vertrag',
-  profiles: 'Stammdaten',
-  organizations: 'Unternehmen',
-  contract_documents: 'Dienstvertrag (PDF)',
-  'auth.users': 'Zugang',
-};
 
 export function describeEntry(entry: AuditRow, lookups: Lookups): DescribedEntry {
   const before = (entry.old_data ?? null) as Data | null;
   const after = (entry.new_data ?? null) as Data | null;
-  const area = AREA[entry.table_name] ?? entry.table_name;
 
   // Vorgänge in Supabase Auth: ein Stichwort statt eines Datensatzes.
   if (entry.table_name === 'auth.users' || typeof after?.aktion === 'string') {
     const aktion = String(after?.aktion ?? '');
-    const changes: FieldChange[] = [];
-    if (typeof after?.rolle === 'string') {
-      changes.push({ label: 'Rolle', before: '', after: ROLE_LABEL[after.rolle] ?? after.rolle });
-    }
-    return { area, action: AUTH_ACTION_LABEL[aktion] ?? aktion, subject: '', changes };
+    const rolle = typeof after?.rolle === 'string' ? (ROLE_LABEL[after.rolle] ?? after.rolle) : undefined;
+    return {
+      category: 'zugang',
+      title: AUTH_ACTION_LABEL[aktion] ?? aktion,
+      subject: '',
+      detail: rolle ? `Rolle ${rolle}` : undefined,
+      changes: [],
+    };
   }
 
   // Löschung nach Ablauf der Aufbewahrungsfrist: nur der Vermerk bleibt.
   if (typeof after?.grund === 'string') {
-    return { area, action: 'gelöscht', subject: after.grund, changes: [] };
+    return { category: 'geloescht', title: 'Daten gelöscht', subject: after.grund, changes: [] };
   }
 
-  const current = after ?? before ?? {};
-  const subject = subjectOf(entry.table_name, current, before, after);
+  switch (entry.table_name) {
+    case 'time_entries':
+      return describeTimeEntry(entry.operation, before, after);
+    case 'absences':
+      return describeAbsence(entry.operation, before, after, lookups);
+    case 'contract_documents':
+      return describeDocument(entry.operation, before, after);
+    case 'employment_contracts':
+      return describeRecord(entry.operation, 'Vertrag', 'employment_contracts', before, after, lookups, contractSubject);
+    case 'profiles':
+      return describeRecord(entry.operation, 'Mitarbeiterdaten', 'profiles', before, after, lookups, () => '');
+    case 'organizations':
+      return describeRecord(entry.operation, 'Unternehmensdaten', 'organizations', before, after, lookups, () => '');
+    default:
+      return describeRecord(entry.operation, entry.table_name, entry.table_name, before, after, lookups, () => '');
+  }
+}
 
-  if (entry.operation === 'INSERT' || entry.operation === 'DELETE') {
-    const values = entry.operation === 'INSERT' ? after : before;
-    const changes = (SUMMARY[entry.table_name] ?? [])
+// --- Arbeitszeiten ----------------------------------------------------------
+
+function describeTimeEntry(operation: string, before: Data | null, after: Data | null): DescribedEntry {
+  const current = after ?? before ?? {};
+  const kind = SEGMENT_LABEL[String(current.kind)] ?? 'Arbeitszeit';
+  const noun = kind === 'Arbeit' ? 'Arbeitszeit' : kind;
+
+  if (operation === 'INSERT') {
+    const stamped = current.source === 'stamped';
+    const open = current.ended_at == null;
+    return {
+      category: 'eingetragen',
+      title: stamped && open ? 'Eingestempelt' : `${noun} eingetragen`,
+      subject:
+        stamped && open
+          ? `${day(current)}, Beginn ${timestamp(current.started_at)}`
+          : `${day(current)}, ${range(current)}`,
+      detail: stamped ? 'per Stempeluhr' : 'nachgetragen',
+      changes: noteChange(null, current),
+    };
+  }
+
+  if (operation === 'DELETE') {
+    return {
+      category: 'geloescht',
+      title: `${noun} gelöscht`,
+      subject: `${day(current)}, ${range(current)}`,
+      detail: current.source === 'stamped' ? 'war gestempelt' : 'war nachgetragen',
+      changes: noteChange(current, null),
+    };
+  }
+
+  // Ausstempeln: der Abschnitt bekommt sein Ende, sonst ändert sich nichts.
+  if (
+    before?.ended_at == null &&
+    after?.ended_at != null &&
+    after?.source === 'stamped' &&
+    before?.started_at === after?.started_at
+  ) {
+    return {
+      category: 'eingetragen',
+      title: 'Ausgestempelt',
+      subject: `${day(after)}, ${range(after)}`,
+      detail: 'per Stempeluhr',
+      changes: [],
+    };
+  }
+
+  const changes: FieldChange[] = [];
+  const timeChanged = before?.started_at !== after?.started_at || before?.ended_at !== after?.ended_at;
+  if (before?.work_date !== after?.work_date) {
+    changes.push({ label: 'Tag', before: day(before ?? {}), after: day(after ?? {}) });
+  }
+  if (timeChanged) {
+    changes.push({ label: 'Zeit', before: range(before ?? {}), after: range(after ?? {}) });
+  }
+  if (before?.kind !== after?.kind) {
+    changes.push({
+      label: 'Art',
+      before: SEGMENT_LABEL[String(before?.kind)] ?? '—',
+      after: SEGMENT_LABEL[String(after?.kind)] ?? '—',
+    });
+  }
+  changes.push(...noteChange(before, after));
+
+  return {
+    category: 'geaendert',
+    title: timeChanged ? `${noun} geändert` : `${noun}: Angaben geändert`,
+    subject: timeChanged ? day(before ?? current) : `${day(after ?? current)}, ${range(after ?? current)}`,
+    changes,
+    empty: changes.length === 0,
+  };
+}
+
+function noteChange(before: Data | null, after: Data | null): FieldChange[] {
+  const old = before?.note ? quoted(before.note) : '';
+  const now = after?.note ? quoted(after.note) : '';
+  return old === now ? [] : [{ label: 'Anmerkung', before: old, after: now }];
+}
+
+/** „Mo 06.10.2026“ aus dem Arbeitstag. */
+function day(data: Data): string {
+  return typeof data.work_date === 'string' ? `${weekdayShort(data.work_date)} ${date(data.work_date)}` : '—';
+}
+
+/** „08:00–12:00“, bei offenem Ende „08:00–läuft“. */
+function range(data: Data): string {
+  const start = data.started_at ? timestamp(data.started_at) : '?';
+  const end = data.ended_at ? timestamp(data.ended_at) : 'läuft';
+  return `${start}–${end}`;
+}
+
+// --- Abwesenheiten ----------------------------------------------------------
+
+function describeAbsence(operation: string, before: Data | null, after: Data | null, lookups: Lookups): DescribedEntry {
+  const current = after ?? before ?? {};
+  const kind = ABSENCE_LABEL[current.kind as AbsenceKind] ?? 'Abwesenheit';
+  const when =
+    typeof current.absence_date === 'string'
+      ? `${weekdayShort(current.absence_date)} ${date(current.absence_date)}${current.half_day ? ', halbtägig' : ''}`
+      : '';
+
+  if (operation === 'INSERT' || operation === 'DELETE') {
+    return {
+      category: operation === 'INSERT' ? 'eingetragen' : 'geloescht',
+      title: `${kind} ${operation === 'INSERT' ? 'eingetragen' : 'gelöscht'}`,
+      subject: when,
+      changes: operation === 'INSERT' ? noteChange(null, current) : [],
+    };
+  }
+
+  const changes = changedFields(before, after, lookups);
+  return { category: 'geaendert', title: `${kind} geändert`, subject: when, changes, empty: changes.length === 0 };
+}
+
+// --- Dokumente --------------------------------------------------------------
+
+function describeDocument(operation: string, before: Data | null, after: Data | null): DescribedEntry {
+  const current = after ?? before ?? {};
+  const kind = DOCUMENT_LABEL[String(current.kind)] ?? 'Dokument';
+  const subject = `${kind} ${quoted(current.file_name)}`;
+  const size = `${Math.max(1, Math.round(Number(current.size_bytes) / 1024))} KB`;
+
+  if (operation === 'INSERT') {
+    const valid = current.valid_from ? `, gültig ab ${date(current.valid_from)}` : '';
+    return { category: 'hochgeladen', title: 'Dokument hochgeladen', subject, detail: `${size}${valid}`, changes: [] };
+  }
+  if (operation === 'DELETE') {
+    return { category: 'geloescht', title: 'Dokument gelöscht', subject, detail: size, changes: [] };
+  }
+  if (before?.first_viewed_at == null && after?.first_viewed_at != null) {
+    return {
+      category: 'zugang',
+      title: 'Dokument von der Person geöffnet',
+      subject,
+      detail: 'gilt als Nachweis der Übergabe',
+      changes: [],
+    };
+  }
+  return { category: 'geaendert', title: 'Dokument geändert', subject, changes: [], empty: true };
+}
+
+// --- Stammdaten, Verträge, Unternehmen ---------------------------------------
+
+function describeRecord(
+  operation: string,
+  noun: string,
+  table: string,
+  before: Data | null,
+  after: Data | null,
+  lookups: Lookups,
+  subjectOf: (data: Data) => string,
+): DescribedEntry {
+  const current = after ?? before ?? {};
+
+  if (operation === 'INSERT' || operation === 'DELETE') {
+    const values = operation === 'INSERT' ? after : before;
+    const changes = (SUMMARY[table] ?? [])
       .filter((key) => values && values[key] !== null && values[key] !== undefined && values[key] !== '')
-      // „gestempelt“ oder „nachgetragen“ steht beim Anlegen schon im Vorgang.
-      .filter((key) => !(entry.operation === 'INSERT' && key === 'source'))
       .map((key) => {
         const shown = formatField(key, values![key], lookups);
-        return entry.operation === 'INSERT'
+        return operation === 'INSERT'
           ? { label: labelOf(key), before: '', after: shown }
           : { label: labelOf(key), before: shown, after: '' };
       });
-    return { area, action: actionOf(entry.table_name, entry.operation, current), subject, changes };
+    return {
+      category: operation === 'INSERT' ? 'eingetragen' : 'geloescht',
+      title: `${noun} ${operation === 'INSERT' ? 'angelegt' : 'gelöscht'}`,
+      subject: subjectOf(current),
+      changes,
+    };
   }
 
-  const changes = Object.keys({ ...before, ...after })
+  const changes = changedFields(before, after, lookups);
+  let title = `${noun} geändert`;
+  if (table === 'profiles' && before?.active !== after?.active) {
+    title = after?.active ? 'Zugang wieder aktiviert' : 'Zugang deaktiviert';
+  }
+  return { category: 'geaendert', title, subject: subjectOf(current), changes, empty: changes.length === 0 };
+}
+
+function contractSubject(data: Data): string {
+  return `gültig ab ${date(data.valid_from)}${data.valid_to ? ` bis ${date(data.valid_to)}` : ''}`;
+}
+
+function changedFields(before: Data | null, after: Data | null, lookups: Lookups): FieldChange[] {
+  return Object.keys({ ...before, ...after })
     .filter((key) => !IGNORED.has(key))
     .filter((key) => JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key]))
     .map((key) => ({
@@ -218,8 +411,6 @@ export function describeEntry(entry: AuditRow, lookups: Lookups): DescribedEntry
       before: formatField(key, before?.[key], lookups),
       after: formatField(key, after?.[key], lookups),
     }));
-
-  return { area, action: actionOf(entry.table_name, 'UPDATE', current, before, after), subject, changes };
 }
 
 /** Wer geändert hat — mit Hinweis, wenn es die Person selbst war. */
@@ -227,52 +418,6 @@ export function changedByLabel(changedBy: string | null, employeeId: string, nam
   if (!changedBy) return 'System';
   const name = names.get(changedBy) ?? 'Person außerhalb des Unternehmens';
   return changedBy === employeeId ? `${name} (selbst)` : name;
-}
-
-function actionOf(table: string, operation: string, current: Data, before?: Data | null, after?: Data | null): string {
-  if (operation === 'INSERT') {
-    if (table === 'time_entries') return current.source === 'stamped' ? 'gestempelt' : 'nachgetragen';
-    if (table === 'contract_documents') return 'abgelegt';
-    return 'angelegt';
-  }
-  if (operation === 'DELETE') return 'gelöscht';
-  if (table === 'time_entries' && before?.ended_at == null && after?.ended_at != null && before?.source === 'stamped' && after?.source === 'stamped') {
-    return 'ausgestempelt';
-  }
-  if (table === 'contract_documents' && before?.first_viewed_at == null && after?.first_viewed_at != null) {
-    return 'von der Person geöffnet';
-  }
-  if (table === 'profiles' && before?.active !== after?.active) return after?.active ? 'reaktiviert' : 'deaktiviert';
-  return 'geändert';
-}
-
-function subjectOf(table: string, current: Data, before: Data | null, after: Data | null): string {
-  switch (table) {
-    case 'time_entries': {
-      const kind = SEGMENT_LABEL[String(current.kind)] ?? 'Eintrag';
-      const day = typeof current.work_date === 'string' ? ` am ${weekdayShort(current.work_date)} ${date(current.work_date)}` : '';
-      // Bei Änderungen der Stand vorher — darauf bezieht sich die Korrektur.
-      const shown = before ?? after ?? current;
-      const start = shown.started_at ? timestamp(shown.started_at) : '?';
-      const end = shown.ended_at ? timestamp(shown.ended_at) : 'läuft';
-      return `${kind}${day}, ${start}–${end}`;
-    }
-    case 'absences': {
-      const kind = ABSENCE_LABEL[current.kind as AbsenceKind] ?? 'Abwesenheit';
-      const day = typeof current.absence_date === 'string' ? ` am ${weekdayShort(current.absence_date)} ${date(current.absence_date)}` : '';
-      return `${kind}${day}${current.half_day ? ' (halbtägig)' : ''}`;
-    }
-    case 'employment_contracts':
-      return `Vertrag ab ${date(current.valid_from)}${current.valid_to ? ` bis ${date(current.valid_to)}` : ''}`;
-    case 'contract_documents':
-      return `${DOCUMENT_LABEL[String(current.kind)] ?? 'Dokument'} „${text(current.file_name)}“`;
-    case 'profiles':
-      return text(current.display_name);
-    case 'organizations':
-      return text(current.name);
-    default:
-      return '';
-  }
 }
 
 function labelOf(key: string): string {

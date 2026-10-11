@@ -11,9 +11,10 @@ import {
   type AustrianState,
   type Contract,
 } from '@zeiterfassung/legal';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { Aenderungsprotokoll } from '../components/Aenderungsprotokoll';
 import { Dienstvertraege } from '../components/Dienstvertraege';
 import { Export } from '../components/Export';
 import { Findings } from '../components/Findings';
@@ -25,8 +26,7 @@ import { VertragsForm } from '../components/VertragsForm';
 import { Urlaubskonto } from '../components/Urlaubskonto';
 import { Zugang } from '../components/Zugang';
 import { contractOn } from '../lib/mapping';
-import { changedByLabel, describeEntry, type Lookups } from '../lib/protokoll';
-import { useAllEmployees, useAuditLog, useContracts, useEmployee, useTimesheet } from '../lib/queries';
+import { useContracts, useEmployee, useTimesheet } from '../lib/queries';
 import { supabase, type Tables } from '../lib/supabase';
 import { collectFindings } from '../lib/timesheet';
 
@@ -45,22 +45,6 @@ export function AdminMitarbeiter() {
 
   const employee = useEmployee(employeeId);
   const contracts = useContracts(employeeId);
-  const audit = useAuditLog(employeeId, 60);
-  const people = useAllEmployees(true);
-  // Alle Vertragsarten, auch archivierte: alte Einträge verweisen auf sie.
-  const allContractTypes = useQuery({
-    queryKey: ['contract-types', 'alle'],
-    staleTime: 10 * 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('contract_types').select('id, label');
-      if (error) throw error;
-      return data;
-    },
-  });
-  const lookups: Lookups = {
-    names: new Map((people.data ?? []).map((person) => [person.id, person.display_name])),
-    contractTypes: new Map((allContractTypes.data ?? []).map((type) => [type.id, type.label])),
-  };
   const { timesheet } = useTimesheet({ employeeId, from, to });
 
   const monthDays = timesheet?.days.filter((day) => day.date >= from && day.date <= to) ?? [];
@@ -411,93 +395,7 @@ export function AdminMitarbeiter() {
         )}
       </section>
 
-      <section className="section">
-        <div className="section__head">
-          <h2>
-            Änderungsprotokoll
-            <InfoTip>
-              <span>
-                Wird von der Datenbank selbst geschrieben und lässt sich weder ändern noch löschen —
-                auch nicht aus der Verwaltung heraus.
-              </span>
-              <span>
-                Erfasst Zeiten, Abwesenheiten, Verträge, Stammdaten einschließlich Rolle und
-                Deaktivierung, Dienstverträge und den Zugang; je Eintrag, wer geändert hat, und
-                jeden geänderten Wert vorher (durchgestrichen) und nachher.
-              </span>
-            </InfoTip>
-          </h2>
-          <span className="meta">Letzte {audit.data?.length ?? 0} Einträge</span>
-        </div>
-        <div className="table-scroll">
-          <table className="protokoll">
-            <thead>
-              <tr>
-                <th>Zeitpunkt</th>
-                <th>Von</th>
-                <th>Bereich</th>
-                <th className="grow">Was</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(audit.data ?? []).map((entry) => {
-                const described = describeEntry(entry, lookups);
-                return (
-                  <tr key={entry.id}>
-                    <td className="num num--muted protokoll__zeit">
-                      {new Date(entry.changed_at).toLocaleString('de-AT', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="protokoll__von">
-                      {changedByLabel(entry.changed_by, employeeId, lookups.names)}
-                    </td>
-                    <td>{described.area}</td>
-                    <td className="grow">
-                      <p className="protokoll__was">
-                        <strong>{described.action}</strong>
-                        {described.subject && <> · {described.subject}</>}
-                      </p>
-                      {described.changes.length > 0 && (
-                        <ul className="protokoll__changes">
-                          {described.changes.map((change) => (
-                            <li key={change.label}>
-                              <span className="protokoll__feld">{change.label}:</span>{' '}
-                              {change.before && change.after ? (
-                                <>
-                                  <del>{change.before}</del> → <ins>{change.after}</ins>
-                                </>
-                              ) : change.after ? (
-                                <ins>{change.after}</ins>
-                              ) : (
-                                <del>{change.before}</del>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {entry.operation === 'UPDATE' && described.changes.length === 0 && (
-                        <p className="muted protokoll__was">ohne inhaltliche Änderung</p>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {audit.data?.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="empty">
-                    Noch keine Einträge.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <Aenderungsprotokoll employeeId={employeeId} />
     </main>
   );
 }

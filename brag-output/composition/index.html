@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="de-AT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/audio-bass.js"></script>
+    <style>
+      @font-face {
+        font-family: 'Geist Variable';
+        src: url('assets/fonts/geist-latin-wght-normal.woff2') format('woff2');
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'Geist Mono Variable';
+        src: url('assets/fonts/geist-mono-latin-wght-normal.woff2') format('woff2');
+        font-weight: 100 900;
+        font-style: normal;
+      }
+
+      /* Tokens from web/src/styles/tokens.css. Root font size 24px scales the
+         app's rem-based UI by 1.5x so it reads on a 1080p frame. */
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --surface-muted: #f1f3f6;
+        --ink: #111827;
+        --ink-muted: #5b6474;
+        --hairline: #e6e9ee;
+        --hairline-strong: #d4d9e0;
+        --accent: #047857;
+        --accent-hover: #065f46;
+        --accent-strong: #059669;
+        --accent-soft: #ecfdf5;
+        --accent-soft-strong: #d1fae5;
+        --warn: #b45309;
+        --warn-soft: #fffbeb;
+        --warn-line: #fcd34d;
+        --violation: #b91c1c;
+        --violation-soft: #fef2f2;
+        --violation-line: #fca5a5;
+        --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+        --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+        --shadow: 0 1px 3px rgb(16 24 40 / 0.06), 0 1px 2px rgb(16 24 40 / 0.04);
+        --shadow-lg: 0 8px 24px rgb(16 24 40 / 0.08), 0 2px 6px rgb(16 24 40 / 0.04);
+        --pulse: 0;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html { font-size: 24px; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-variant-numeric: tabular-nums;
+        line-height: 1.4;
+      }
+      .clip { position: absolute; inset: 0; }
+      .icon { flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ---------- Masthead ---------- */
+      #masthead { bottom: auto; height: 4rem; z-index: 5; }
+      .masthead {
+        height: 100%;
+        background: var(--surface);
+        border-bottom: 1px solid var(--hairline);
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        padding: 0 4rem;
+      }
+      .masthead__title { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; letter-spacing: -0.01em; font-size: 1rem; }
+      .logo-mark {
+        display: grid;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius);
+        background: var(--accent);
+        color: #fff;
+      }
+      .nav { display: flex; gap: 0.25rem; }
+      .nav span {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        height: 2.25rem;
+        padding: 0 0.75rem;
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--ink-muted);
+      }
+      .nav .nav__active {
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius);
+        background: var(--accent-soft);
+        opacity: 0;
+      }
+      .nav .nav__label { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; }
+      .masthead__account { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+      .avatar {
+        display: grid; place-items: center;
+        width: 2rem; height: 2rem; border-radius: 999px;
+        background: var(--accent-soft-strong); color: var(--accent-hover);
+        font-size: 0.75rem; font-weight: 600;
+      }
+
+      /* ---------- Page ---------- */
+      .page {
+        position: absolute;
+        left: 0; right: 0; top: 4rem; bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 2rem;
+      }
+      .page__inner { width: 60rem; }
+      .page__head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.25rem; }
+      .greeting { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; color: var(--accent); margin-bottom: 0.4rem; }
+      h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+      .page__subtitle { font-size: 0.875rem; color: var(--ink-muted); margin-top: 0.25rem; }
+      .clock-chip {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        box-shadow: var(--shadow-sm);
+        font-family: var(--font-mono);
+        font-size: 0.875rem; font-weight: 500;
+      }
+      .clock-chip .icon { color: var(--accent); }
+
+      /* ---------- Stamp card ---------- */
+      .stamp {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1.25rem 1.5rem;
+        align-items: center;
+        padding: 1.75rem 2rem;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+      .stamp__state { position: relative; }
+      .pills { position: relative; height: 1.6rem; }
+      .pill {
+        position: absolute; left: 0; top: 0;
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.875rem; font-weight: 500;
+        background: var(--surface-muted); color: var(--ink-muted);
+        white-space: nowrap;
+      }
+      .pill::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: currentColor; }
+      .pill--running { background: var(--accent-soft); color: var(--accent); }
+      .pill--break { background: var(--warn-soft); color: var(--warn); }
+      .stamp__clock {
+        font-family: var(--font-mono);
+        font-size: 3.75rem;
+        font-weight: 500;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin: 1rem 0 0.5rem;
+      }
+      .since { position: relative; height: 1.4rem; font-size: 0.875rem; color: var(--ink-muted); }
+      .since span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+      .stamp__actions { position: relative; width: 13rem; height: 7rem; }
+      .btn-group { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.75rem; }
+      .button {
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        height: 3rem;
+        padding: 0 1.5rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--hairline-strong);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        font-size: 1rem; font-weight: 600;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .button--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .cursor { position: absolute; left: 8.2rem; top: 3.9rem; width: 1.6rem; height: 1.6rem; z-index: 3; }
+
+      .progress-block, .timeline, .figures { grid-column: 1 / -1; }
+      .progress-block__labels { position: relative; display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.5rem; height: 1.3rem; }
+      .progress-block__labels .muted { color: var(--ink-muted); }
+      .swap { position: relative; display: inline-block; min-width: 9rem; text-align: right; }
+      .swap > span { position: absolute; right: 0; top: 0; white-space: nowrap; }
+      .progress { height: 0.625rem; background: var(--surface-muted); border-radius: 999px; overflow: hidden; }
+      .progress__bar { width: 100%; height: 100%; background: var(--accent-strong); border-radius: 999px; transform-origin: 0 50%; }
+
+      .timeline__track { position: relative; height: 1.75rem; background: var(--surface-muted); border-radius: var(--radius); overflow: hidden; }
+      .timeline__gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--hairline-strong); }
+      .seg { position: absolute; top: 4px; bottom: 4px; border-radius: 4px; background: var(--accent-strong); transform-origin: 0 50%; }
+      .seg--break { background: #f59e0b; top: 8px; bottom: 8px; }
+      .timeline__ticks { position: relative; height: 1.2rem; margin-top: 0.3rem; font-size: 0.75rem; color: var(--ink-muted); font-family: var(--font-mono); }
+      .timeline__ticks span { position: absolute; top: 0; width: 4rem; margin-left: -2rem; text-align: center; }
+      .timeline__legend { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--ink-muted); margin-top: 0.2rem; }
+      .timeline__legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+      .dot { width: 0.6rem; height: 0.6rem; border-radius: 999px; background: var(--accent-strong); }
+      .dot--break { background: #f59e0b; }
+
+      .figures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+      .figures > div { position: relative; padding: 0.75rem 1rem; background: var(--surface-muted); border-radius: var(--radius); }
+      .figures dt { position: relative; height: 1.2rem; font-size: 0.875rem; font-weight: 500; color: var(--ink-muted); }
+      .figures dt span, .figures dd span.alt { position: absolute; left: 0; top: 0; white-space: nowrap; }
+      .figures dd { position: relative; height: 1.6rem; margin-top: 0.25rem; font-size: 1.125rem; font-weight: 600; }
+
+      /* ---------- Toasts ---------- */
+      .toast {
+        position: absolute; right: 3rem; top: 5.25rem;
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        width: 19rem;
+        padding: 0.75rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-left: 3px solid var(--accent-strong);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        z-index: 6;
+      }
+      .toast .icon { color: var(--accent); margin-top: 2px; }
+      .toast strong { display: block; font-size: 0.875rem; font-weight: 600; }
+      .toast p { font-size: 0.875rem; color: var(--ink-muted); }
+
+      /* ---------- Prüfung ---------- */
+      .stage { position: absolute; left: 0; right: 0; top: 4rem; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .headline { width: 60rem; font-size: 2.25rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 1.5rem; }
+      .headline em { font-style: normal; color: var(--accent); }
+      .sub { width: 60rem; font-size: 1.125rem; color: var(--ink-muted); margin: -0.75rem 0 1.5rem; }
+      .section { width: 60rem; padding: 1.5rem 1.75rem; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+      .section__head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+      h2 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; }
+      .tag { display: inline-flex; align-items: center; font-size: 0.75rem; font-weight: 500; padding: 2px 0.5rem; border-radius: 999px; background: var(--surface-muted); color: var(--ink-muted); white-space: nowrap; }
+      .daychip { position: relative; margin-left: auto; width: 6.5rem; height: 1.6rem; }
+      .daychip span { position: absolute; right: 0; top: 0; font-family: var(--font-mono); font-size: 0.875rem; padding: 0.15rem 0.6rem; border: 1px solid var(--hairline); border-radius: 999px; background: var(--surface); white-space: nowrap; }
+      .findings { position: relative; height: 8.4rem; }
+      .all-clear {
+        position: absolute; left: 0; right: 0; top: 0;
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-soft-strong);
+        border-radius: var(--radius);
+        color: var(--accent-hover);
+        font-size: 0.875rem; font-weight: 500;
+      }
+      .finding {
+        position: absolute; left: 0; right: 0;
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--violation-line);
+        border-left: 3px solid var(--violation);
+        border-radius: var(--radius);
+        background: var(--violation-soft);
+        font-size: 0.875rem;
+      }
+      .finding .icon { color: var(--violation); }
+      .finding p { flex: 1; }
+      .finding__reference { font-size: 0.75rem; font-weight: 600; color: var(--violation); white-space: nowrap; }
+
+      /* ---------- Protokoll ---------- */
+      .protokoll { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      .protokoll th { text-align: left; font-weight: 500; color: var(--ink-muted); padding: 0.5rem 0.75rem; background: var(--surface-muted); }
+      .protokoll th:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+      .protokoll th:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+      .protokoll td { padding: 0.9rem 0.75rem 0.5rem; vertical-align: top; }
+      .num { font-family: var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
+      .changes { margin-top: 0.3rem; color: var(--ink-muted); display: flex; align-items: baseline; gap: 0.4rem; }
+      .strike { position: relative; display: inline-block; }
+      .strike i { position: absolute; left: -2px; right: -2px; top: 52%; height: 2px; background: var(--ink-muted); transform-origin: 0 50%; }
+      .ins { display: inline-block; color: var(--accent); font-weight: 600; }
+      .lockline { width: 60rem; display: flex; align-items: center; gap: 0.6rem; margin-top: 1.25rem; font-size: 0.875rem; color: var(--ink-muted); }
+      .lockline .icon { color: var(--accent); }
+
+      /* ---------- Outro ---------- */
+      .outro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .outro__mark { display: flex; align-items: center; gap: 1.5rem; }
+      .outro__tile {
+        display: grid; place-items: center;
+        width: 6.5rem; height: 6.5rem;
+        border-radius: 1.4rem;
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 0.6rem 1.6rem rgb(4 120 87 / calc(0.14 + var(--pulse) * 0.22));
+      }
+      .outro__name { font-size: 5.25rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1; }
+      .outro__laws { margin-top: 2rem; font-size: 1.5rem; font-weight: 500; color: var(--ink-muted); letter-spacing: 0.01em; }
+      .outro__claim { margin-top: 0.9rem; font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+
+      /* Larger type for the evidence scenes so it reads on video. */
+      .stage .section { padding: 1.75rem 2rem; }
+      .stage h2 { font-size: 1.3rem; }
+      .stage .tag { font-size: 0.85rem; }
+      .all-clear, .finding { font-size: 1.05rem; padding: 0.9rem 1.1rem; }
+      .finding__reference { font-size: 0.9rem; }
+      .findings { height: 9.6rem; }
+      .protokoll { font-size: 1rem; }
+      .lockline { font-size: 1.05rem; }
+      .sub { font-size: 1.3rem; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="23" data-width="1920" data-height="1080">
+
+      <!-- Masthead, as in web/src/App.tsx -->
+      <div id="masthead" class="clip" data-start="0" data-duration="18.6" data-track-index="1">
+        <div class="masthead" id="masthead-inner">
+          <div class="masthead__title">
+            <span class="logo-mark"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.25"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+            Zeiterfassung
+          </div>
+          <nav class="nav">
+            <span><i class="nav__active" id="nav-zeiten" style="opacity:1"></i><span class="nav__label" id="nav-zeiten-label" style="color:var(--accent-hover)"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Meine Zeiten</span></span>
+            <span><span class="nav__label"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>Auswertung</span></span>
+            <span><span class="nav__label"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>Vertrag</span></span>
+            <span><i class="nav__active" id="nav-admin"></i><span class="nav__label" id="nav-admin-label"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5" /><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.7.8 2.8 2.6 3 5.2" /></svg>Verwaltung</span></span>
+          </nav>
+          <div class="masthead__account"><span class="avatar">AN</span>Anna</div>
+        </div>
+      </div>
+
+      <!-- Scenes 1+2: Heute page (web/src/pages/Heute.tsx) -->
+      <div id="s-heute" class="clip" data-start="0" data-duration="8.9" data-track-index="2">
+        <div class="page" id="heute-page">
+          <div class="page__inner" id="camera">
+            <div class="page__head">
+              <div>
+                <p class="greeting"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" /></svg>Guten Morgen, Anna</p>
+                <h1>Montag, 12. Oktober 2026</h1>
+                <p class="page__subtitle">Vollzeit · 38,5 h/Woche</p>
+              </div>
+              <div class="clock-chip"><svg class="icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span id="chip-time">07:59</span></div>
+            </div>
+
+            <section class="stamp" data-layout-allow-overflow>
+              <div class="stamp__state">
+                <div class="pills" data-layout-allow-overlap>
+                  <span class="pill" id="pill-idle">Noch nicht begonnen</span>
+                  <span class="pill pill--running" id="pill-run" style="opacity:0">Arbeitszeit läuft</span>
+                  <span class="pill pill--break" id="pill-break" style="opacity:0">Pause läuft</span>
+                </div>
+                <p class="stamp__clock" id="big-clock">0:00</p>
+                <div class="since" data-layout-allow-overlap>
+                  <span id="since-idle">Ein Klick auf „Kommen“ startet die Aufzeichnung.</span>
+                  <span id="since-run" style="opacity:0">seit <b id="since-time" style="font-weight:400">08:00</b> Uhr</span>
+                </div>
+              </div>
+
+              <div class="stamp__actions" data-layout-allow-overlap>
+                <div class="btn-group" id="grp-idle">
+                  <div class="button button--primary" id="btn-kommen"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" /></svg>Kommen</div>
+                </div>
+                <div class="btn-group" id="grp-run" style="opacity:0">
+                  <div class="button"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" /><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3v2.5M12 3v2.5" /></svg>Pause beginnen</div>
+                  <div class="button button--primary"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>Gehen</div>
+                </div>
+                <div class="btn-group" id="grp-break" style="opacity:0">
+                  <div class="button button--primary"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" /></svg>Pause beenden</div>
+                  <div class="button"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>Feierabend</div>
+                </div>
+                <svg class="cursor" id="cursor" viewBox="0 0 24 24"><path d="M4 2.5v17l4.6-4.3 3 6.6 3-1.4-3-6.4 6.3-.4z" fill="#111827" stroke="#fff" stroke-width="1.5" stroke-linejoin="round" /></svg>
+              </div>
+
+              <div class="progress-block lower">
+                <div class="progress-block__labels">
+                  <span><strong id="p-worked">0:52</strong> von 7:42 h</span>
+                  <span class="swap muted" data-layout-allow-overlap><span id="p-rest">noch <b id="p-rest-val" style="font-weight:400">6:50</b> h</span><span id="p-done" style="opacity:0;color:var(--accent);font-weight:600">Tagessoll erreicht</span></span>
+                </div>
+                <div class="progress"><div class="progress__bar" id="p-bar"></div></div>
+              </div>
+
+              <div class="timeline lower">
+                <div class="timeline__track">
+                  <span class="timeline__gridline" style="left:18.18%"></span>
+                  <span class="timeline__gridline" style="left:45.45%"></span>
+                  <span class="timeline__gridline" style="left:72.73%"></span>
+                  <span class="seg" id="seg1" style="left:9.09%;width:38.64%"></span>
+                  <span class="seg seg--break" id="seg2" style="left:47.73%;width:4.54%"></span>
+                  <span class="seg" id="seg3" style="left:52.27%;width:31.82%"></span>
+                </div>
+                <div class="timeline__ticks"><span style="left:18.18%">09:00</span><span style="left:45.45%">12:00</span><span style="left:72.73%">15:00</span></div>
+                <div class="timeline__legend"><span><i class="dot"></i>Arbeit</span><span><i class="dot dot--break"></i>Pause</span></div>
+              </div>
+
+              <dl class="figures lower">
+                <div><dt data-layout-allow-overlap><span>Gearbeitet</span></dt><dd id="f-worked">0:00</dd></div>
+                <div><dt data-layout-allow-overlap><span>Pause</span></dt><dd id="f-break">0:00</dd></div>
+                <div><dt data-layout-allow-overlap><span>Tagessoll</span></dt><dd>7:42</dd></div>
+                <div><dt data-layout-allow-overlap><span id="f-rest-l">Noch offen</span><span id="f-bal-l" style="opacity:0">Saldo heute</span></dt><dd data-layout-allow-overlap><span class="alt" id="f-rest">7:42</span><span class="alt" id="f-bal" style="opacity:0;color:var(--accent)">+0:03</span></dd></div>
+              </dl>
+            </section>
+          </div>
+        </div>
+
+        <div class="toast" id="toast-in">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16 10" /></svg>
+          <div><strong>Eingestempelt um 08:00</strong><p>Einen guten Arbeitstag!</p></div>
+        </div>
+        <div class="toast" id="toast-soll">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16 10" /></svg>
+          <div><strong>Tagessoll erreicht</strong><p>7:42 h sind geschafft.</p></div>
+        </div>
+      </div>
+
+      <!-- Scene 3: Prüfung (Findings.tsx, packages/legal/src/azg.ts) -->
+      <div id="s-pruefung" class="clip" data-start="8.5" data-duration="6.1" data-track-index="3">
+        <div class="stage" id="pruefung-stage">
+          <p class="headline" id="p-head">Grenzen werden nicht nur dokumentiert, sondern <em>laufend überwacht.</em></p>
+          <section class="section" id="p-section">
+            <div class="section__head">
+              <h2>Prüfung</h2>
+              <span class="tag">AZG</span>
+              <div class="daychip" data-layout-allow-overlap><span id="day-a">Mo 12.10.</span><span id="day-b" style="opacity:0">Do 08.10.</span></div>
+            </div>
+            <div class="findings">
+              <p class="all-clear" id="all-clear"><svg class="icon" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16 10" /></svg>Alles im Rahmen — alle Arbeitszeitregeln eingehalten.</p>
+              <div class="finding" id="v1" style="top:0">
+                <svg class="icon" width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z" /><path d="M12 10v4M12 17v.01" /></svg>
+                <p>Tagesarbeitszeit 12:30 h — über der Höchstgrenze von 12 Stunden.</p>
+                <span class="finding__reference">§ 9 Abs 1 AZG</span>
+              </div>
+              <div class="finding" id="v2" style="top:4.9rem">
+                <svg class="icon" width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z" /><path d="M12 10v4M12 17v.01" /></svg>
+                <p>Ruhezeit 9:15 h seit 22:30 — unter den vorgeschriebenen 11 Stunden.</p>
+                <span class="finding__reference">§ 12 Abs 1 AZG</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Scene 4: Änderungsprotokoll (AdminMitarbeiter.tsx, lib/protokoll.ts) -->
+      <div id="s-protokoll" class="clip" data-start="14.3" data-duration="4.3" data-track-index="4">
+        <div class="stage" id="protokoll-stage">
+          <p class="headline" id="pr-head">Lässt sich weder ändern noch löschen.</p>
+          <p class="sub" id="pr-sub">Auch nicht aus der Verwaltung heraus.</p>
+          <section class="section" id="pr-section">
+            <div class="section__head"><h2>Änderungsprotokoll</h2></div>
+            <table class="protokoll">
+              <thead><tr><th>Zeitpunkt</th><th>Von</th><th>Bereich</th><th style="width:50%">Was</th></tr></thead>
+              <tbody>
+                <tr id="pr-row">
+                  <td class="num">06.10.2026, 09:14</td>
+                  <td>Markus</td>
+                  <td>Arbeitszeit</td>
+                  <td>
+                    <p><strong>geändert</strong> · Arbeit am Mo 05.10.2026</p>
+                    <p class="changes"><span>Ende:</span> <span class="strike">16:45<i id="pr-strike"></i></span> → <span class="ins" id="pr-ins">17:30</span></p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <p class="lockline" id="pr-lock"><svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.5 3.2 8 7.5 9.5 4.3-1.5 7.5-5 7.5-9.5V6z" /><path d="m9 12 2 2 4-4" /></svg>Wird von der Datenbank selbst geschrieben, mit jedem Wert vorher und nachher.</p>
+        </div>
+      </div>
+
+      <!-- Scene 5: Outro -->
+      <div id="s-outro" class="clip" data-start="18.2" data-duration="4.8" data-track-index="5">
+        <div class="outro">
+          <div class="outro__mark">
+            <div class="outro__tile" id="o-tile"><svg class="icon" width="62" height="62" viewBox="0 0 24 24" stroke-width="2.25"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></div>
+            <div class="outro__name" id="o-name">Zeiterfassung</div>
+          </div>
+          <p class="outro__laws" id="o-laws">AZG · ARG · KJBG · UrlG</p>
+          <p class="outro__claim" id="o-claim">Hält einer Prüfung nach § 26 AZG stand.</p>
+        </div>
+      </div>
+
+      <!-- Audio -->
+      <audio id="bg-music" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3" data-start="0" data-duration="23" data-track-index="10" data-volume="0.32" data-fade-in="0.5" data-fade-out="1.8"></audio>
+      <audio id="sfx-click" src="assets/sfx/click2.ogg" data-start="1.15" data-duration="0.3" data-track-index="11" data-volume="0.7"></audio>
+      <audio id="sfx-toast1" src="assets/sfx/drop_002.ogg" data-start="1.35" data-duration="0.5" data-track-index="12" data-volume="0.45"></audio>
+      <audio id="sfx-soll" src="assets/sfx/impactSoft_medium_001.ogg" data-start="6.95" data-duration="0.4" data-track-index="11" data-volume="0.6"></audio>
+      <audio id="sfx-v1" src="assets/sfx/impactSoft_heavy_002.ogg" data-start="10.9" data-duration="0.58" data-track-index="12" data-volume="0.5"></audio>
+      <audio id="sfx-v2" src="assets/sfx/impactSoft_medium_001.ogg" data-start="12.0" data-duration="0.19" data-track-index="11" data-volume="0.4"></audio>
+      <audio id="sfx-lock" src="assets/sfx/click_003.ogg" data-start="15.75" data-duration="0.05" data-track-index="12" data-volume="0.6"></audio>
+      <audio id="sfx-bell" src="assets/sfx/impactBell_heavy_000.ogg" data-start="18.52" data-duration="1.48" data-track-index="11" data-volume="0.55"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const pad = (n) => String(n).padStart(2, '0');
+      const dur = (m) => `${Math.floor(m / 60)}:${pad(Math.floor(m % 60))}`;
+      const tod = (m) => `${pad(Math.floor(m / 60) % 24)}:${pad(Math.floor(m % 60))}`;
+      const $ = (id) => document.getElementById(id);
+
+      const swap = (out, inn, at, d = 0.25) => {
+        tl.to(out, { opacity: 0, duration: d }, at);
+        tl.fromTo(inn, { opacity: 0 }, { opacity: 1, duration: d }, at);
+      };
+
+      /* ---------- Scene 1: Kommen (0 – 3.4) ---------- */
+      tl.fromTo('#camera', { scale: 1.2, y: 120, opacity: 0 }, { scale: 1.2, y: 120, opacity: 1, duration: 0.6, ease: 'power2.out' }, 0);
+      tl.set('.lower', { opacity: 0 }, 0);
+      tl.fromTo('#cursor', { x: 220, y: 170, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, 0.3);
+      tl.to('#btn-kommen', { scale: 0.95, duration: 0.08 }, 1.12);
+      tl.to('#btn-kommen', { scale: 1, duration: 0.15 }, 1.2);
+      tl.to('#cursor', { scale: 0.85, duration: 0.08 }, 1.12);
+      tl.to('#cursor', { scale: 1, duration: 0.15 }, 1.2);
+      swap('#grp-idle', '#grp-run', 1.25);
+      swap('#pill-idle', '#pill-run', 1.25);
+      swap('#since-idle', '#since-run', 1.25);
+      tl.to('#cursor', { opacity: 0, x: 60, y: 90, duration: 0.5 }, 1.9);
+      tl.fromTo('#toast-in', { x: 60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: 'back.out(1.4)' }, 1.4);
+      tl.to('#toast-in', { x: 40, opacity: 0, duration: 0.3 }, 3.15);
+      tl.set('#toast-soll', { opacity: 0 }, 0);
+
+      /* ---------- Scene 2: Der Tag (3.4 – 8.6) ---------- */
+      tl.to('#camera', { scale: 1, y: 0, duration: 0.8, ease: 'power3.inOut' }, 3.4);
+      tl.to('.lower', { opacity: 1, duration: 0.5, stagger: 0.08 }, 3.7);
+      tl.fromTo('#seg1', { scaleX: 0 }, { scaleX: 1, duration: 1.0, ease: 'none' }, 3.82); // beat-grid: 3.82
+      tl.fromTo('#seg2', { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'none' }, 4.91); // beat-grid: 4.91
+      tl.fromTo('#seg3', { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: 'none' }, 5.5);
+
+      // Work 08:00–12:15
+      // Break 12:15–12:45
+      swap('#pill-run', '#pill-break', 4.88, 0.2);
+      swap('#grp-run', '#grp-break', 4.88, 0.2);
+      // Work 12:45–16:15
+      swap('#pill-break', '#pill-run', 5.45, 0.2);
+      swap('#grp-break', '#grp-run', 5.45, 0.2);
+      // Tagessoll erreicht
+      swap('#p-rest', '#p-done', 6.88);
+      swap('#f-rest-l', '#f-bal-l', 6.95);
+      swap('#f-rest', '#f-bal', 6.95);
+      tl.to('#p-bar', { backgroundColor: '#047857', duration: 0.3 }, 6.9);
+      tl.fromTo('#toast-soll', { x: 60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: 'back.out(1.4)' }, 6.95);
+      tl.to('#heute-page', { opacity: 0, y: -30, duration: 0.4, ease: 'power2.in' }, 8.45);
+      tl.to('#toast-soll', { opacity: 0, x: 40, duration: 0.3 }, 8.45);
+
+      /* ---------- Scene 3: Prüfung (8.5 – 14.6) ---------- */
+      tl.fromTo('#p-head', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 8.6);
+      tl.fromTo('#p-section', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 8.8);
+      tl.fromTo('#all-clear', { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' }, 9.29); // beat-grid: 9.29
+      tl.to('#all-clear', { opacity: 0, duration: 0.3 }, 10.4);
+      swap('#day-a', '#day-b', 10.4, 0.3);
+      tl.fromTo('#v1', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }, 10.85); // beat-locked: 10.93
+      tl.fromTo('#v2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }, 11.95); // beat-grid: 12.02
+      tl.to('#pruefung-stage', { opacity: 0, y: -30, duration: 0.4, ease: 'power2.in' }, 14.15);
+
+      /* ---------- Scene 4: Protokoll (14.3 – 18.6) ---------- */
+      tl.to('#nav-zeiten', { opacity: 0, duration: 0.3 }, 14.3);
+      tl.to('#nav-zeiten-label', { color: '#5b6474', duration: 0.3 }, 14.3);
+      tl.to('#nav-admin', { opacity: 1, duration: 0.3 }, 14.3);
+      tl.to('#nav-admin-label', { color: '#065f46', duration: 0.3 }, 14.3);
+      tl.fromTo('#pr-head', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out' }, 14.5);
+      tl.fromTo('#pr-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 14.8);
+      tl.fromTo('#pr-section', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out' }, 14.9);
+      tl.fromTo('#pr-row', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 15.15);
+      tl.fromTo('#pr-strike', { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: 'power2.out' }, 15.5);
+      tl.fromTo('#pr-ins', { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.3 }, 15.6);
+      tl.fromTo('#pr-lock', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4 }, 15.75);
+      tl.to('#protokoll-stage', { opacity: 0, duration: 0.4 }, 18.2);
+      tl.to('#masthead-inner', { opacity: 0, y: -20, duration: 0.4 }, 18.2);
+
+      /* ---------- Scene 5: Outro (18.2 – 23) ---------- */
+      tl.fromTo('#o-tile', { scale: 0.4, opacity: 0, rotation: -12 }, { scale: 1, opacity: 1, rotation: 0, duration: 0.5, ease: 'back.out(1.8)' }, 18.1); // beat-locked: 18.56
+      tl.fromTo('#o-name', { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out' }, 18.6);
+      tl.fromTo('#o-laws', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 19.3);
+      tl.fromTo('#o-claim', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 19.9);
+
+      // Every number on the stamp card is a pure function of time, applied once
+      // per frame, so any seek lands on the right value. Minutes of the day.
+      const lerp = (t, a, b, from, to) => from + (to - from) * Math.min(Math.max((t - a) / (b - a), 0), 1);
+      function workday(t) {
+        if (t < 3.82) {
+          const v = t < 1.3 ? 0 : lerp(t, 1.3, 3.4, 0, 52);
+          return { clock: v, chip: t < 1.25 ? 479 : 480 + v, worked: v, pause: 0, since: '08:00' };
+        }
+        if (t < 4.91) {
+          const v = lerp(t, 3.82, 4.82, 52, 255);
+          return { clock: v, chip: 480 + v, worked: v, pause: 0, since: '08:00' };
+        }
+        if (t < 5.5) {
+          const v = lerp(t, 4.91, 5.41, 0, 30);
+          return { clock: v, chip: 735 + v, worked: 255, pause: v, since: '12:15' };
+        }
+        const v = lerp(t, 5.5, 6.9, 0, 210);
+        return { clock: v, chip: 765 + v, worked: 255 + v, pause: 30, since: '12:45' };
+      }
+
+      // Audio-reactive: the bass of the music bed breathes into the logo's shadow.
+      const bass = window.AUDIO_BASS;
+      const rootStyle = $('root').style;
+      const TARGET = 462; // Tagessoll 7:42
+      for (let f = 0; f < 23 * 30; f++) {
+        const t = f / 30;
+        tl.call(() => {
+          rootStyle.setProperty('--pulse', bass.values[Math.min(f, bass.values.length - 1)]);
+          if (t > 8.9) return;
+          const d = workday(t);
+          const rest = Math.max(TARGET - d.worked, 0);
+          $('big-clock').textContent = dur(d.clock);
+          $('chip-time').textContent = tod(d.chip);
+          $('since-time').textContent = d.since;
+          $('f-worked').textContent = dur(d.worked);
+          $('p-worked').textContent = dur(d.worked);
+          $('f-break').textContent = dur(d.pause);
+          $('f-rest').textContent = dur(rest);
+          $('p-rest-val').textContent = dur(rest);
+          gsap.set('#p-bar', { scaleX: Math.min(d.worked / TARGET, 1) });
+        }, [], t);
+      }
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

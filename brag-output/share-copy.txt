@@ -1,0 +1,1 @@
+Zeiterfassung: Arbeitszeiterfassung, die das AZG gelesen hat. Sie stempelt, prüft jeden Tag gegen AZG, ARG und KJBG, nennt bei Verstößen den Paragrafen, und das Änderungsprotokoll lässt sich weder ändern noch löschen.
