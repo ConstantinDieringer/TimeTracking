@@ -23,10 +23,10 @@ function secretsFromEnv() {
   if (!existsSync('.env')) return [];
   return readFileSync('.env', 'utf8')
     .split(/\r?\n/)
-    .map((line) => line.match(/^\s*(SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|[A-Z_]*SECRET[A-Z_]*)\s*=\s*(.+?)\s*$/))
+    .map((line) => line.match(/^\s*(SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|[A-Z_]*(?:SECRET|PASSWORD)[A-Z_]*)\s*=\s*(.+?)\s*$/))
     .filter(Boolean)
     .map((match) => match[2].replace(/^["']|["']$/g, ''))
-    .filter((value) => value.length >= 20);
+    .filter((value) => value.length >= 12);
 }
 
 function* files(dir) {

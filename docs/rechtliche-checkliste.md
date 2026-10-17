@@ -34,8 +34,8 @@ die Daten ist jeweils das Kundenunternehmen.
 - [ ] **Pro-Plan bei Supabase**, bevor echte Daten hineinkommen. Der
       Free-Plan hat keine Backups und pausiert nach einer Woche ohne Nutzung —
       beides verträgt sich nicht mit der Aufbewahrungspflicht.
-- [ ] **Testdaten aus der Cloud entfernen** (Testfirmen mit Passwort
-      `zeiterfassung`), bevor echte Kunden die Plattform nutzen.
+- [ ] **Testdaten aus der Cloud entfernen** (Testfirmen aus `seed.sql`),
+      bevor echte Kunden die Plattform nutzen.
 - [ ] Dashboard → *Authentication*: Selbstregistrierung aus, Mindestlänge für
       Passwörter auf mindestens 12 Zeichen, Schutz vor bekannten geleakten
       Passwörtern einschalten, falls im Plan verfügbar.

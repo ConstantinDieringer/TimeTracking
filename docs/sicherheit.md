@@ -90,8 +90,7 @@ Angriffstests), sofern nicht anders vermerkt.
       Scanning und Push Protection einschalten.
 - [ ] **Pro-Plan** für tägliche Backups; einmal eine Wiederherstellung
       ausprobieren.
-- [ ] **Testzugänge** mit dem Passwort `zeiterfassung` vor dem Echtbetrieb
-      entfernen.
+- [ ] **Testzugänge** aus `seed.sql` vor dem Echtbetrieb entfernen.
 
 ## Offen: noch zu bauen
 

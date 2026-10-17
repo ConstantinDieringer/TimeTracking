@@ -26,6 +26,7 @@ Vor `npm run dev` im Wurzelverzeichnis eine `.env` anlegen (steht in
 ```
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-Schlüssel>
+SEED_PASSWORD=<eigenes Passwort für die Testzugänge>
 ```
 
 Der `service_role`-Schlüssel gehört nie in eine `VITE_`-Variable: Alles mit
@@ -38,10 +39,13 @@ Einladungen gibt, hat niemand einen Grund, sich selbst zu registrieren.
 
 ### Testdaten
 
-`supabase/seed.sql` legt zwei Testunternehmen an, Passwort jeweils
-`zeiterfassung`. In die Cloud kommen sie mit `npx supabase db push
---include-seed`. **Vor dem Echtbetrieb wieder entfernen** — das Passwort steht
-hier im Klartext.
+`supabase/seed.sql` legt zwei Testunternehmen an. In die Cloud kommen sie mit
+`npx supabase db push --include-seed`. Ein Passwort steht nirgends im
+Repository: seed.sql vergibt nur zufällige, die niemand kennt. Danach
+`npm run seed:passwords` ausführen — es setzt allen Testzugängen das Passwort
+aus `SEED_PASSWORD` in der `.env` (mindestens 12 Zeichen mit Buchstaben und
+Ziffern). `test:rls` meldet sich mit demselben Wert an. Für die lokale Instanz:
+`npm run seed:passwords -- --local`. **Vor dem Echtbetrieb wieder entfernen.**
 
 **Honestas Capital GmbH** — deckt zusammen jeden Zweig der Rechtslogik ab:
 
@@ -72,6 +76,7 @@ Melde dich einmal mit jedem der beiden Inhaber an: die Mitarbeiterlisten
 | `npm run security` | `npm audit` und Build mit Bündelprüfung — vor jedem Online-Stellen |
 | `npm test` | Unit-Tests der Rechtslogik und der Exporte |
 | `npm run test:rls` | Prüfung der Zugriffstrennung gegen das verknüpfte Cloud-Projekt |
+| `npm run seed:passwords` | Testzugängen aus `seed.sql` das Passwort aus `SEED_PASSWORD` geben |
 | `npm run db:push` | neue Migrationen in die Cloud übertragen |
 | `npm run db:types` | Datenbanktypen für das Frontend aus der Cloud neu erzeugen |
 | `npm run functions:deploy` | Edge Function `admin-users` deployen |

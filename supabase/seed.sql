@@ -7,7 +7,9 @@
 --   Honestas Capital GmbH  fÃ¼nf Personen, decken jeden Zweig der Rechtslogik ab
 --   Musterbau GmbH         zwei Personen, dient als Gegenprobe
 --
--- Passwort fÃ¼r alle: zeiterfassung
+-- Kein Passwort im Repository: jeder Zugang bekommt hier ein zufälliges,
+-- das niemand kennt. Anmelden lässt sich erst nach `npm run seed:passwords`,
+-- das allen Testzugängen das Passwort aus SEED_PASSWORD in der .env gibt.
 
 -- ---------------------------------------------------------------------------
 -- Benutzer
@@ -31,7 +33,7 @@ select
   '00000000-0000-0000-0000-000000000000',
   person.id,
   'authenticated', 'authenticated', person.email,
-  extensions.crypt('zeiterfassung', extensions.gen_salt('bf')), now(), now(), now(),
+  extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')), now(), now(), now(),
   jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email'), 'hired_on', person.hired_on),
   jsonb_build_object('display_name', person.name),
   '', '', '', '', '', '', '', ''

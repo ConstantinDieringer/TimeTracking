@@ -9,6 +9,7 @@
  * Voraussetzung: `npm run db:start`. Lauf mit `npm run test:rls`.
  */
 
+import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -41,13 +42,22 @@ function anonClient(): SupabaseClient {
 }
 
 /**
- * Passwort für Benutzer, die ein Test neu anlegt. Die Cloud verlangt mindestens
- * 12 Zeichen mit Buchstaben und Ziffern; die Testzugänge aus seed.sql stammen
- * von davor und behalten `zeiterfassung`.
+ * Passwort der Testzugänge aus seed.sql. Steht nicht im Repository, sondern in
+ * der .env (SEED_PASSWORD) und wird mit `npm run seed:passwords` gesetzt.
  */
-const NEUES_PASSWORT = 'zeiterfassung-2026';
+const SEED_PASSWORD = process.env.SEED_PASSWORD ?? '';
+if (!SEED_PASSWORD) {
+  throw new Error('SEED_PASSWORD fehlt: in der .env eintragen und `npm run seed:passwords` ausführen.');
+}
 
-async function signIn(email: string, password = 'zeiterfassung'): Promise<SupabaseClient> {
+/**
+ * Passwort für Benutzer, die ein Test neu anlegt, bei jedem Lauf neu
+ * ausgewürfelt. Die Cloud verlangt mindestens 12 Zeichen mit Buchstaben und
+ * Ziffern; eine UUID hat beides.
+ */
+const NEUES_PASSWORT = randomUUID();
+
+async function signIn(email: string, password = SEED_PASSWORD): Promise<SupabaseClient> {
   const client = anonClient();
   const { error } = await client.auth.signInWithPassword({
     email,
@@ -1261,14 +1271,14 @@ describe('Benutzerverwaltung über die Edge Function', () => {
     const result = await invoke(anna, {
       action: 'set-password',
       userId: SOFIA,
-      password: 'ein-sehr-langes-passwort-2026',
+      password: NEUES_PASSWORT,
     });
     expect(await meldung(result)).toContain('Administratoren');
   });
 
   it('weist fehlerhafte Aufrufe ab, ohne Interna zu nennen', async () => {
     for (const body of [
-      { action: 'set-password', userId: 'keine-kennung', password: 'ein-sehr-langes-passwort-2026' },
+      { action: 'set-password', userId: 'keine-kennung', password: NEUES_PASSWORT },
       { action: 'set-active', userId: SOFIA, active: 'ja' },
       { action: 'create', email: 'x', password: 'kurz', displayName: 'X' },
       { action: 'drop-table' },
@@ -1294,7 +1304,7 @@ describe('Benutzerverwaltung über die Edge Function', () => {
     const result = await invoke(fremderAdmin, {
       action: 'set-password',
       userId: SOFIA,
-      password: 'ein-sehr-langes-passwort-2026',
+      password: NEUES_PASSWORT,
     });
     expect(await meldung(result)).toContain('nicht zu Ihrem Unternehmen');
   });
@@ -1321,14 +1331,14 @@ describe('Benutzerverwaltung über die Edge Function', () => {
       const durchAdmin = await invoke(markus, {
         action: 'set-password',
         userId: id,
-        password: 'neues-passwort-2026',
+        password: randomUUID(),
       });
       expect(await meldung(durchAdmin)).toContain('Inhaber');
 
       const durchInhaber = await invoke(admin, {
         action: 'set-password',
         userId: id,
-        password: 'neues-passwort-2026',
+        password: randomUUID(),
       });
       expect(durchInhaber.error).toBeNull();
 

@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "test:rls": "node scripts/test-rls-cloud.mjs",
     "test:rls:local": "vitest run --config vitest.rls.config.ts",
+    "seed:passwords": "node scripts/seed-passwords.mjs",
     "typecheck": "tsc --build --force",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked --schema public > web/src/lib/database.types.ts",
