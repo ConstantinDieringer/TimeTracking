@@ -27,10 +27,10 @@
     "db:reset": "supabase db reset"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.116.0",
-    "supabase": "^2.117.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.4.3",
+    "@supabase/supabase-js": "^2.117.3",
+    "supabase": "^2.120.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
   },
   "engines": {
