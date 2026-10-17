@@ -14,11 +14,22 @@ nötig.
 npm install
 npx supabase login                          # einmalig, öffnet den Browser
 npx supabase link --project-ref <ref>       # fragt nach dem Datenbank-Passwort
-cp .env.example .env                        # Project URL und anon-Schlüssel eintragen
 npm run db:push                             # Migrationen in die Cloud
 npm run functions:deploy                    # Edge Function admin-users
 npm run dev                                 # http://localhost:5173
 ```
+
+Vor `npm run dev` im Wurzelverzeichnis eine `.env` anlegen (steht in
+`.gitignore`) mit Project URL und anon-Schlüssel aus dem Dashboard unter
+*Project Settings → API*:
+
+```
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-Schlüssel>
+```
+
+Der `service_role`-Schlüssel gehört nie in eine `VITE_`-Variable: Alles mit
+diesem Präfix landet im Browser-Bündel.
 
 Im Dashboard unter *Authentication → Sign In / Providers* die
 Selbstregistrierung abschalten („Allow new users to sign up“). Rechte verleiht
